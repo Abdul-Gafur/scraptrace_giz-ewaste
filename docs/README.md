@@ -39,11 +39,38 @@ The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrac
 - [API design standards](engineering/api-design-standards.md)
 - [Documentation standards](engineering/documentation-standards.md)
 
+## AI and safety content
+
+- [AI governance index](ai/README.md)
+- [AI system overview](ai/ai-system-overview.md)
+- [Computer-vision design](ai/computer-vision-design.md)
+- [LLM safety and grounding](ai/llm-safety-and-grounding.md)
+- [Safety-content governance](ai/safety-content-governance.md)
+- [Model evaluation](ai/model-evaluation.md)
+- [Data and label governance](ai/data-and-label-governance.md)
+- [Responsible AI](ai/responsible-ai.md)
+
+## Data
+
+- [Data governance index](data/README.md)
+- [Data-model overview](data/data-model-overview.md)
+- [Recovery record](data/recovery-record.md)
+- [Data classification](data/data-classification.md)
+- [Data retention](data/data-retention.md)
+- [Dataset management](data/dataset-management.md)
+
+## Security and privacy
+
+- [Security documentation index](security/README.md)
+- [Security and privacy](security/security-and-privacy.md)
+- [Threat model](security/threat-model.md)
+- [Access control](security/access-control.md)
+- [Secrets management](security/secrets-management.md)
+- [Vulnerability reporting](security/vulnerability-reporting.md)
+- [Root security policy](../SECURITY.md)
+
 ## Reserved sections
 
-- [AI](ai/README.md)
-- [Data](data/README.md)
-- [Security](security/README.md)
 - [Operations](operations/README.md)
 - [Prototype](prototype/README.md)
 

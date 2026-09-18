@@ -6,7 +6,7 @@ Many e-waste collections lack linked records showing origin, collector, handover
 
 ## Status
 
-Phases 1 and 2 establish the monorepo, product and architecture documentation, and proposed engineering standards. No application, model, integration, or deployment implementation exists yet. See the [prototype scope](docs/product/prototype-scope.md) for required, optional, future, and excluded capabilities.
+Phases 1–3 establish the monorepo and initial product, architecture, engineering, AI, data, privacy, and security governance. No application, model, dataset, integration, or deployment implementation exists yet. See the [prototype scope](docs/product/prototype-scope.md) for required, optional, future, and excluded capabilities.
 
 ## Repository map
 
@@ -15,10 +15,10 @@ Phases 1 and 2 establish the monorepo, product and architecture documentation, a
 - `packages/`: proposed shared contracts, UI, content, utilities, and configuration
 - `data/`: governed sample-data area; no datasets are included
 - `infrastructure/`: reserved future local and deployment infrastructure
-- `docs/`: [product](docs/product/product-vision.md), [architecture](docs/architecture/system-overview.md), and decision records
+- `docs/`: [product](docs/product/product-vision.md), [architecture](docs/architecture/system-overview.md), [engineering](docs/engineering/README.md), [AI](docs/ai/README.md), [data](docs/data/README.md), and [security](docs/security/README.md) governance
 - `tests/` and `scripts/`: reserved cross-component testing and repository tooling
 
-Start with the [documentation index](docs/README.md), authoritative [Concept Note](concept_note.md), [engineering guide](docs/engineering/README.md), [contribution guide](CONTRIBUTING.md), and [Code of Conduct](CODE_OF_CONDUCT.md).
+Start with the [documentation index](docs/README.md), authoritative [Concept Note](concept_note.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Current limitations
 
