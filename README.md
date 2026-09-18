@@ -6,7 +6,7 @@ Many e-waste collections lack linked records showing origin, collector, handover
 
 ## Status
 
-Phase 1 establishes the monorepo structure and initial product and architecture documentation. No application, model, integration, or deployment implementation exists yet. See the [prototype scope](docs/product/prototype-scope.md) for required, optional, future, and excluded capabilities.
+Phases 1 and 2 establish the monorepo, product and architecture documentation, and proposed engineering standards. No application, model, integration, or deployment implementation exists yet. See the [prototype scope](docs/product/prototype-scope.md) for required, optional, future, and excluded capabilities.
 
 ## Repository map
 
@@ -18,7 +18,7 @@ Phase 1 establishes the monorepo structure and initial product and architecture 
 - `docs/`: [product](docs/product/product-vision.md), [architecture](docs/architecture/system-overview.md), and decision records
 - `tests/` and `scripts/`: reserved cross-component testing and repository tooling
 
-Start with the [documentation index](docs/README.md), the authoritative [Concept Note](concept_note.md), and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Start with the [documentation index](docs/README.md), authoritative [Concept Note](concept_note.md), [engineering guide](docs/engineering/README.md), [contribution guide](CONTRIBUTING.md), and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Current limitations
 

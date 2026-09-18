@@ -25,13 +25,26 @@ The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrac
 - [Technology decisions](architecture/technology-decisions.md)
 - [Architecture decision records](decisions/README.md)
 
+## Engineering
+
+- [Engineering documentation index](engineering/README.md)
+- [Coding standards](engineering/coding-standards.md)
+- [Collaboration guide](engineering/collaboration-guide.md)
+- [Git workflow](engineering/git-workflow.md)
+- [Pull-request guide](engineering/pull-request-guide.md)
+- [Testing strategy](engineering/testing-strategy.md)
+- [Definition of done](engineering/definition-of-done.md)
+- [Dependency management](engineering/dependency-management.md)
+- [Error handling and logging](engineering/error-handling-and-logging.md)
+- [API design standards](engineering/api-design-standards.md)
+- [Documentation standards](engineering/documentation-standards.md)
+
 ## Reserved sections
 
-- [Engineering](engineering/README.md)
 - [AI](ai/README.md)
 - [Data](data/README.md)
 - [Security](security/README.md)
 - [Operations](operations/README.md)
 - [Prototype](prototype/README.md)
 
-Project participation is governed by the initial [Code of Conduct](../CODE_OF_CONDUCT.md). Contribution procedures and licence terms are **to be decided**.
+Project participation is governed by the [contribution guide](../CONTRIBUTING.md) and initial [Code of Conduct](../CODE_OF_CONDUCT.md). Licence terms are **to be decided**.
