@@ -1,3 +1,11 @@
-# Prototype documentation
+# Hackathon planning and delivery
 
-Reserved for later demonstration scripts, setup instructions, known issues, evaluation results, and evidence from the implemented hackathon prototype. Current scope is defined in [Prototype scope](../product/prototype-scope.md).
+This section plans the initial ScrapTrace application release and hackathon demonstration. It contains no implementation, deployment, model, dataset, safety advice, or real programme data.
+
+- [Implementation plan](implementation-plan.md)
+- [Demo journey](demo-journey.md)
+- [Demonstration data](prototype-data.md)
+- [Known limitations](known-limitations.md)
+- [Delivery checklist](delivery-checklist.md)
+
+The authoritative capability boundary is [Hackathon scope](../product/prototype-scope.md). The plan prioritises one complete journey over disconnected features and must be updated when accepted scope or dependencies change.

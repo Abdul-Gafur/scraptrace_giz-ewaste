@@ -270,7 +270,7 @@ Follow [Testing strategy](testing-strategy.md).
 - Prefer structured output mapped to the five approved card questions plus provenance; validate schema and content before display.
 - Return card/source metadata, approval/review date, language, and generated-versus-cached status where relevant.
 - For missing content, provider failure, timeout, or failed validation, show approved source content or reviewed fallback; never fill gaps.
-- Evaluate unsupported additions, omissions, hazardous instructions, prompt injection, translation meaning, refusal, and fallback across prototype languages.
+- Evaluate unsupported additions, omissions, hazardous instructions, prompt injection, translation meaning, refusal, and fallback across hackathon languages.
 - Treat card and user text as data, delimit it, minimise it, disable unneeded tools, and reject attempts to override system policy.
 - Language transformation may simplify, translate, or prepare read-aloud text but preserves prohibitions, uncertainty, and referrals.
 - No medical diagnosis or personalised exposure treatment; use only reviewed referral/emergency wording.

@@ -1,6 +1,6 @@
 # Data governance
 
-This section defines the proposed logical data model, central recovery record, classification, retention, and dataset lifecycle. It does not create a database, schema, migration, dataset, or retention schedule.
+This section defines the logical data model, central recovery record, classification, retention, and dataset lifecycle. It does not create a database, schema, migration, dataset, or retention schedule.
 
 - [Data-model overview](data-model-overview.md)
 - [Recovery record](recovery-record.md)

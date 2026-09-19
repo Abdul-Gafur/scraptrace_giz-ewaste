@@ -6,7 +6,7 @@
 
 ## Context
 
-ScrapTrace's prototype spans a mobile-friendly web experience, an application API, computer vision, controlled safety/LLM behaviour, shared contracts and reviewed content, data governance, evidence workflows, and cross-component documentation. Changes to a category, safety-card schema, recovery record, or review state may affect several of these areas at once.
+ScrapTrace spans a mobile-friendly web experience, an application API, computer vision, controlled safety/LLM behaviour, shared contracts and reviewed content, data governance, evidence workflows, and cross-component documentation. Changes to a category, safety-card schema, recovery record, or review state may affect several of these areas at once.
 
 The project owner explicitly confirmed a target monorepo directory structure for Phase 1. The repository previously contained only the Concept Note and an empty root README. No build tooling, framework, runtime, deployment, or package manager is selected.
 
@@ -18,7 +18,7 @@ Use one monorepo with these ownership areas:
 - `services/vision` and `services/safety-assistant` for specialist service boundaries;
 - `packages/ui`, `contracts`, `shared`, `safety-content`, and `configuration` for narrowly defined shared assets;
 - `data`, `infrastructure`, `scripts`, and `tests` for governed repository-wide concerns; and
-- `docs` for product, architecture, engineering, AI, data, security, operations, prototype, and ADR documentation.
+- `docs` for product, architecture, engineering, AI, data, security, operations, hackathon delivery, and ADR documentation.
 
 Components may remain independently deployable. Applications and services must not import each other's private files; cross-service communication uses defined contracts. This decision accepts organisation and ownership boundaries only. It does not select frameworks, package management, build orchestration, hosting, or service topology.
 
@@ -26,7 +26,7 @@ Components may remain independently deployable. Applications and services must n
 
 ### Separate repositories per application or service
 
-This could provide stronger repository-level isolation and independent release histories. It was not selected for the initial prototype because coordinated contract, content, documentation, and journey changes would require more cross-repository version and review overhead.
+This could provide stronger repository-level isolation and independent release histories. It was not selected for the initial release because coordinated contract, content, documentation, and journey changes would require more cross-repository version and review overhead.
 
 ### One undifferentiated application directory
 
@@ -75,4 +75,4 @@ A monorepo increases the importance of repository access control because documen
 - [Monorepo architecture](../architecture/monorepo-architecture.md)
 - [Component boundaries](../architecture/component-boundaries.md)
 - [Technology decisions](../architecture/technology-decisions.md)
-- [Prototype scope](../product/prototype-scope.md)
+- [Hackathon scope](../product/prototype-scope.md)

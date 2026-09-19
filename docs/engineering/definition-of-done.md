@@ -7,7 +7,7 @@ A feature, fix, or material documentation change is done only when every applica
 ## Scope and correctness
 
 - [ ] The linked issue has current acceptance criteria and each is satisfied with evidence.
-- [ ] Behaviour matches the [product requirements](../product/functional-requirements.md) and does not silently expand prototype scope.
+- [ ] Behaviour matches the [product requirements](../product/functional-requirements.md) and does not silently expand the hackathon scope.
 - [ ] Source evidence, predictions, estimates, measurements, confirmations, and review decisions remain distinct.
 - [ ] Important uncertainty and limitations are visible to users and operators.
 
@@ -50,6 +50,8 @@ A feature, fix, or material documentation change is done only when every applica
 - [ ] Required component and specialist reviews are complete with no unresolved blocking threads.
 - [ ] The change is safe to merge and has documented rollout, migration, and rollback considerations where applicable.
 
-## Phase 2 note
+## Current repository status
 
-There is no CI implementation yet. References to CI are future gates, not claims that automated checks currently exist.
+There is no CI implementation. References to CI are future gates, not claims that automated checks currently exist.
+
+For a hackathon release, apply the broader [delivery checklist](../prototype/delivery-checklist.md) in addition to this change-level definition.

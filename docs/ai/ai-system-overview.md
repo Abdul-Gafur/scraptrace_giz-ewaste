@@ -2,13 +2,13 @@
 
 ## Status and purpose
 
-This is a **proposed** logical design. Phase 3 implements no AI capability. AI assists category suggestion and controlled language transformation; it is not the system of record and does not verify recycling by itself.
+This is a **proposed** logical design. The repository currently implements no AI capability. AI would assist category suggestion and controlled language transformation; it would not be the system of record or verify recycling by itself.
 
 ## Separate responsibilities
 
 | Capability | Responsibility | Must not do |
 |---|---|---|
-| Computer-vision model | Suggest one of the seven prototype categories with confidence and model version | Determine weight, value, condition, processing, or verification |
+| Computer-vision model | Suggest one of the seven supported categories with confidence and model version | Determine weight, value, condition, processing, or verification |
 | Approved safety-content store | Hold reviewed, versioned safety-card fields and provenance | Contain generated guesses or unapproved advice |
 | Safety-content retrieval | Select an approved card by confirmed/manual category, language, and current approval state | Search unrestricted content or infer missing facts |
 | LLM explanation layer | Explain, simplify, translate, or prepare read-aloud wording from retrieved approved content | Add facts, override content, diagnose, promise prices, or approve recyclers |

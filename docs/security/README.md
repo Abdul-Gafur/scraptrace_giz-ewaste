@@ -1,6 +1,6 @@
 # Security and privacy governance
 
-This section defines proposed security and privacy expectations. No authentication, authorisation, encryption, secret store, monitoring, scanner, or other security control is implemented by these documents.
+This section defines security and privacy expectations. No authentication, authorisation, encryption, secret store, monitoring, scanner, or other security control is implemented by these documents.
 
 - [Security and privacy](security-and-privacy.md)
 - [Threat model](threat-model.md)

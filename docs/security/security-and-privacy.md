@@ -2,9 +2,9 @@
 
 ## Status
 
-This document defines a proposed governance baseline. Phase 3 implements no safeguards. Before a pilot, the team needs an approved threat model, data inventory, legal/privacy analysis, access model, retention schedule, provider review, security testing, incident process, and verified technical controls.
+This document defines a proposed governance baseline; documentation alone implements no safeguards. Before a pilot, the team needs an approved threat model, data inventory, legal/privacy analysis, access model, retention schedule, provider review, security testing, incident process, and verified technical controls.
 
-## Prototype expectations
+## Hackathon release expectations
 
 - Use synthetic or explicitly authorised demonstration data; do not use production personal data or unrestricted challenge images.
 - Demonstrate role-separated journeys without claiming production-grade identity or access assurance.
@@ -12,7 +12,7 @@ This document defines a proposed governance baseline. Phase 3 implements no safe
 - Minimise identity, location precision, image metadata, LLM payloads, and telemetry.
 - Distinguish local, submitted, received, completed, under-review, and programme-approved states.
 - Keep evidence protected and programme-scoped in any demonstration environment.
-- Label security, duplicate, QR, and verification checks as prototype indicators rather than guarantees.
+- Label security, duplicate, QR, and verification checks as initial indicators rather than guarantees.
 - Conduct focused review of upload, access control, offline storage, LLM grounding, and public dashboard exposure before demonstration.
 
 ## Production requirements

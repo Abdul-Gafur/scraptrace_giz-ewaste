@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-These standards are proposed for ScrapTrace-owned HTTP APIs if the proposed OpenAPI approach is accepted. They document conventions only; no API exists in Phase 2. Internal services may use another accepted protocol, but equivalent contract, validation, error, idempotency, security, and compatibility rules apply.
+These standards are proposed for ScrapTrace-owned HTTP APIs if the proposed OpenAPI approach is accepted. They document conventions only; no API currently exists. Internal services may use another accepted protocol, but equivalent contract, validation, error, idempotency, security, and compatibility rules apply.
 
 ## Contract first
 

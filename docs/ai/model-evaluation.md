@@ -42,7 +42,7 @@ Establish a simple, reproducible baseline before selecting a complex model. Ever
 
 ## Acceptance thresholds
 
-Thresholds for release, low-confidence routing, category floors, calibration, latency, size, and edge performance are **to be decided through testing**. Selection must consider user comprehension, consequences of misclassification, fallback quality, human-review capacity, category imbalance, target devices, connectivity, and prototype versus pilot scope. Thresholds are versioned policy, not embedded unexplained constants.
+Thresholds for release, low-confidence routing, category floors, calibration, latency, size, and edge performance are **to be decided through testing**. Selection must consider user comprehension, consequences of misclassification, fallback quality, human-review capacity, category imbalance, target devices, connectivity, and hackathon-versus-pilot scope. Thresholds are versioned policy, not embedded unexplained constants.
 
 ## Real scrapyard conditions
 

@@ -1,6 +1,6 @@
 # Contracts package
 
-- **Purpose:** Proposed source for versioned interfaces shared across component boundaries.
+- **Purpose:** Source for versioned interfaces shared across component boundaries.
 - **Belongs here:** API schemas, event shapes, identifiers, and compatibility guidance.
 - **Must not contain:** Service implementation, database access, UI components, or provider-specific secrets.
 - **Interactions:** May be consumed by applications, services, and contract tests.

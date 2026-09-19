@@ -87,4 +87,4 @@ Each queued command carries a stable operation identifier/idempotency key. The s
 3. Verified aggregates include only records satisfying the accepted completeness and review rules.
 4. Pending, flagged, rejected, and unsynchronised data is displayed separately where authorised.
 5. Public or broad views remove personal collector details and apply disclosure controls **to be decided**.
-6. Every view reports definitions and freshness; prototype output is not automatically an official report.
+6. Every view reports definitions and freshness; application output is not automatically an official report.

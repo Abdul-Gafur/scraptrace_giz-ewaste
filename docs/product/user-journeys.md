@@ -1,6 +1,6 @@
 # User journeys
 
-These are required or proposed prototype journeys, not implemented behaviour. Each journey uses defined roles from [Users and roles](users-and-roles.md).
+These are required or proposed hackathon journeys, not implemented behaviour. Each journey uses defined roles from [Users and roles](users-and-roles.md).
 
 ## Collector creates a record
 

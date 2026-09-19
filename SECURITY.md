@@ -24,5 +24,6 @@ If a credential may be exposed, report it privately and revoke or rotate it imme
 - [Threat model](docs/security/threat-model.md)
 - [Security and privacy baseline](docs/security/security-and-privacy.md)
 - [Secrets management](docs/security/secrets-management.md)
+- [Incident-response process](docs/operations/incident-response.md)
 
 Response targets, safe-harbour terms, disclosure policy, and permanent contacts are **to be decided**.

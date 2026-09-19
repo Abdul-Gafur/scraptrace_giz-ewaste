@@ -6,7 +6,7 @@ The repository organisation is **Accepted** because the project owner explicitly
 
 ## Why a monorepo fits
 
-The prototype's web, API, vision, safety, content, and evidence workflows change together. A monorepo makes contract changes, reviewed safety content, cross-component tests, and documentation visible in one review while retaining clear ownership boundaries. It does not require all components to share a runtime or deployment.
+The platform's web, API, vision, safety, content, and evidence workflows change together. A monorepo makes contract changes, reviewed safety content, cross-component tests, and documentation visible in one review while retaining clear ownership boundaries. It does not require all components to share a runtime or deployment.
 
 ## Top-level ownership
 
@@ -57,11 +57,11 @@ Contracts should be provider-neutral, versioned, compatibility-tested, and revie
 
 ## Coordinating changes
 
-A change that crosses boundaries should update the contract first, identify compatibility and migration needs, update affected components in one coordinated review where practical, and include contract or journey tests. Safety-content changes additionally require domain approval; model changes require evaluation and release review. Ownership rules should eventually be enforced with repository review configuration, which is not part of Phase 1.
+A change that crosses boundaries should update the contract first, identify compatibility and migration needs, update affected components in one coordinated review where practical, and include contract or journey tests. Safety-content changes additionally require domain approval; model changes require evaluation and release review. Ownership rules should eventually be enforced with repository review configuration, which does not currently exist.
 
 ## Independent deployment
 
-The web app, API, vision service, and safety-assistant service may become independently deployable. Independence is a possibility, not a requirement to distribute every component for the prototype. The database, location capability, and dashboard may initially remain API/web modules. Deployment topology depends on latency, offline behaviour, cost, security, and team capacity validation.
+The web app, API, vision service, and safety-assistant service may become independently deployable. Independence is a possibility, not a requirement to distribute every component for the hackathon release. The database, location capability, and dashboard may initially remain API/web modules. Deployment topology depends on latency, offline behaviour, cost, security, and team capacity validation.
 
 ## Preventing circular dependencies
 

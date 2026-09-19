@@ -2,7 +2,7 @@
 
 ## Status
 
-This workflow is proposed for team approval. It creates no repository protection or automation in Phase 2.
+This workflow is proposed for team approval. It does not create repository protection or automation.
 
 ## Main branch
 

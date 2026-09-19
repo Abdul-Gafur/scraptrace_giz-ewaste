@@ -1,13 +1,13 @@
 # Documentation index
 
-The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrace's problem, users, solution, prototype workflow, and limitations. These documents translate it into an initial product and proposed technical foundation. Where the Concept Note does not settle a point, the documentation labels it proposed, deferred, or to be decided.
+The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrace's problem, users, solution, hackathon workflow, and limitations. These documents translate it into the product and technical foundation. Where the Concept Note does not settle a point, the documentation records its decision status rather than presenting it as implemented fact.
 
 ## Product
 
 - [Product vision](product/product-vision.md)
 - [Problem and context](product/problem-and-context.md)
 - [Users and roles](product/users-and-roles.md)
-- [Prototype scope](product/prototype-scope.md)
+- [Hackathon scope](product/prototype-scope.md)
 - [User journeys](product/user-journeys.md)
 - [Functional requirements](product/functional-requirements.md)
 - [Non-functional requirements](product/non-functional-requirements.md)
@@ -69,9 +69,21 @@ The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrac
 - [Vulnerability reporting](security/vulnerability-reporting.md)
 - [Root security policy](../SECURITY.md)
 
-## Reserved sections
+## Operations
 
-- [Operations](operations/README.md)
-- [Prototype](prototype/README.md)
+- [Operations documentation index](operations/README.md)
+- [Environments](operations/environments.md)
+- [Observability](operations/observability.md)
+- [Deployment strategy](operations/deployment-strategy.md)
+- [Incident response](operations/incident-response.md)
+
+## Hackathon planning and delivery
+
+- [Hackathon delivery index](prototype/README.md)
+- [Implementation plan](prototype/implementation-plan.md)
+- [Demo journey](prototype/demo-journey.md)
+- [Demonstration data](prototype/prototype-data.md)
+- [Known limitations](prototype/known-limitations.md)
+- [Delivery checklist](prototype/delivery-checklist.md)
 
 Project participation is governed by the [contribution guide](../CONTRIBUTING.md) and initial [Code of Conduct](../CODE_OF_CONDUCT.md). Licence terms are **to be decided**.

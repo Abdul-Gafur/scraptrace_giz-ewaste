@@ -4,7 +4,7 @@
 
 This document proposes how `services/vision` could support category suggestion. No dataset has been inspected in this repository, no task type is confirmed, and no model is implemented or trained.
 
-## Prototype categories
+## Supported hackathon categories
 
 The Concept Note names seven groups:
 

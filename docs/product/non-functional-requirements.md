@@ -1,6 +1,6 @@
 # Non-functional requirements
 
-Phase 1 sets quality expectations but does not invent production service levels. Every requirement is **Proposed**; measurable thresholds marked “to be decided” require prototype measurement, field research, threat modelling, or operational design.
+These documents set quality expectations but do not invent production service levels. Every requirement is **Proposed**; measurable thresholds marked “to be decided” require implementation measurement, field research, threat modelling, or operational design.
 
 | Identifier | Area | Requirement statement | Acceptance condition or proposed target | Priority | Status |
 |---|---|---|---|---|---|
@@ -11,11 +11,11 @@ Phase 1 sets quality expectations but does not invent production service levels.
 | NFR-PRI-002 | Privacy | Collector personal details shall not appear on a public dashboard. | Public/aggregate views contain no direct identifiers and pass a disclosure-risk review. | Must | Proposed |
 | NFR-PRI-003 | Privacy | Images or corrections shall not be reused for model training without clear notice, permission, provenance, and authorised review. | Dataset admission checks require recorded rights/consent and reviewer decision. | Must | Proposed |
 | NFR-ACC-001 | Accessibility | Core journeys shall target WCAG 2.1 AA, including keyboard use, screen-reader semantics, focus, contrast, and non-colour status cues. | Automated and manual checks cover core journeys; exceptions are documented. | Must | Proposed |
-| NFR-ACC-002 | Accessibility | Safety and status content shall use clear language and support the selected prototype languages. | Domain and language reviewers approve critical wording; exact readability targets are to be decided with users. | Must | Proposed |
+| NFR-ACC-002 | Accessibility | Safety and status content shall use clear language and support the selected hackathon languages. | Domain and language reviewers approve critical wording; exact readability targets are to be decided with users. | Must | Proposed |
 | NFR-MOB-001 | Mobile responsiveness | Core collector and household journeys shall work on supported small-screen phone browsers. | Viewport, touch-target, orientation, camera, and constrained-bandwidth tests pass against a device matrix to be decided. | Must | Proposed |
 | NFR-OFF-001 | Offline behaviour | Loss of connectivity shall not erase acknowledged local work or falsely show it as server-synchronised. | Network interruption tests preserve data and expose accurate states through restart and retry. | Must | Proposed |
 | NFR-OFF-002 | Offline behaviour | Cached content shall display version or freshness and degrade to approved fallbacks. | Stale/missing cache tests show clear status and no newly invented LLM safety content. | Must | Proposed |
-| NFR-PER-001 | Performance | The prototype shall provide responsive local capture, form entry, cached guidance, and status updates on the agreed device matrix. | Baselines and budgets are measured during implementation; numerical targets are proposed only after baseline testing. | Must | Proposed |
+| NFR-PER-001 | Performance | The application shall provide responsive local capture, form entry, cached guidance, and status updates on the agreed device matrix. | Baselines and budgets are measured during implementation; numerical targets are proposed only after baseline testing. | Must | Proposed |
 | NFR-PER-002 | Performance | Network and inference operations shall expose progress, timeout, retry, and fallback behaviour. | Slow/failing dependency tests never leave the user with an indefinite unexplained state; thresholds are to be decided. | Must | Proposed |
 | NFR-REL-001 | Reliability | Retried commands shall be idempotent where duplication could affect records, confirmations, or future payments. | Duplicate and reordered request tests produce one intended state transition. | Must | Proposed |
 | NFR-REL-002 | Reliability | Recovery and backup expectations shall be defined before persistent pilot data is accepted. | Approved recovery objectives, backup scope, restore test, and owner exist; numeric objectives are to be decided. | Should | Proposed |
@@ -31,4 +31,4 @@ Phase 1 sets quality expectations but does not invent production service levels.
 
 ## Target-setting rule
 
-Latency, availability, recovery, retention, model-quality, translation-quality, and scale targets are intentionally not numeric in Phase 1. Owners must establish baselines, user needs, risk tolerance, and pilot conditions before proposing measurable thresholds and recording accepted decisions.
+Latency, availability, recovery, retention, model-quality, translation-quality, and scale targets are intentionally not numeric. Owners must establish baselines, user needs, risk tolerance, and pilot conditions before proposing measurable thresholds and recording accepted decisions.

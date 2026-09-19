@@ -4,7 +4,7 @@ The [Concept Note](../../concept_note.md) is authoritative. This register preven
 
 ## Confirmed constraints
 
-- The prototype centres on one end-to-end journey from in-app image capture through processing evidence.
+- The hackathon scope centres on one end-to-end journey from in-app image capture through processing evidence.
 - The challenge dataset contains 5,000 real images from Ghanaian scrapyards across seven stated categories; access rights, split quality, and detailed metadata are not documented in this repository.
 - Safety instructions must come from approved, sourced, reviewed cards. The LLM may explain, simplify, translate, or read that material but must not invent missing guidance.
 - User corrections require review and must not update the model immediately.
@@ -21,7 +21,7 @@ The [Concept Note](../../concept_note.md) is authoritative. This register preven
 - **Proposed:** Participating organisations can supply accurate directory records, accepted categories, hours, and dated rates.
 - **Proposed:** Domain reviewers can approve safety cards for all seven categories and review critical translations.
 - **Proposed:** Recycler staff can capture scale evidence and enter measured weight at handover.
-- **Proposed:** Approximate location provides sufficient prototype discovery without storing unnecessary precise location in all views.
+- **Proposed:** Approximate location provides sufficient hackathon discovery without storing unnecessary precise location in all views.
 - **Proposed:** An authorised demonstration environment can represent role-separated collector, recycler, reviewer, and manager actions.
 
 ## External dependencies
@@ -50,7 +50,7 @@ The [Concept Note](../../concept_note.md) is authoritative. This register preven
 
 ## Hackathon limitations
 
-- The prototype demonstrates feasibility and an understandable workflow; it is not production assurance.
+- The hackathon demonstration shows feasibility and an understandable workflow; it is not production assurance.
 - Sample local price information cannot establish a real offer or guaranteed income.
 - Duplicate-image and unusual-weight checks are indicators for review, not proof of fraud.
 - A dashboard demonstrates reporting concepts but not official acceptance.

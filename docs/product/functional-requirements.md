@@ -1,6 +1,6 @@
 # Functional requirements
 
-All requirements have initial status **Proposed** because Phase 1 contains no implementation. Priorities are `Must`, `Should`, or `Could` for the hackathon prototype. Acceptance conditions define testable intent; detailed test cases are deferred.
+All requirements have status **Proposed** because the repository contains no implementation. Priorities are `Must`, `Should`, or `Could` for the hackathon scope. Acceptance conditions define testable intent; detailed test cases are deferred.
 
 ## Collector and household experience
 
@@ -10,7 +10,7 @@ All requirements have initial status **Proposed** because Phase 1 contains no im
 | FR-COL-002 | The system shall collect category confirmation, item count, condition, and approximate location with permission. | These fields support guidance, estimates, discovery, and records. | The user can review each field; refusal of location permission offers manual area entry. | Must | Proposed |
 | FR-COL-003 | The system shall present the current record status and history for records visible to the user. | Users need evidence and understandable progress. | A user can distinguish draft, pending sync, submitted, received, flagged, processed, approved, and rejected states that apply. | Must | Proposed |
 | FR-HOU-001 | The system shall let a household user obtain approved guidance without creating a complete recovery record. | Safety guidance should not depend on programme participation. | A user can select or classify a supported category and view its approved card without completing delivery fields. | Must | Proposed |
-| FR-HOU-002 | The system shall support English, French, Arabic, and Portuguese content for the prototype. | The Concept Note requires multilingual access. | Users can switch language and required prototype labels, safety warnings, location details, and statuses appear in the selected language; quality is reviewed. | Must | Proposed |
+| FR-HOU-002 | The system shall support English, French, Arabic, and Portuguese content within the hackathon scope. | The Concept Note requires multilingual access. | Users can switch language and required labels, safety warnings, location details, and statuses appear in the selected language; quality is reviewed. | Must | Proposed |
 
 ## Recycler experience
 
@@ -33,7 +33,7 @@ All requirements have initial status **Proposed** because Phase 1 contains no im
 
 | Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
 |---|---|---|---|---|---|
-| FR-AI-001 | The vision capability shall suggest one of the seven Concept Note categories and provide a confidence value. | Category selection drives the prototype journey while exposing uncertainty. | For a valid test image, the response contains category, bounded confidence, model version, and outcome or error. | Must | Proposed |
+| FR-AI-001 | The vision capability shall suggest one of the seven Concept Note categories and provide a confidence value. | Category selection drives the collection journey while exposing uncertainty. | For a valid test image, the response contains category, bounded confidence, model version, and outcome or error. | Must | Proposed |
 | FR-AI-002 | The system shall allow correction of a suggested category while preserving the original result. | Human correction improves the record without hiding model behaviour. | Original prediction, confidence, user correction, time, and actor are retained and reviewable. | Must | Proposed |
 | FR-AI-003 | Corrections shall not update a deployed model automatically. | Unreviewed or malicious labels must not become training truth. | A correction enters a review queue; no training-data approval or model release occurs without separate authorised actions. | Must | Proposed |
 | FR-AI-004 | The system shall communicate low confidence and support manual selection. | Users must not be forced to accept uncertain output. | Below a configurable reviewed threshold, the interface marks uncertainty and requires confirmation or manual category selection. | Must | Proposed |

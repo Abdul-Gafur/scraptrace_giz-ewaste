@@ -2,13 +2,13 @@
 
 ## Status and scope
 
-Phase 1 contains documentation and directory placeholders only. The architecture below is **proposed**, not implemented. It supports the required [prototype scope](../product/prototype-scope.md) while keeping future financial and government capabilities outside the active boundary.
+The repository currently contains documentation and directory placeholders only. The architecture below is **proposed**, not implemented. It supports the required [hackathon scope](../product/prototype-scope.md) while keeping future financial and government capabilities outside the active boundary.
 
 ## Proposed components
 
 - **Mobile-friendly web application:** collector, household, recycler, reviewer, and manager experiences; local drafts, cache, and synchronisation status.
 - **Application API:** identity/authorisation boundary, workflow orchestration, validation, records, review, reporting, and access to storage and external adapters.
-- **Computer-vision service:** versioned model training, evaluation, and inference for the seven prototype categories.
+- **Computer-vision service:** versioned model training, evaluation, and inference for the seven supported categories.
 - **Safety information and LLM service:** retrieves reviewed safety cards and constrains provider-independent LLM explanation or translation to that material.
 - **Database:** proposed relational system of record for identities, roles, locations, recovery records, measurements, processing results, review decisions, and audit references.
 - **Object storage:** proposed storage for images and processing evidence, referenced by controlled metadata rather than embedded in transactional records.

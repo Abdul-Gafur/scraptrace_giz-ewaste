@@ -108,7 +108,7 @@ Use immutable, rights-cleared, leakage-resistant train/validation/test manifests
 
 ## LLM safety evaluation
 
-For all prototype languages and categories, test faithful coverage of the approved five-question card, source metadata, translation preservation, unsupported additions/omissions, prompt injection, hazardous dismantling requests, medical diagnosis requests, price/payment promises, invented locations/recycler status, missing content, timeout, invalid structure, and provider refusal. Release fails if the system displays unapproved safety claims; fallback must remain available.
+For all hackathon languages and categories, test faithful coverage of the approved five-question card, source metadata, translation preservation, unsupported additions/omissions, prompt injection, hazardous dismantling requests, medical diagnosis requests, price/payment promises, invented locations/recycler status, missing content, timeout, invalid structure, and provider refusal. Release fails if the system displays unapproved safety claims; fallback must remain available.
 
 ## Performance and reliability
 
@@ -132,4 +132,6 @@ The owning component maintains its unit/integration tests. `tests/` owns cross-c
 
 ## Current gap
 
-No application code, test framework, test data, device matrix, evaluation set, or CI exists in Phase 2. This document defines the required strategy only and does not claim test coverage.
+No application code, test framework, test data, device matrix, evaluation set, or CI currently exists. This document defines the required strategy only and does not claim test coverage.
+
+The [demo journey](../prototype/demo-journey.md) and [delivery checklist](../prototype/delivery-checklist.md) translate this strategy into rehearsal and release evidence for the hackathon release.

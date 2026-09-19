@@ -1,4 +1,4 @@
-# Prototype scope
+# Hackathon scope
 
 This scope translates the [Concept Note](../../concept_note.md) into demonstration boundaries. “Required” means required for the hackathon demonstration, not currently implemented.
 
@@ -19,7 +19,7 @@ The demonstration must support one understandable end-to-end journey:
 11. Add a processing outcome and supporting evidence; flag missing or inconsistent records for review.
 12. Display the complete journey and a dashboard of categories, locations, verified weight, and record status.
 
-The prototype must also show basic duplicate-image and missing-information checks and English, French, Arabic, and Portuguese presentation as specified in the Concept Note. Translation quality and exact language coverage require validation.
+The hackathon release must also show basic duplicate-image and missing-information checks and English, French, Arabic, and Portuguese presentation as specified in the Concept Note. Translation quality and exact language coverage require validation.
 
 ## Optional capabilities
 

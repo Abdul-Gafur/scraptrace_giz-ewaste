@@ -2,7 +2,7 @@
 
 ## Purpose and authority
 
-This document is authoritative for future third-party packages, frameworks, runtimes, model artefacts, actions, and hosted SDKs. No dependency manager or dependency is installed in Phase 2.
+This document is authoritative for future third-party packages, frameworks, runtimes, model artefacts, actions, and hosted SDKs. No dependency manager or dependency is currently installed.
 
 ## Before adding a dependency
 

@@ -2,7 +2,7 @@
 
 ## Mandatory flow
 
-No Large Language Model (LLM) call exists in Phase 3. Any future implementation must follow this sequence:
+No Large Language Model (LLM) call currently exists. Any future implementation must follow this sequence:
 
 1. The image model suggests an item type.
 2. ScrapTrace retrieves approved safety content for the user-confirmed or manually selected category.

@@ -1,11 +1,11 @@
 # Success metrics
 
-Metrics are grouped by what can be demonstrated now and what requires later evidence. No baseline, sample size, or numeric target is accepted in Phase 1 unless stated in the Concept Note; owners must propose them with an evaluation plan.
+Metrics are grouped by what the hackathon release can demonstrate and what requires later evidence. No baseline, sample size, or numeric target is accepted unless stated in the Concept Note; owners must propose them with an evaluation plan.
 
-## Prototype demonstration success
+## Hackathon demonstration success
 
 - A user completes the required journey from in-app capture to processing evidence without a technical explanation.
-- The demonstration covers all twelve steps in [Prototype scope](prototype-scope.md).
+- The demonstration covers all twelve steps in [Hackathon scope](prototype-scope.md).
 - A record created offline remains visible, later synchronises, and does not duplicate after retry.
 - Low-confidence output is visible and correctable.
 - Missing approved safety content or LLM connectivity produces a controlled fallback rather than invented advice.

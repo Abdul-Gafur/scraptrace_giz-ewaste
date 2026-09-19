@@ -1,6 +1,6 @@
 # Engineering documentation
 
-These documents define the proposed engineering and collaboration baseline for ScrapTrace. They are normative once approved by the team; unresolved tools and numeric thresholds remain explicitly proposed or to be decided. Product intent remains governed by the [Concept Note](../../concept_note.md) and [product documentation](../product/product-vision.md).
+These documents define the engineering and collaboration baseline for ScrapTrace. They govern repository work; unresolved tools and numeric thresholds remain subject to team decisions. Product intent remains governed by the [Concept Note](../../concept_note.md) and [product documentation](../product/product-vision.md).
 
 ## Standards and workflow
 

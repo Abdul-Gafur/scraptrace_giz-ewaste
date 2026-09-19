@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Documentation is part of the product and engineering system. It must help a defined reader act safely, distinguish facts from proposals, and remain traceable to requirements and decisions. The [Concept Note](../../concept_note.md) remains authoritative for the problem, users, solution, prototype workflow, and limitations.
+Documentation is part of the product and engineering system. It must help a defined reader act safely, distinguish facts from proposals, and remain traceable to requirements and decisions. The [Concept Note](../../concept_note.md) remains authoritative for the problem, users, solution, hackathon workflow, and limitations.
 
 ## Document ownership
 
@@ -29,7 +29,7 @@ Use these terms consistently:
 - **Future:** outside current scope and requiring separate implementation/authorisation.
 - **To be decided:** no accountable decision exists yet.
 
-Never use future tense alone to imply commitment. Never describe a prototype demonstration as field evidence, a directory listing as recycler approval, a local save as verification, an estimate as a price offer, or a future integration as live.
+Never use future tense alone to imply commitment. Never describe a hackathon demonstration as field evidence, a directory listing as recycler approval, a local save as verification, an estimate as a price offer, or a future integration as live.
 
 ## Structure and style
 

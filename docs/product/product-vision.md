@@ -4,7 +4,7 @@
 
 ScrapTrace aims to give an e-waste collection a trustworthy digital beginning and connect it to safe guidance, a suitable handover location, recycler confirmation, and evidence of processing. It is intended to make safer collection easier for people to act on and easier for authorised programmes to verify.
 
-The [Concept Note](../../concept_note.md) is authoritative for this vision. Capabilities described here are prototype requirements or future intentions, not claims of current implementation.
+The [Concept Note](../../concept_note.md) is authoritative for this vision. Capabilities described here are hackathon requirements or future intentions, not claims of current implementation.
 
 ## People served
 
@@ -31,4 +31,4 @@ The vision model is an enabling component, not the product. ScrapTrace's main va
 
 ## Claims ScrapTrace does not make
 
-ScrapTrace does not guarantee that a prediction is correct, determine exact material value from a photograph, guarantee collector income, teach hazardous home dismantling, certify every listed location, prove recycling from one image or QR code, issue official EPR credits, or independently authorise payments. Recycler approval, official reporting, incentives, mobile money, and government use require evidence, governance, and authorisation outside the prototype.
+ScrapTrace does not guarantee that a prediction is correct, determine exact material value from a photograph, guarantee collector income, teach hazardous home dismantling, certify every listed location, prove recycling from one image or QR code, issue official EPR credits, or independently authorise payments. Recycler approval, official reporting, incentives, mobile money, and government use require evidence, governance, and authorisation outside the hackathon scope.

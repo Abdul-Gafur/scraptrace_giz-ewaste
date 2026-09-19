@@ -1,6 +1,6 @@
 # Technology decisions
 
-Every technology in this document is **Proposed, not implemented**. No dependency, framework configuration, container, workflow, database, or provider was added in Phase 1. Selection should be recorded in separate ADRs after validation.
+Every technology in this document is **Proposed, not implemented**. No dependency, framework configuration, container, workflow, database, or provider is currently present. Selection should be recorded in separate ADRs after validation.
 
 ## Next.js, React, and TypeScript
 
@@ -30,7 +30,7 @@ Every technology in this document is **Proposed, not implemented**. No dependenc
 
 - **Intended purpose:** Captured images, scale/handover photographs, and processing evidence.
 - **Why it may fit:** Separates large objects from transactions, supports checksums/lifecycle rules, and preserves provider choice through a common interface.
-- **Alternatives:** Cloud-specific blob storage, self-hosted object storage, or database binary storage for a narrowly constrained prototype.
+- **Alternatives:** Cloud-specific blob storage, self-hosted object storage, or database binary storage for the narrowly constrained hackathon scope.
 - **Decision status:** Proposed.
 - **Validation required:** Access controls, signed-operation design, encryption, region, retention/deletion, integrity, malware/content controls, cost, and offline-upload recovery.
 
@@ -46,7 +46,7 @@ Every technology in this document is **Proposed, not implemented**. No dependenc
 
 - **Intended purpose:** Possible edge/browser/device inference to reduce connectivity dependence.
 - **Why it may fit:** Portable optimised inference may support smaller models on constrained devices and reduce image transfer.
-- **Alternatives:** Server inference, WebGPU/WebAssembly runtimes, native platform inference, or no edge inference for the prototype.
+- **Alternatives:** Server inference, WebGPU/WebAssembly runtimes, native platform inference, or no edge inference for the hackathon release.
 - **Decision status:** Deferred/proposed; not required until a validated model and device need exist.
 - **Validation required:** Target browser/device support, model conversion parity, size, speed, memory, battery, privacy, update/version controls, and fallback.
 
@@ -70,7 +70,7 @@ Every technology in this document is **Proposed, not implemented**. No dependenc
 
 - **Intended purpose:** Display participating locations, calculate proximity, and open directions while keeping programme directory status separate.
 - **Why it may fit:** Open geographic standards and broad ecosystem can reduce proprietary coupling.
-- **Alternatives:** Google Maps Platform, Mapbox, HERE, local GIS data, list-only prototype, or hybrid providers.
+- **Alternatives:** Google Maps Platform, Mapbox, HERE, local GIS data, a list-only initial release, or hybrid providers.
 - **Decision status:** Proposed.
 - **Validation required:** Ghana coverage, geocoding and routing quality, attribution, tile/provider usage policy, offline/cache rights, rate limits, cost, accessibility, and location privacy.
 
