@@ -1,9 +1,12 @@
 # Documentation index
 
-The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrace's problem, users, solution, hackathon workflow, and limitations. These documents translate it into the product and technical foundation. Where the Concept Note does not settle a point, the documentation records its decision status rather than presenting it as implemented fact.
+The [final SRS v1.1](<product/ScrapTrace_Software_Requirements_Specification (2).docx>) is authoritative for application requirements and acceptance. The [Concept Note](../concept_note.md) preserves the original problem context and intent. Requirements describe the application to build; the current implementation status is stated separately in each technical document.
 
 ## Product
 
+- [Final Software Requirements Specification](<product/ScrapTrace_Software_Requirements_Specification (2).docx>)
+- [SRS traceability and parity](product/srs-traceability.md)
+- [Glossary](product/glossary.md)
 - [Product vision](product/product-vision.md)
 - [Problem and context](product/problem-and-context.md)
 - [Users and roles](product/users-and-roles.md)
@@ -23,6 +26,7 @@ The [Concept Note](../concept_note.md) is the authoritative source for ScrapTrac
 - [Offline-first design](architecture/offline-first-design.md)
 - [Integration boundaries](architecture/integration-boundaries.md)
 - [Technology decisions](architecture/technology-decisions.md)
+- [SRS analysis models](architecture/analysis-models.md)
 - [Architecture decision records](decisions/README.md)
 
 ## Engineering

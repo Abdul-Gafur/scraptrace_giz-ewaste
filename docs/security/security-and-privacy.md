@@ -2,74 +2,45 @@
 
 ## Status
 
-This document defines a proposed governance baseline; documentation alone implements no safeguards. Before a pilot, the team needs an approved threat model, data inventory, legal/privacy analysis, access model, retention schedule, provider review, security testing, incident process, and verified technical controls.
+The [SRS security and privacy requirements](../product/non-functional-requirements.md#security) are binding acceptance criteria for the hackathon application. This repository currently contains documentation only; the controls below are not yet implemented or tested.
 
-## Hackathon release expectations
+## Security baseline
 
-- Use synthetic or explicitly authorised demonstration data; do not use production personal data or unrestricted challenge images.
-- Demonstrate role-separated journeys without claiming production-grade identity or access assurance.
-- Keep secrets out of source, documentation, QR codes, logs, screenshots, and browser bundles.
-- Minimise identity, location precision, image metadata, LLM payloads, and telemetry.
-- Distinguish local, submitted, received, completed, under-review, and programme-approved states.
-- Keep evidence protected and programme-scoped in any demonstration environment.
-- Label security, duplicate, QR, and verification checks as initial indicators rather than guarantees.
-- Conduct focused review of upload, access control, offline storage, LLM grounding, and public dashboard exposure before demonstration.
+- Use HTTPS for all non-local traffic and protect credentials, session material, provider keys, and signing secrets outside source and client bundles.
+- Enforce role-, programme-, facility-, object-, action-, and state-based access on the server. UI hiding is not authorisation.
+- Use secure session handling and protection appropriate to the chosen authentication mechanism, including CSRF controls where cookie authentication is used.
+- Validate and safely render all input, uploads, filenames, metadata, provider output, and LLM output.
+- Restrict evidence objects to authorised access; public object listing and permanent public URLs are prohibited.
+- Apply request-size, rate, and abuse controls to authentication, upload, QR lookup, AI, search, and export boundaries.
+- Keep dependencies, images, and providers under review; critical unresolved vulnerabilities block release.
+- Record privacy-safe security events and maintain an incident and vulnerability-reporting route before external use.
 
-## Production requirements
+## Privacy baseline
 
-Production or field use would require, at minimum:
+ScrapTrace collects only what is necessary for a stated workflow. Identity, contact details, precise location, images, recovery evidence, review history, and audit data are not public dashboard data. Location permission must be contextual and optional where a manual area can meet the need. Image metadata that is not required must be removed or ignored.
 
-- approved identity, authentication, session, role/programme/resource authorisation, account recovery, and privileged-access controls;
-- supported encryption in transit/at rest, key/secrets management, secure configuration, and environment separation;
-- hardened upload/object access, malware/content policy, integrity checks, and signed/short-lived operations;
-- secure software/dependency lifecycle, testing, vulnerability handling, logging/monitoring, response, backup and verified recovery;
-- privacy notices, lawful basis/consent where applicable, subject/correction/deletion processes, retention enforcement, provider agreements, and transfer/region decisions;
-- model/data/content/prompt release controls and AI safety evaluation;
-- abuse/rate controls, availability planning, audit integrity, and periodic access/recycler/directory review; and
-- independent review appropriate to risk and applicable programme/regulatory requirements.
+Public reporting uses aggregates with reviewed geography, time, category, and small-group rules. Participation in recovery-record creation does not automatically consent a user's image or correction to model training. Dataset admission requires a separate consent or lawful-basis record and reviewer decision.
 
-Exact controls and targets are to be decided; this list does not certify readiness.
+## Local and offline data
 
-## Current limitations
+The PWA may keep drafts, queue metadata, approved safety cards, directory data, and previously validated guides locally to support weak connectivity. Local data must be user-scoped, minimised, integrity-checked, and cleared on sign-out or expiry according to policy. Shared-device risk, storage quota failure, browser eviction, and cached-content freshness must be visible and tested. The SRS baseline retains an abandoned local draft for no more than 30 days unless a user deletes it sooner.
 
-There is no application, security architecture implementation, identity provider, database, object store, AI provider, operational environment, incident contact, data-protection determination, or tested recovery process. The repository's public/private hosting and collaborator-access model are outside this documentation and require confirmation.
+## Images and evidence
 
-## Sensitive assets
-
-Restricted or high-impact assets include credentials and provider keys; account/session/recovery material; collector identity/contact; precise or linked location; raw images and evidence; recovery/review/audit history; future financial references/instructions; private safety drafts; model/dataset artefacts; evaluation sets; system/prompt/validator policies where disclosure enables bypass; directory verification evidence; and administrative/export capability.
-
-## Data minimisation and consent
-
-Every field/provider transfer needs purpose, owner, class, access, retention, and deletion. Prefer approximate/manual location where sufficient and keep public aggregates separate from underlying identity. Participation in collection must not silently authorise model training. Training, provider processing, optional location, and future payment purposes require distinct, understandable treatment approved by legal/privacy and programme owners.
-
-## Location protection
-
-Request permission, explain purpose, collect the least precision, record source/precision, provide manual alternatives, limit background collection, avoid public record-level display, strip unintended image metadata, and define offline/provider/cache retention. Location must not be treated as proof of capture, ownership, handoff, or processing.
-
-## Image protection
-
-Treat all images as untrusted Restricted evidence by default. Validate uploads, minimise metadata, isolate storage, use controlled references and integrity checks, prevent public listing, authorise every access, and define derivative/cache/deletion handling. Operational evidence does not enter training without a separate approved copy and lineage.
-
-## Public dashboard aggregation
-
-Public output must exclude direct collector identity and sensitive record evidence. Aggregation requires approved geography/time/category granularity, small-group and linkage-risk controls, status separation, freshness/definition labels, and review of rare combinations. Search counts or location patterns can still expose communities and require privacy assessment.
-
-## Audit requirements
-
-Proposed audit events cover record/evidence creation and changes, handoff/weight/processing assertions, reviews, directory/status changes, role/permission/admin actions, sensitive access/export, content/model/dataset releases, secret lifecycle, and security events. They are append-only/tamper-evident under an approved design, restricted, privacy-minimised, time-synchronised, monitored, and retained under a separate schedule. Operational logs are not audit records.
-
-## Third-party services
-
-Before any LLM, map, storage, monitoring, identity, or future payment/government provider is used, review data sent, purpose, controller/processor roles, terms/training use, retention/deletion, region/transfers, subprocessors, security evidence, authentication, logging, availability, incident notification, cost, exit/export, and fallback. Keep provider schemas behind owned adapters.
+Treat images as restricted untrusted input. Validate format and size, strip unnecessary metadata, isolate private storage, authorise each access, and maintain checksums or equivalent integrity evidence. Operational images do not enter a training dataset automatically. The client target is at most 2 MB per compressed evidence image; server limits remain configurable and visible.
 
 ## LLM privacy
 
-Send only approved safety-card content, target language, allowed transformation, and non-identifying technical context. Do not send images, identity, precise location, recovery evidence, prices, programme decisions, secrets, or unrelated text. Full prompt/response logging is prohibited by default. Provider training and retention must be disabled or contractually controlled as approved.
+Send only the approved safety-card fields, target language, allowed transformation, and non-identifying technical metadata. Never send identity, contact data, images, precise location, recovery evidence, prices, programme decisions, secrets, or unrelated user text. Full prompt and response bodies are not logged by default. Provider training, retention, region, and deletion terms require approval before use.
 
-## Model and dataset security
+## Retention baseline
 
-Protect restricted datasets, manifests, evaluation sets, model artefacts, registries, release approvals, and inference interfaces against unauthorised access, poisoning, leakage, replacement, extraction, denial, and unsafe rollback. Use immutable versions/checksums, least privilege, lineage, protected test sets, signed/verified distribution where selected, and review of model/provider dependencies. These are proposed requirements, not implemented controls.
+Non-production submitted and rejected records default to 12 months, generated LLM responses to 90 days, and operational logs to 30–90 days. These SRS baselines require a confirmed owner and enforcement design before data is collected. Audit, safety provenance, dataset lineage, and legal preservation may need separate justified schedules; see [data retention](../data/data-retention.md).
 
-## Privacy and security review gates
+## Third parties and transfers
 
-Review is required before collecting pilot data, changing sensitive fields/purpose/retention, adding providers, publishing aggregates, enabling offline personal data, admitting training data, releasing a model/prompt/card, changing roles, exposing uploads/exports, or implementing future financial/regulatory connections.
+Before using an identity, map, storage, monitoring, LLM, payment, government, or directory provider, review data sent, purpose, terms, provider training, retention, region, subprocessors, security, incident notification, cost, exit, and fallback. Provider schemas remain behind owned interfaces.
+
+## Verification
+
+Release evidence includes threat modelling; authentication and horizontal/vertical authorisation tests; upload and object-access tests; input and output encoding; secret scanning; dependency review; log redaction; retention checks; offline cache review; and LLM data-minimisation tests. Formal production readiness, legal compliance, or certification cannot be claimed from the hackathon controls alone.

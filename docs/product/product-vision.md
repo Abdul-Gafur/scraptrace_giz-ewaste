@@ -4,11 +4,11 @@
 
 ScrapTrace aims to give an e-waste collection a trustworthy digital beginning and connect it to safe guidance, a suitable handover location, recycler confirmation, and evidence of processing. It is intended to make safer collection easier for people to act on and easier for authorised programmes to verify.
 
-The [Concept Note](../../concept_note.md) is authoritative for this vision. Capabilities described here are hackathon requirements or future intentions, not claims of current implementation.
+The [approved SRS v1.1](<ScrapTrace_Software_Requirements_Specification (2).docx>) is authoritative for application requirements and acceptance. The [Concept Note](../../concept_note.md) remains authoritative for the original problem context and intent. Requirements are not claims of current implementation.
 
 ## People served
 
-ScrapTrace is designed for informal and formal collectors, households holding unwanted electronics, scrapyard and collection-point operators, recyclers, programme reviewers and managers, and authorised data or model reviewers. Policy and producer-responsibility organisations may later consume authorised reports, subject to governance and integration decisions.
+ScrapTrace serves collectors and household users, recycler operators, programme reviewers and managers, safety/content administrators, and data/ML reviewers. Policy and producer-responsibility organisations may later consume authorised reports, subject to governance and integration decisions.
 
 ## Problem addressed
 

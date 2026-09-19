@@ -2,7 +2,7 @@
 
 ## Status and objective
 
-This is a proposed evaluation framework. No dataset or model has been evaluated. Metrics and acceptance thresholds must be selected after dataset inspection, risk analysis, baseline experiments, and reviewer-capacity assessment.
+This is the evaluation framework required by the final SRS. No dataset or model has yet been evaluated. The SRS sets an interim release-candidate target of macro-F1 at least 0.70 with no supported category recall below 0.50; the low-confidence threshold still requires validation and approval.
 
 ## Dataset separation
 
@@ -42,7 +42,7 @@ Establish a simple, reproducible baseline before selecting a complex model. Ever
 
 ## Acceptance thresholds
 
-Thresholds for release, low-confidence routing, category floors, calibration, latency, size, and edge performance are **to be decided through testing**. Selection must consider user comprehension, consequences of misclassification, fallback quality, human-review capacity, category imbalance, target devices, connectivity, and hackathon-versus-pilot scope. Thresholds are versioned policy, not embedded unexplained constants.
+The initial candidate passes only when held-out evaluation reports macro-F1 of at least 0.70 and every one of the seven category recalls is at least 0.50. These are hackathon acceptance floors, not a claim of field fitness. Prediction must complete within 5 seconds for at least 95 of 100 valid compressed images on the documented demonstration host and network. Low-confidence routing, calibration, model-size, and edge-runtime thresholds remain to be determined through validation and reviewer-capacity analysis. All thresholds are versioned policy, not unexplained constants.
 
 ## Real scrapyard conditions
 

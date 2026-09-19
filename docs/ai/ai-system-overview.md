@@ -2,7 +2,7 @@
 
 ## Status and purpose
 
-This is a **proposed** logical design. The repository currently implements no AI capability. AI would assist category suggestion and controlled language transformation; it would not be the system of record or verify recycling by itself.
+This is the SRS-aligned logical design. The repository currently implements no AI capability. AI assists category suggestion and controlled language transformation; it is not the system of record and cannot verify recycling by itself.
 
 ## Separate responsibilities
 
@@ -17,7 +17,7 @@ This is a **proposed** logical design. The repository currently implements no AI
 | User correction | Let a user reject a prediction while preserving prediction, confidence, version, and correction | Immediately retrain or silently overwrite the original result |
 | Programme verification | Combine authorised collector, handoff, measured weight, processing, and review evidence | Accept an AI classification, confidence, image, or LLM response as proof of recycling |
 
-## Proposed flow
+## Logical flow
 
 ```mermaid
 flowchart TD

@@ -1,5 +1,7 @@
 # Problem and context
 
+The [final SRS](<ScrapTrace_Software_Requirements_Specification (2).docx>) governs application requirements and acceptance. This page preserves the evidence-backed problem context and citations from the [Concept Note](../../concept_note.md); it does not add new factual claims.
+
 ## Context
 
 Electronic waste includes discarded refrigerators, televisions, computers, air conditioners, and other electrical items. The Concept Note cites the *Global E-waste Monitor 2024*: 62 million tonnes were generated globally in 2022 and 22.3% was formally recorded as collected and recycled. In Ghana, collectors, buyers, repairers, and dismantlers recover valuable materials, but much activity is not linked through formal records.

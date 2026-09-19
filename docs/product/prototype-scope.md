@@ -1,56 +1,72 @@
-# Hackathon scope
+# Hackathon application scope
 
-This scope translates the [Concept Note](../../concept_note.md) into demonstration boundaries. “Required” means required for the hackathon demonstration, not currently implemented.
+The [approved SRS v1.1](<ScrapTrace_Software_Requirements_Specification (2).docx>) is the implementation baseline. The scope proves one coherent journey from capture to an approved recovery record using seeded or sample programme data. “Application” means a demonstrable and testable system, not a live national service.
 
-## Required hackathon capabilities
+## Must-have baseline
 
-The demonstration must support one understandable end-to-end journey:
+The release must:
 
-1. Capture an e-waste image inside the mobile-friendly application, including offline capture.
-2. Suggest one of the seven challenge categories: refrigerators; laptops and desktop computers; televisions; microwaves; air conditioners; compressors; or mixed scrap.
-3. Display model confidence and communicate uncertainty.
-4. Allow the user to correct a suggestion and place that correction in a review list rather than immediately retraining the model.
-5. Retrieve category-matched, approved safety information with provenance and review metadata.
-6. Use an LLM to explain, simplify, or translate only the retrieved approved information; refuse to guess when it is unavailable.
-7. Display an indicative price range using category, count, user-selected condition, a sample dated local reference list, and approximate weight where appropriate.
-8. Find nearby participating scrapyards, collection centres, or recyclers from a checked directory, clearly distinguishing location type and status.
-9. Create an item or batch recovery record and unique QR code, saving it locally when offline.
-10. Let a recycler confirm delivery, record measured weight and final buying price, and add a confirmation image showing the full delivery and scale reading.
-11. Add a processing outcome and supporting evidence; flag missing or inconsistent records for review.
-12. Display the complete journey and a dashboard of categories, locations, verified weight, and record status.
+1. provide seeded role-based access, contextual consent and English, French, Arabic and Portuguese;
+2. capture a current image, validate/compress it, return seven category scores and model version, expose confidence, and require confirmation or correction;
+3. retrieve a current approved safety card and use an LLM only for constrained explanation/simplification/translation with validation and static fallback;
+4. produce a dated indicative price range with source, basis and disclaimer, requiring approximate weight for mixed scrap;
+5. rank compatible participating locations, support manual area, distinguish location type/status and retain a reviewed offline directory;
+6. save validated drafts locally, expose exact sync states, retry with idempotency and preserve conflicts for action;
+7. create item or batch records, opaque QR/short codes, immutable prediction history, image digests and audited server-controlled state transitions;
+8. let an authorised recycler retrieve intake data, independently confirm category/condition, record measured weight/final price and upload handoff plus scale evidence;
+9. record controlled processing evidence, create transparent flags, support reasoned human decisions and keep append-only audit history;
+10. show a role-appropriate journey and dashboard with filters, freshness and verified weight derived only from `Approved and completed` records; and
+11. satisfy the performance, reliability, safety, security, privacy, accessibility, localization, AI-quality, compliance and maintainability gates in the [non-functional requirements](non-functional-requirements.md).
 
-The hackathon release must also show basic duplicate-image and missing-information checks and English, French, Arabic, and Portuguese presentation as specified in the Concept Note. Translation quality and exact language coverage require validation.
+The exact acceptance demonstration is documented in [Application acceptance journey](user-journeys.md#application-acceptance-journey).
 
-## Optional capabilities
+## Should-have capabilities
 
-- A clearly labelled simulation of how an authorised future bonus could be calculated from verified weight and a programme rate.
-- Saved location-directory data for offline use beyond the minimum demonstration area.
-- Audio and illustrative safety presentation if content is reviewed and time permits.
-- Known-weight input to refine an estimate for suitable categories.
-- Search-demand aggregation without exposing searcher identities.
+- Clear local-cache removal on sign-out.
+- Human review of corrected labels for future dataset preparation.
+- Optional known-weight input for item-category estimates.
+- Anonymous no-result search aggregates by coarse area/category.
+- Information-request loop returning allowed work to the responsible collector or recycler.
+- Clearly labelled simulated safe-delivery bonus using sample rate and approved weight; no funds move.
 
-Optional capabilities must not displace the required journey or appear to be live financial or regulatory services.
+These may be deferred only by a recorded decision that preserves every Must acceptance flow and safety/privacy control.
 
-## Future capabilities
+## Could-have capabilities
 
-- Real mobile-money payment instructions under an authorised and funded programme.
-- Connections to Producer Responsibility Organisations and approved take-back schemes.
-- Government reporting integrations and acceptance workflows.
-- Official EPR reporting or a separately governed credit marketplace.
-- More languages, richer audio/visual accessibility, broader categories, and field-validated location coverage.
-- Scheduled model retraining from consented, reviewed field corrections.
-- Edge inference after device, model, safety, and performance validation.
-- Pickup coordination and expanded collection networks.
+- Text-to-speech of displayed approved or validated guidance, separate from the LLM.
+- Authorised CSV export without private image URLs, phone numbers or precise coordinates.
 
-## Explicit non-goals
+These begin only after core quality, accessibility and security gates pass.
 
-- Issuing official EPR credits or certificates.
-- Certifying recyclers or treating every listing as approved.
-- Executing real payments or promising a collector bonus.
-- Guaranteeing income, a sale, an exact price, model accuracy, or safe processing.
-- Deriving exact weight, hidden material, or working condition from a photograph.
-- Teaching home dismantling, metal extraction, burning, cutting, or hazardous-part handling.
-- Allowing an LLM to invent safety instructions.
-- Learning immediately from unreviewed user corrections.
-- Claiming that one image, QR code, or location proves recycling.
-- Building recycling plants or replacing regulatory and programme authorities.
+## Operational modes
+
+| Mode | Available | Limited or unavailable |
+|---|---|---|
+| Online | Prediction, LLM explanation, live map/directions, synchronization, evidence upload, review and dashboard | Subject to network/provider availability |
+| Offline | Capture draft, manual/confirmed category, cached reviewed guide/translations, cached directory, local ID and synchronization queue | No fresh cloud LLM response, live directions or authoritative server status |
+| Degraded provider | Approved static/cached text, pending record and plain-language failure status | No invented content, silent provider substitution or false success |
+| Demonstration | Fictional seeded users, locations, prices and records; visibly simulated incentive data | No real payment, legal certification or production SLA |
+
+## Outside the baseline
+
+- Production identity verification, national ID or full know-your-customer checks.
+- Recognition of every device, exact composition, exact image-derived weight/value or automatic hazard diagnosis.
+- Open-ended health advice, home dismantling instructions or unreviewed AI safety facts.
+- Binding offers, automated market trading or guaranteed income.
+- Full national directory coverage or proof that every business is licensed.
+- Official destruction certificates, statutory compliance approval, recycler certification or EPR-credit issuance.
+- Live mobile-money transfers, custody of funds, smart-contract settlement, push notifications, SMS or email.
+- Government or Producer Responsibility Organisation submission interfaces.
+- Automatic online learning or automatic deployment of retrained models.
+- Production deployment or national rollout.
+
+These capabilities require a separately approved SRS, legal/operational agreements and field validation.
+
+## Release exit conditions
+
+- Every Must requirement passes or has an owner-approved waiver that does not break the acceptance scenario.
+- Critical online/offline, role, safety fallback and review tests pass in the hackathon environment.
+- No unresolved critical/high security issue; privacy and safety checklists are signed.
+- Model and grounded-response evaluation meet approved thresholds or limitations are displayed.
+- Seven category cards and all four named language bundles are reviewed, dated and available offline.
+- README, setup instructions, OpenAPI, data dictionary, test evidence and demo script are reachable and legible when implementation exists.

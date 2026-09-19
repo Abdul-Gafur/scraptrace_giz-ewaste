@@ -2,11 +2,22 @@
 
 ## Status and principles
 
-This document defines retention considerations, not legal periods. No production data exists and no retention mechanism is implemented. Every duration, deletion exception, archival rule, and data-subject process requires legal/privacy and programme approval before collection.
+The SRS sets non-production application baselines below; they are not statutory periods. No production data or retention mechanism exists. Field/pilot durations, exceptions, archival and rights processes still require legal/privacy and programme approval.
+
+## SRS application baseline
+
+| Data class | Retention baseline | End action |
+|---|---|---|
+| Abandoned local draft | 30 days since last edit, with warning | Delete from device |
+| Submitted recovery/evidence record | Demonstration/review period; default 12 months in non-production | Authorised logged archive/delete |
+| Rejected record | Same as submitted unless approved programme policy differs | Archive/delete while retaining minimum justified non-personal audit proof |
+| LLM request/response | 90 days by default; no personal data | Delete content and retain only justified aggregate quality metrics |
+| Training-consented correction | Only after human approval and inclusion in a documented dataset version | Withdraw where feasible and record dataset impact on consent revocation |
+| Logs | 30–90 days according to log type; no secrets or raw images | Automatic deletion |
 
 Retention must be purpose-specific, minimal, documented, enforceable across primary storage, offline devices, caches, backups, logs, providers, exports, and derived datasets. “Keep indefinitely” is not an acceptable default. Audit or verification needs do not automatically justify retaining every source object.
 
-## Proposed retention register
+## Extended retention register
 
 | Data class | Purpose and retention considerations | End-of-period action | Required approval |
 |---|---|---|---|

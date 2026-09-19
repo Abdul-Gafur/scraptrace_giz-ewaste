@@ -2,9 +2,9 @@
 
 ## Purpose and status
 
-This document defines the proposed structure and approval lifecycle for safety cards. It contains no health, handling, emergency, repair, or recycling facts. No card is currently authored or approved.
+This document defines the structure and approval lifecycle for safety cards. It contains no health, handling, emergency, repair, or recycling facts. No card is currently authored or approved.
 
-`packages/safety-content` is the proposed canonical published-content boundary. The LLM is never the author or approver of safety facts.
+`packages/safety-content` is the canonical published-content boundary. The LLM is never the author or approver of safety facts.
 
 ## Safety-card structure
 
@@ -27,7 +27,7 @@ This document defines the proposed structure and approval lifecycle for safety c
 | Version | Immutable semantic/content version |
 | Supported languages | Approved language variants and their review status |
 
-Additional proposed metadata includes owner, creation/update times, change reason, source publication/version, jurisdiction/scope, translation lineage, checksum, effective/expiry rules, and superseding version. Exact schema remains to be decided.
+Additional metadata includes owner, creation/update times, change reason, source publication/version, jurisdiction/scope, translation lineage, checksum, effective/expiry rules, and superseding version. Exact schema remains to be decided.
 
 ## Trusted-source selection
 
@@ -43,7 +43,7 @@ Before drafting, a qualified content owner records source authority, relevance, 
 
 ## Translation governance
 
-Translations derive from one approved source version and preserve meaning, warnings, qualifications, destination status, and fallback language. Critical translations require qualified language review plus subject-matter confirmation; machine/LLM output is a draft only. Each language has its own approval status, reviewer, version linkage, and review date. Missing translation must not silently fall back to generated safety facts.
+English, French, Arabic, and Portuguese translations derive from one approved source version and preserve meaning, warnings, qualifications, destination status, and fallback language. Critical translations require qualified language review plus subject-matter confirmation; machine/LLM output is a draft only. Each language has its own approval status, reviewer, version linkage, and review date. Missing translation must not silently fall back to generated safety facts.
 
 ## Versioning and change control
 
@@ -55,7 +55,7 @@ Review triggers include the recorded review date, source update/withdrawal, regu
 
 ## Emergency withdrawal
 
-An authorised safety owner may mark a version withdrawn when continued use may be unsafe, inaccurate, unauthorised, or compromised. Proposed withdrawal handling includes stopping new retrieval/generation, invalidating or warning on cached bundles at next contact, activating a separately approved fallback, notifying owners, preserving audit history, investigating affected responses, and publishing an approved replacement. Offline revocation limits must be documented and tested.
+An authorised safety owner may mark a version withdrawn when continued use may be unsafe, inaccurate, unauthorised, or compromised. Withdrawal handling stops new retrieval/generation, invalidates or warns on cached bundles at next contact, activates separately approved fixed fallback text, notifies owners, preserves audit history, investigates affected responses, and publishes an approved replacement. Offline revocation limits must be documented and tested.
 
 ## Audit history
 

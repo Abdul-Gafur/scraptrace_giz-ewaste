@@ -2,27 +2,27 @@
 
 ## Status and scope
 
-The repository currently contains documentation and directory placeholders only. The architecture below is **proposed**, not implemented. It supports the required [hackathon scope](../product/prototype-scope.md) while keeping future financial and government capabilities outside the active boundary.
+The [approved SRS v1.1](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) defines the required logical architecture below. The repository still contains documentation and directory placeholders only; no component is implemented. Financial, certification and government capabilities remain outside the active boundary.
 
-## Proposed components
+## Application components
 
-- **Mobile-friendly web application:** collector, household, recycler, reviewer, and manager experiences; local drafts, cache, and synchronisation status.
-- **Application API:** identity/authorisation boundary, workflow orchestration, validation, records, review, reporting, and access to storage and external adapters.
+- **Installable progressive web application:** collector/household, recycler, reviewer, manager, content-administrator and data-reviewer experiences; service-worker caching, user-scoped local drafts and synchronization status.
+- **Application API and workers:** authentication/authorisation, workflow orchestration, validation, state transitions, records, review, reporting, imports and asynchronous processing.
 - **Computer-vision service:** versioned model training, evaluation, and inference for the seven supported categories.
 - **Safety information and LLM service:** retrieves reviewed safety cards and constrains provider-independent LLM explanation or translation to that material.
-- **Database:** proposed relational system of record for identities, roles, locations, recovery records, measurements, processing results, review decisions, and audit references.
-- **Object storage:** proposed storage for images and processing evidence, referenced by controlled metadata rather than embedded in transactional records.
-- **Location service:** participating-location search, distance/ranking, directory metadata, and map/directions-provider boundary.
+- **Database:** PostgreSQL with spatial capability or an accepted equivalent for users/roles, locations, recovery records, measurements, processing, reviews and audit events.
+- **Object storage:** private S3-compatible storage or an accepted equivalent for images/evidence, referenced by controlled metadata rather than database blobs.
+- **Location and price reference capability:** participating-location search/ranking, checked directory metadata, dated rates and map/directions-provider boundary.
 - **Recycler interface:** role-specific web experience for QR retrieval, receipt, measured weight, price, and processing evidence.
 - **Programme dashboard:** role-specific web experience for review queues, status-separated aggregates, verified weight, and journey inspection.
 
-The recycler interface and dashboard may initially be routes within the web application; their access boundaries remain distinct. A separate deployable location service is **to be decided** and may begin as an API module.
+The recycler interface and dashboard can be routes within the PWA while retaining distinct access boundaries. Location and price functions can begin as API modules; separate deployment requires an ADR rather than being assumed.
 
 ## Context diagram
 
 ```mermaid
 flowchart LR
-    U[Collectors and households] --> W[Mobile-friendly web app]
+    U[Collectors and households] --> W[Installable PWA]
     R[Scrapyards and recyclers] --> W
     P[Reviewers and programme managers] --> W
     W <-->|Versioned contracts; queued sync| A[Application API]
@@ -30,13 +30,13 @@ flowchart LR
     A <-->|Grounded guide contract| S[Safety assistant]
     S --> C[Reviewed safety content]
     S -.->|New explanation when online| L[LLM provider]
-    A --> D[(PostgreSQL / PostGIS proposed)]
-    A --> O[(S3-compatible object storage proposed)]
-    A --> M[Location and map boundary]
+    A --> D[(PostgreSQL with spatial capability or equivalent)]
+    A --> O[(Private S3-compatible storage or equivalent)]
+    A --> M[Location, price and map boundary]
     M -.-> MP[Map provider]
 ```
 
-Dashed arrows denote external provider integrations. The database, object storage, and named technologies are proposals pending validation.
+Dashed arrows denote external provider integrations. Named technologies are SRS constraints with documented alternatives where the SRS permits an equivalent.
 
 ## Core architectural principles
 
@@ -46,6 +46,10 @@ Dashed arrows denote external provider integrations. The database, object storag
 4. **Derived values keep provenance.** Predictions and estimates do not overwrite user input or measurements.
 5. **Integrations are replaceable boundaries.** LLM, map, storage, payment, and government providers do not define core records.
 6. **Least privilege applies.** Roles see only information required for their actions; public reporting excludes collector identity.
+7. **Server authority controls lifecycle.** The API rejects invalid or unauthorised transitions and records every accepted material action.
+8. **Optional integrations are isolated.** Simulated incentives, TTS and external providers can be disabled without breaking the Must journey.
+
+All fourteen SRS figures are represented in [SRS analysis models](analysis-models.md).
 
 ## Current implementation
 

@@ -21,7 +21,7 @@ This document defines requirements, not actual prompt text.
 
 ## Retrieval restrictions
 
-- Retrieve only published, approved, in-review-date content for the confirmed/manual category and requested supported language.
+- Retrieve only published, approved, in-review-date content for the confirmed/manual category and requested language: English, French, Arabic, or Portuguese.
 - Do not retrieve unrestricted web content, user submissions, model memory, operational notes, or draft/withdrawn safety cards.
 - Return card identifier, version, language, source references, approval status/date, and review date with the content.
 - If no eligible card exists, return a controlled unavailable result; do not broaden the category silently.
@@ -85,7 +85,7 @@ Do not log full prompts/responses by default, personal data, safety-card bodies,
 
 ## Human review and evaluation
 
-Safety subject-matter reviewers own content meaning; language reviewers assess critical translations; responsible-AI/security reviewers assess injection, prohibited outputs, privacy, and safe failure. Test every supported category/language and adversarial condition before release and after provider, model, policy, validator, schema, or card changes.
+Safety subject-matter reviewers own content meaning; language reviewers assess critical translations; responsible-AI/security reviewers assess injection, prohibited outputs, privacy, and safe failure. Test all seven categories in all four languages and every defined adversarial condition before release and after provider, model, policy, validator, schema, or card changes. Every prohibited-output test must fall back safely; any displayed unapproved safety claim blocks release.
 
 ## Failure handling
 

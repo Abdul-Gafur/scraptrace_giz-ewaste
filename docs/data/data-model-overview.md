@@ -2,20 +2,20 @@
 
 ## Status and modelling principles
 
-This is a **proposed logical model**, not a database schema. Entity boundaries may become tables, documents, aggregates, or external references only after contract, privacy, security, offline, and lifecycle decisions.
+This is the SRS-required logical model, not a physical database schema. Entity boundaries may become tables, documents, aggregates, or external references only after contract, privacy, security and offline design. The core ERD is [Figure 14](../architecture/analysis-models.md#figure-14-core-traceability-entity-relationship-model).
 
 - Preserve source facts, user assertions, predictions, estimates, measurements, and review decisions separately.
 - Use stable identifiers and append/version material evidence rather than silently overwriting it.
-- Store binary evidence in protected object storage if that proposal is accepted; records hold controlled references and integrity metadata.
+- Store binary evidence in private S3-compatible object storage or an accepted equivalent; records hold controlled references and integrity metadata.
 - Minimise identity and precise location, scope access by role/programme/resource, and separate operational data from training datasets.
 - A future entity does not imply an implemented or authorised integration.
 
-## Proposed entities
+## Logical entities
 
 | Entity | Purpose and key information | Relationships | Sensitivity | Authoritative owner | Lifecycle |
 |---|---|---|---|---|---|
 | User | Account identity, status, preferred language, authentication reference; avoid unnecessary profile data | Has roles; may link to collector/reviewer/operator profiles and audit events | Confidential; authentication references restricted | Identity/platform owner | Created, verified/activated if required, updated, suspended, deleted/deidentified per policy |
-| Role | Named permission set and programme scope | Assigned to users; evaluated for operations | Internal; assignments confidential | Security/platform owner with programme approval | Versioned; assignment/revocation audited |
+| Role | Collector, recycler, reviewer, manager, content administrator or data reviewer plus assigned programme/location scope | Assigned to users; evaluated server-side for every protected operation | Internal; assignments confidential | Security/platform owner with programme approval | Versioned; assignment/revocation audited |
 | Collector profile | Minimum programme identity/contact/payment reference if future-authorised | Belongs to user; linked from recovery records through controlled reference | Confidential/restricted | Programme operations/privacy owner | Enrolled, updated, suspended, retained/deleted per programme/legal rules |
 | Location profile | Participating place type, coordinates, contact, hours, accepted categories, freshness and verification evidence/status | Selected by recovery records; may link to recycler profile | Public fields plus confidential/restricted verification data | Programme/location-directory owner | Draft, reviewed, published, expired/withdrawn, archived |
 | Recycler profile | Facility/operator identity, programme participation, status evidence and allowed actions | May correspond to location and users; receives handoffs | Public, confidential, or restricted by field | Programme owner; external authority remains authoritative for approval | Proposed, reviewed, active, suspended/expired, archived |
@@ -24,8 +24,9 @@ This is a **proposed logical model**, not a database schema. Entity boundaries m
 | Recovery record | Central evidence aggregate linking collection through processing/review | References item/batch, collector, evidence, predictions, guide, destination, handoff, weight, processing, review, history | Confidential; some fields restricted | Application API/recovery domain | See [Recovery record](recovery-record.md) |
 | Image evidence | Protected object reference, purpose, capture/upload provenance, checksum, time, metadata, consent/rights state | Attached to recovery, handoff, or processing events; not automatically training data | Restricted | Object/evidence owner under recovery domain | Captured/local, uploaded, validated, retained, deleted/quarantined per policy |
 | Category prediction | Suggested category, confidence, model/category/contract versions, inference time/error | Linked to image and recovery record; compared with user confirmation | Internal; confidential when record-linked | Vision service for output; recovery domain for retained reference | Immutable prediction; superseded by new inference but not overwritten |
-| Safety-guide response | Approved card/source version, language, prompt/provider/validator versions, transformation/cache status | Linked to category and optionally recovery record/user session | Internal/confidential depending on linkage | Safety-assistant service; safety-content owner for source | Generated/retrieved, validated, cached/expired/withdrawn under content policy |
-| Handoff | Recycler/facility confirmation, actor/time, discrepancies, evidence references | Belongs to recovery record; links destination/recycler and weight | Confidential/restricted | Recovery domain with authorised recycler as source actor | Pending, confirmed/disputed, reviewed; source event append-only |
+| Safety card/version | Category, language, five answer fields, emergency text, sources, version, approver, approval/review dates and status | Grounds guide responses; only current `Approved` versions are eligible | Internal until published | Safety/content administrator | Draft, Approved, retired/expired/withdrawn |
+| LLM response | Card version, language, prompt/provider/model/validator versions, output, validation result, timestamp | Linked to source card and optionally recovery record/session | Internal/confidential depending on linkage | Safety-assistant service | Generated, validated/blocked, cached, expired/deleted |
+| Handoff | Recycler/facility confirmation, server/client times, confirmed category/condition, measured weight/unit, final price/currency, discrepancies and evidence references | At most one baseline handoff per recovery record; links location/recycler and processing evidence | Confidential/restricted | Recovery domain with authorised recycler as source actor | Awaiting, received, processing recorded; source event append-only |
 | Weight record | Measured value, unit, measurement time/source/device context if authorised, actor | Belongs to handoff/recovery record | Confidential; integrity-sensitive | Authorised recycler/recovery domain | Proposed measurement, recorded, corrected by append/review, retained |
 | Processing evidence | Outcome/status assertion, actor/time, protected evidence references and review status | Belongs to recovery record and recycler | Restricted | Authorised recycler as source; programme review for acceptance | Submitted, incomplete/flagged, reviewed, retained/withdrawn by policy |
 | Review | Reason-coded assignment, evidence considered, decision, rationale, actor/time | Targets recovery record, label, location, content, or other governed object | Restricted | Relevant review authority | Open, awaiting information, decided, appealed/reopened if policy allows |

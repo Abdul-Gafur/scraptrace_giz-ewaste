@@ -2,7 +2,7 @@
 
 ## Purpose and status
 
-This strategy defines the proposed evidence needed to trust ScrapTrace changes. It complements the testable [functional](../product/functional-requirements.md) and [non-functional requirements](../product/non-functional-requirements.md). Frameworks, device matrix, numeric coverage thresholds, model acceptance thresholds, and CI implementation are **to be decided**.
+This strategy defines the evidence needed to trust ScrapTrace changes. It complements the testable [functional](../product/functional-requirements.md) and [non-functional requirements](../product/non-functional-requirements.md). Frameworks, device matrix, code-coverage thresholds, and CI implementation remain to be decided; SRS acceptance targets are fixed unless formally changed.
 
 ## Principles
 
@@ -112,7 +112,7 @@ For all hackathon languages and categories, test faithful coverage of the approv
 
 ## Performance and reliability
 
-Establish baselines before numeric budgets. Measure local interaction, upload, API, inference, guide generation, directory search, synchronisation backlog, dashboard queries, object size, and resource use on agreed targets. Reliability tests cover retries, concurrency, partial failure, restart, and restore. Load, availability, and recovery objectives require later pilot/operations approval.
+Measure local interaction, upload, API, inference, guide generation, directory search, synchronisation backlog, dashboard queries, object size, and resource use on named targets. Acceptance evidence must show: local save within 2 seconds for at least 95 of 100 attempts; prediction within 5 seconds for at least 95 of 100 valid compressed images; non-AI API p95 at most 2 seconds with 20 concurrent demonstration users and below 1% errors; seeded dashboard load within 5 seconds; and evidence images targeted at no more than 2 MB after client compression. Reliability tests include ten interruption scenarios, repeated and reordered requests, partial failure, restart, and recovery. The 99% judging-window objective is not a production SLA.
 
 ## Fixtures, mocks, and determinism
 

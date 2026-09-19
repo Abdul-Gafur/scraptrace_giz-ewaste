@@ -1,126 +1,112 @@
 # User journeys
 
-These are required or proposed hackathon journeys, not implemented behaviour. Each journey uses defined roles from [Users and roles](users-and-roles.md).
+These journeys turn the [approved SRS](<ScrapTrace_Software_Requirements_Specification (2).docx>) into role-specific flows. They are requirements, not implemented behaviour. Exact acceptance criteria remain in the [functional requirements](functional-requirements.md).
 
-## Collector creates a record
+## Collector creates and synchronizes a record
 
 ### Success path
 
-1. The collector selects a supported language and starts an in-app capture.
-2. The app captures the image, date, and approximate location with permission.
-3. The vision service suggests a category and confidence; the collector confirms count, condition, and category.
-4. The app retrieves approved safety guidance and displays an indicative price range with its assumptions and date.
-5. The collector chooses item or batch handling and saves the record.
-6. The system assigns a unique identifier and QR code; offline records show a pending-sync state.
+1. The collector signs in with the seeded collector role and selects English, French, Arabic or Portuguese.
+2. The application explains camera, location, image, record and optional training uses; permissions are requested only when used.
+3. The collector captures, previews and accepts a current image.
+4. The vision service returns seven scores, highest category and model version; the application explains confidence.
+5. The collector confirms or corrects the category. Original output and correction remain separate.
+6. The application saves a validated local draft before network submission.
+7. The collector reads reviewed guidance, enters price inputs, reviews compatible locations and selects a destination.
+8. The collector creates an item or batch record; mixed scrap defaults to batch. The application shows a short code, opaque QR and current lifecycle/sync state.
+9. If connectivity exists, the client submits with client ID, version and idempotency key; the server returns one canonical record.
 
-### Alternative path
+### Alternative paths
 
-The collector corrects a wrong category. The original suggestion and correction are retained for authorised review and do not update the model immediately. Mixed scrap requires an approximate-weight entry because an image cannot estimate it reliably.
+- Low confidence or inference failure exposes manual category selection and retake.
+- Location permission denial exposes manual approximate-area selection.
+- No current price reference shows “unavailable,” not an invented amount.
+- No compatible location shows approved safe-holding guidance and programme contact.
+- No approved card results in no LLM call and a reviewed referral.
 
-### Failure path
+### Failure paths
 
-If capture, local storage, or required fields fail, the app explains what was not saved and does not claim the record exists. If classification fails, manual category selection and generic approved fallback guidance are offered where available.
+- Image type/size failure explains the constraint before upload.
+- Storage/quota failure never claims the draft was saved and offers reduction or retry.
+- Local/server conflict preserves both versions, stops overwrite and shows `Action required`.
+- Authentication expiry preserves recoverable local work while requiring sign-in before protected synchronization.
 
 ## Household user seeks safe guidance
 
-### Success path
+1. The household user follows the collector access path and selects a language.
+2. The application explains camera/location purposes; non-essential training consent may be declined.
+3. The user captures an item or manually chooses a supported category after a low-confidence result.
+4. ScrapTrace retrieves only a current `Approved` safety card.
+5. If online and configured, the LLM receives only card facts and the constrained language task; output is schema/prohibited-content validated.
+6. The user sees the reviewed or validated guide, category, sources, version, approval date and review date.
+7. The user may continue to estimate/location/record creation but is not forced to submit a recovery record merely to read guidance.
 
-1. The household user captures an item and receives a category suggestion with confidence.
-2. The system retrieves the approved card for that category.
-3. The LLM explains or translates only the card content in the selected language.
-4. The user sees hazards, prohibited actions, safe immediate actions, and suitable destination types.
+If the provider fails, the reviewed static card is displayed. If no approved card exists, ScrapTrace gives no generated advice and shows a fixed referral. Heat, smoke, fire, swelling and leakage always use fixed reviewed emergency wording available offline.
 
-### Alternative path
+## Collector selects a receiving location
 
-The user chooses a card directly when classification is uncertain or corrected. A cached approved card or previously generated guide can be shown offline.
+1. ScrapTrace filters published directory entries by confirmed category.
+2. With permission, it ranks by straight-line distance; otherwise the user supplies an approximate area.
+3. Results show location type, verification state/date, accepted categories, hours, contact, distance and directory freshness.
+4. The collector switches between list and map, calls or opens external directions when online, and saves a destination.
 
-### Failure path
+A participating listing is not automatically an approved recycler. Only manager-reviewed profiles show the programme verified-location badge, which is not universal legal certification.
 
-If no approved card is available, the assistant does not guess. It tells the user to avoid opening or burning the item and to contact an approved handler or trained technician, using only an approved fallback message. Urgent conditions such as heat, smoke, or leakage invoke reviewed emergency guidance.
+## Recycler confirms handoff and processing
 
-## Collector selects a delivery location
+1. The recycler signs in for an authorised receiving location and scans the opaque QR or enters the short code.
+2. ScrapTrace returns expected category, item/batch type and only non-sensitive comparison evidence.
+3. The recycler independently confirms category and condition.
+4. The recycler records positive measured weight/unit, non-negative final price/currency, receiving location and capture context.
+5. The recycler uploads a handoff photo and readable scale evidence, or records an authorised exception.
+6. ScrapTrace appends receipt facts without overwriting collector assertions or the earlier estimate.
+7. The recycler selects a controlled processing result, date and notes and attaches required evidence.
+8. The rules engine evaluates evidence, exact duplicates, category disagreement, weight threshold and state validity.
 
-### Success path
+An invalid or already-used code discloses no owner data. A material mismatch creates a named flag; it never silently approves the record and is not itself proof of fraud.
 
-1. With permission, the app uses approximate phone location and a directory of participating locations.
-2. It filters locations by accepted waste type and presents distance, type, verification status, hours, contact details, and latest-data date.
-3. The collector selects a location and may call it or open directions.
-4. The chosen location is attached to the recovery record.
+## Programme reviewer resolves a flagged record
 
-### Alternative path
+1. The reviewer opens an assigned `Under review` record and sees named reasons and the approved “not proof of fraud” statement.
+2. The comparison view shows original/user/recycler categories, estimate, measured weight, evidence, locations, history and relevant model/reference versions.
+3. The reviewer approves, requests information or rejects and supplies a reason.
+4. ScrapTrace records reviewer, decision, reason and time as an append-only audit event.
+5. Approval moves an evidence-complete record to `Approved and completed`; rejection moves it to `Rejected`.
+6. An information request returns only allowed fields to the responsible collector or recycler and preserves prior evidence/history.
 
-The user searches an area manually or uses a recently cached list offline. A participating scrapyard or collection point remains clearly distinct from an approved recycler.
+Until a decision, the record contributes neither approved totals nor simulated-incentive eligibility.
 
-### Failure path
+## Programme manager views results
 
-If location permission is refused, the user can enter a place manually. If no suitable listing exists, the app says so and must not invent or mislabel a destination. Live directions may remain unavailable offline.
-
-## Recycler confirms handover
-
-### Success path
-
-1. The recycler scans the QR code and retrieves the item or batch record.
-2. The recycler checks the delivery against category, count, condition, and visible evidence.
-3. The recycler records measured weight and final buying price, separately from any estimate or future incentive.
-4. The recycler captures the full delivery on the scale with the reading visible.
-5. The system records who confirmed the handover, when, and at which participating facility.
-6. The recycler later adds processing outcome and supporting evidence.
-
-### Alternative path
-
-A mismatch is recorded without overwriting collector data and routes the record to review. If the network fails, an authorised offline confirmation may be queued with a locally unique operation identifier; exact offline permissions are **to be decided**.
-
-### Failure path
-
-An unknown, already-completed, invalid, or duplicated code is not silently accepted. Missing weight or required evidence keeps the record incomplete or flagged.
-
-## Programme reviewer checks a flagged record
-
-### Success path
-
-1. The reviewer opens an assigned record and sees its flag reasons, evidence, relevant model/version data, and change history.
-2. The reviewer compares collector data, recycler confirmation, image similarity results, weight, and processing evidence.
-3. The reviewer approves, rejects, or requests more information and records a reason.
-4. The decision and actor are added to the audit history; downstream status and reports update accordingly.
-
-### Alternative path
-
-The reviewer escalates an uncertain safety, fraud, data-rights, or recycler-status case to the appropriate owner. A corrected image is considered for model data only through a separate consented data-review decision.
-
-### Failure path
-
-The reviewer cannot decide without sufficient evidence. The record stays pending and is excluded from completed verified totals and incentive eligibility.
-
-## Programme manager views verified results
-
-### Success path
-
-1. The manager selects an authorised programme, period, status, category, or geography.
-2. The dashboard shows definitions, freshness, record counts, verified measured weight, destinations, and processing states.
-3. The manager drills into permitted supporting records and exports only authorised data if that capability is later approved.
-
-### Alternative path
-
-The manager compares searches or collection origins with directory coverage to identify possible access gaps. This is a planning signal, not proof that a facility is required or viable.
-
-### Failure path
-
-Incomplete, rejected, or unsynchronised records are visibly separated. If data is stale or unavailable, the dashboard does not present it as current or complete.
+1. The manager signs in within assigned programme scope.
+2. The dashboard shows active filters and data freshness.
+3. The manager filters by date, category, coarse collection area, receiving location and status.
+4. Counts reconcile to source records; verified-weight totals include only `Approved and completed` records and identify the unit.
+5. The manager opens an authorised journey to inspect capture, category, safety-card version, estimate, destination, handoff, weight, final price, processing and review events in order.
+6. If enabled, anonymous no-result searches indicate network gaps without identity or precise search coordinates.
+7. If demonstrated, a sample incentive view shows inputs, formula and `simulation—no payment sent`.
 
 ## User works with weak or unavailable internet
 
-### Success path
+1. A previously loaded PWA exposes cached interface translations, reviewed safety bundles and compact directory data.
+2. The application saves a validated draft locally with client ID, idempotency key, creation time, local version and sync state.
+3. It shows `Offline` and `Pending synchronization`; local save is never described as server receipt.
+4. When connectivity returns, bounded retry begins and state changes to `Synchronizing`.
+5. The server treats a repeated idempotency key as the same mutation.
+6. Success returns the canonical ID and changes state to `Synchronized`.
+7. Conflict preserves local and server values and changes state to `Action required`.
 
-1. The app reports that it is offline and shows the freshness of cached content.
-2. The user captures an image, enters required metadata, reads a cached approved safety card, and saves a local draft or queued record.
-3. The user receives a local identifier and visible pending-sync status.
-4. When connectivity returns, the app retries using an idempotency key.
-5. The server acknowledges one canonical record, maps it to the local record, and the app shows the sync result.
+Fresh cloud LLM responses and live directions require connectivity. Cached reviewed cards and previously validated guides remain available with version/freshness.
 
-### Alternative path
+## Application acceptance journey
 
-The user uses a cached participating-location list or a previously generated guide. Cloud classification and new LLM wording may remain pending; manual category selection and approved cached wording provide a controlled fallback.
-
-### Failure path
-
-Failed synchronisation remains visible with a reason and retry action. Conflicting edits are not silently overwritten, duplicate submissions do not create duplicate canonical records, and permanently rejected data remains available for user correction according to a retention policy **to be decided**.
+| Step | Demonstration action | Required observable result |
+|---|---|---|
+| 1 | Collector selects language and captures a television with connectivity disabled. | Translated UI, local save and offline state are visible. |
+| 2 | Model suggests a category; collector confirms or corrects it. | Confidence and original/confirmed values are retained. |
+| 3 | Collector opens guidance, price and nearby places. | Approved offline guide with provenance, honest estimate and cached compatible locations appear. |
+| 4 | Connectivity returns and synchronization runs. | One server record and one QR exist; no duplicate is created. |
+| 5 | Recycler scans, confirms, weighs and uploads handoff/processing evidence. | Measured weight/final price remain distinct from estimate; audit events are appended. |
+| 6 | A deliberate mismatch creates a flag. | The record is excluded from approved totals and the flag is explained. |
+| 7 | Reviewer approves with a reason. | Journey becomes `Approved and completed`; verified weight updates. |
+| 8 | Manager opens the simulated bonus view. | Calculation is traceable and states that no payment was sent. |

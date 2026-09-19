@@ -21,6 +21,10 @@ Do not invent real personal information, imply recycler certification, provide u
 | Review examples | Reason-coded fictional low-confidence, mismatch, duplicate-signal, unusual-weight or missing-evidence cases | Expected reviewer options/outcome, policy version and statement that a flag is not proof of fraud | Accuse a real person/business; use invented thresholds as accepted policy |
 | Processing-evidence examples | Fictional protected references/artefacts sufficient to demonstrate incomplete/complete/review flows | `SIMULATED PROCESSING EVIDENCE`, non-personal image/document rights, checksum, purpose and expected status | Claim actual processing, certification, regulator acceptance or environmental impact |
 
+## Acceptance-volume profile
+
+The SRS defines approximately 5,000 supplied reference images subject to licence and review, 1,000 fictional seeded recovery records, at least 10,000 synthetic metadata records for performance testing, up to six evidence images per record, approximately 8–20 audit events per record, and up to 200 seeded locations. The seven-category/four-language baseline follows the explicit SRS `shall` requirements; see the [documented language inconsistency](../product/srs-traceability.md#srs-interpretation-notes). These volumes are test fixtures and capacity evidence, not mock claims of real programme activity.
+
 ## Data manifest
 
 The later demonstration-data manifest should record artefact ID, description, source/owner, fictional/authorised status, licence/consent, classification, purpose, permitted environments, checksum, schema/category/content/model version, expected result, personal-data review, expiry/deletion, approver, and known limitation. Store restricted artefacts outside Git under [Dataset management](../data/dataset-management.md).

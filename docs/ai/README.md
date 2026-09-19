@@ -10,4 +10,4 @@ This section defines governance for ScrapTrace computer vision, approved safety 
 - [Data and label governance](data-and-label-governance.md)
 - [Responsible AI](responsible-ai.md)
 
-The [Concept Note](../../concept_note.md), [hackathon scope](../product/prototype-scope.md), and [coding standards](../engineering/coding-standards.md) remain authoritative for product constraints and engineering expectations. Safety facts may enter `packages/safety-content` only through the approval process defined here.
+The [final SRS](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) governs product requirements and acceptance; the [Concept Note](../../concept_note.md) supplies original context. The [hackathon scope](../product/prototype-scope.md) and [coding standards](../engineering/coding-standards.md) translate those constraints. Safety facts may enter `packages/safety-content` only through the approval process defined here.

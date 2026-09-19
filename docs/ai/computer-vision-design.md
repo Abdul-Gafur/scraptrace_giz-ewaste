@@ -2,11 +2,11 @@
 
 ## Status and objective
 
-This document proposes how `services/vision` could support category suggestion. No dataset has been inspected in this repository, no task type is confirmed, and no model is implemented or trained.
+This document defines how `services/vision` supports the SRS category-suggestion boundary. No dataset has been inspected in this repository, no task type is confirmed, and no model is implemented or trained.
 
 ## Supported hackathon categories
 
-The Concept Note names seven groups:
+The final SRS fixes the first release to seven groups:
 
 1. refrigerators;
 2. laptops and desktop computers;
@@ -28,10 +28,10 @@ Proposed input is an authorised in-app image plus only the technical metadata re
 
 ## Intended output
 
-The inference contract should return:
+The inference contract returns:
 
 - suggested category from the versioned supported set;
-- bounded confidence or calibrated score with defined meaning;
+- scores for all seven categories and the leading suggestion, with a defined bounded confidence meaning;
 - model and category-definition versions;
 - inference/contract version and time;
 - low-confidence or unsupported-input indication; and
@@ -41,7 +41,7 @@ The score is uncertainty information, not a probability guarantee unless calibra
 
 ## User correction and low confidence
 
-The interface must show the suggestion and confidence in understandable language and permit confirmation or correction. Low confidence, out-of-scope input, or invalid input must route to manual selection or review rather than forced acceptance. Thresholds are versioned policy and remain **to be decided** through evaluation and review capacity.
+The interface must show the suggestion and confidence in understandable language and permit confirmation or correction. Low confidence, out-of-scope input, or invalid input must route to manual selection or review rather than forced acceptance. The threshold is configurable, versioned, and determined from validation and review capacity.
 
 The original output, version, and correction remain separate. A correction is a candidate label only after permission and qualified review; it never updates the deployed model immediately.
 
@@ -65,7 +65,7 @@ Neither mode is accepted. Edge use requires conversion-parity, integrity, device
 
 Offline capture and local record creation remain available as defined by [Offline-first design](../architecture/offline-first-design.md). Without an approved edge model, inference remains pending and the user may select a category manually. Cached previous predictions must not be applied to a new image. A local save is not server inference or verification.
 
-## Proposed training workflow
+## Training workflow
 
 1. Confirm dataset rights, purpose, annotation form, personal-data review, and category guide.
 2. Create an immutable dataset manifest and leakage-resistant train/validation/test split.

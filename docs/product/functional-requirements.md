@@ -1,98 +1,152 @@
 # Functional requirements
 
-All requirements have status **Proposed** because the repository contains no implementation. Priorities are `Must`, `Should`, or `Could` for the hackathon scope. Acceptance conditions define testable intent; detailed test cases are deferred.
+This catalogue mirrors the functional requirements in the [approved SRS v1.1](<ScrapTrace_Software_Requirements_Specification (2).docx>), sections 5.1–5.10. The SRS is authoritative if wording differs. `Must` requirements form the hackathon acceptance baseline; a `Should` item may be deferred only through a recorded product decision that preserves the end-to-end acceptance scenario; a `Could` item must not displace core quality work. The stakeholder need behind each group is traced in [SRS traceability](srs-traceability.md#stakeholder-need-traceability). The status of every listed requirement is **required but not implemented** until linked implementation and test evidence proves otherwise.
 
-## Collector and household experience
+## Access, role, consent and language
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-COL-001 | The system shall allow an authenticated or locally identified user to capture a new image inside the mobile-friendly experience. | In-app capture reduces reuse of old gallery images. | A supported phone browser can start capture, preview it, and save or discard it; provenance records it as in-app capture. | Must | Proposed |
-| FR-COL-002 | The system shall collect category confirmation, item count, condition, and approximate location with permission. | These fields support guidance, estimates, discovery, and records. | The user can review each field; refusal of location permission offers manual area entry. | Must | Proposed |
-| FR-COL-003 | The system shall present the current record status and history for records visible to the user. | Users need evidence and understandable progress. | A user can distinguish draft, pending sync, submitted, received, flagged, processed, approved, and rejected states that apply. | Must | Proposed |
-| FR-HOU-001 | The system shall let a household user obtain approved guidance without creating a complete recovery record. | Safety guidance should not depend on programme participation. | A user can select or classify a supported category and view its approved card without completing delivery fields. | Must | Proposed |
-| FR-HOU-002 | The system shall support English, French, Arabic, and Portuguese content within the hackathon scope. | The Concept Note requires multilingual access. | Users can switch language and required labels, safety warnings, location details, and statuses appear in the selected language; quality is reviewed. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-ACC-001 | Provide demonstration sign-in for collector, recycler, reviewer, manager, content-administrator and data-reviewer roles. | Must | System test | Each seeded role reaches only its permitted landing page and API resources. |
+| FR-ACC-002 | Enforce role permissions server-side for every protected request; hiding interface controls is insufficient. | Must | Security test | A forbidden cross-role request returns `403`, creates a security event and discloses no protected data. |
+| FR-ACC-003 | Explain camera, location, image, record and optional training-data uses before collection. | Must | UI test | A first-time user can read each purpose and continue with non-essential consent declined. |
+| FR-ACC-004 | Request camera and location permissions only when the related feature is used. | Must | UI test | Opening the home page alone triggers no permission request. |
+| FR-ACC-005 | Offer English, French, Arabic and Portuguese. | Must | UI test | The selector changes baseline journey labels and messages in each supported language. |
+| FR-ACC-006 | Version, cache and use reviewed interface translations without an LLM. | Must | Offline test | After one successful load, translated baseline interface text remains available offline. |
+| FR-ACC-007 | Fall back to English when a translation key is missing and log the missing key without showing raw tokens. | Must | Unit/UI test | A missing test key displays readable English and creates a diagnostic event. |
+| FR-ACC-008 | Allow sign-out and clearing of locally cached personal records. | Should | UI test | After confirmation, local account data is cleared and protected pages require sign-in. |
 
-## Recycler experience
+## Image capture, category prediction and correction
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-REC-001 | The system shall let an authorised recycler retrieve an item or batch by QR code or identifier. | The physical handover must connect to its digital record. | A valid code opens the permitted record; invalid or inaccessible codes return a clear error without leaking data. | Must | Proposed |
-| FR-REC-002 | The system shall record measured weight, final buying price, facility, actor, and confirmation time. | Receipt evidence must be distinct from estimates. | Required fields are validated and appended without overwriting collector-entered values. | Must | Proposed |
-| FR-REC-003 | The system shall capture a confirmation image showing the delivery and readable scale result. | Later review requires stronger handover evidence. | A recycler can attach evidence; absent required evidence keeps the record incomplete or flagged. | Must | Proposed |
-| FR-REC-004 | The system shall record a processing outcome and supporting evidence. | Receipt alone does not prove processing. | The record cannot reach the defined completed state until required processing fields and evidence pass validation or review. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-VIS-001 | Support in-application camera capture and clearly label any demonstration fallback using a test image. | Must | UI test | On the target phone, a user can capture, preview, retake and accept an image. |
+| FR-VIS-002 | Validate image type and size and compress accepted images before upload while retaining evaluation detail. | Must | Unit/system test | Invalid types are rejected and a valid oversized image is reduced to the configured limit. |
+| FR-VIS-003 | Return scores for all seven categories, the highest-scoring category and model version. | Must | API test | A valid request returns a schema-valid result with seven scores and a version. |
+| FR-VIS-004 | Show category and confidence in plain language without presenting the output as certain. | Must | UI test | High, medium and low-confidence states invite confirmation. |
+| FR-VIS-005 | Require confirmation or selection of another supported category before continuation. | Must | UI test | A record cannot be submitted without a confirmed category. |
+| FR-VIS-006 | Preserve original prediction, selected category, user, time and optional reason for a correction. | Must | Data test | Original and corrected values coexist; prediction data is not overwritten. |
+| FR-VIS-007 | On low confidence or prediction failure, show all supported categories for manual selection and offer retake. | Must | UI test | Low-confidence and timeout cases can create a manually labelled draft. |
+| FR-VIS-008 | Never retrain or deploy a model automatically from user corrections. | Must | Code/configuration review | No correction path changes the active model or training dataset automatically. |
+| FR-VIS-009 | Provide an authorised correction-review queue for future dataset preparation. | Should | System test | A reviewer can compare image, model output, user label and recycler label and save a decision. |
 
-## Programme management
+## Approved safety guidance and LLM explanation
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-PRG-001 | The system shall let authorised managers maintain programme-scoped participating-location profiles and status. | Location results require checked, current metadata. | A manager can record type, coordinates, contact, hours, accepted waste, status, evidence, and update date with an audit entry. | Must | Proposed |
-| FR-PRG-002 | The system shall configure review rules and, if demonstrated, a clearly simulated incentive rate separately from scrap price. | Programme rules need explicit authority and separation. | Only authorised roles can change rules; changes are versioned; simulation is labelled non-payment and non-entitlement. | Could | Proposed |
-| FR-PRG-003 | The system shall restrict programme data to authorised programme scope. | Operational access does not imply global access. | Cross-programme records and personal fields are denied unless a documented role explicitly permits them. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-SAF-001 | Maintain a versioned safety card for each category covering identity, hazards, prohibited actions, safe immediate action and destination. | Must | Content test | Seven approved English cards contain all five fields, sources, approver, approval date and review date. |
+| FR-SAF-002 | Display or ground the LLM only with cards that are current and `Approved`. | Must | API test | Draft, retired and expired cards are excluded. |
+| FR-SAF-003 | Send the LLM only approved card facts, requested language, tone/reading level and the no-new-facts/no-dismantling rule. | Must | Integration review | Captured requests include no identity, coordinates, images or facts outside the card. |
+| FR-SAF-004 | Use the LLM only to explain, simplify or translate approved content, not answer open-ended safety questions. | Must | Adversarial test | Injection and unrelated questions receive the approved fallback or referral. |
+| FR-SAF-005 | Validate LLM output against a structured schema and prohibited-action rules before display. | Must | Integration test | Malformed or prohibited dismantling output is blocked. |
+| FR-SAF-006 | On LLM failure or invalid output, display the approved static card in the selected language when available. | Must | Failure test | With the LLM disabled, approved guidance appears with a visible fallback label. |
+| FR-SAF-007 | If no approved card exists, make no LLM call and refer the user to a verified receiving location or trained technician. | Must | System test | Missing-card tests produce no provider call and show the approved referral. |
+| FR-SAF-008 | Show category, sources, card version, approval date and review date with every guide. | Must | UI test | Metadata is visible or available through an accessible control. |
+| FR-SAF-009 | Provide reviewed safety content in English, French, Arabic and Portuguese; LLM translation may supplement but never replace offline reviewed text. | Must | Content/offline test | Reviewed bundles are available offline for all seven categories and supported languages. |
+| FR-SAF-010 | Label LLM wording as AI-assisted and retain source-card, provider/model and policy metadata. | Must | UI/data test | Stored response metadata links the explanation to its approved source. |
+| FR-SAF-011 | Optional text-to-speech reads only displayed approved or validated text and remains separate from the LLM. | Could | UI test | Disabling it has no guide impact; enabling it reads visible text only. |
+| FR-SAF-012 | Use fixed reviewed emergency wording for heat, smoke, fire, swelling or leakage. | Must | Content test | Emergency wording exactly matches the approved version and is never freely generated. |
 
-## Computer vision
+## Indicative price estimation
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-AI-001 | The vision capability shall suggest one of the seven Concept Note categories and provide a confidence value. | Category selection drives the collection journey while exposing uncertainty. | For a valid test image, the response contains category, bounded confidence, model version, and outcome or error. | Must | Proposed |
-| FR-AI-002 | The system shall allow correction of a suggested category while preserving the original result. | Human correction improves the record without hiding model behaviour. | Original prediction, confidence, user correction, time, and actor are retained and reviewable. | Must | Proposed |
-| FR-AI-003 | Corrections shall not update a deployed model automatically. | Unreviewed or malicious labels must not become training truth. | A correction enters a review queue; no training-data approval or model release occurs without separate authorised actions. | Must | Proposed |
-| FR-AI-004 | The system shall communicate low confidence and support manual selection. | Users must not be forced to accept uncertain output. | Below a configurable reviewed threshold, the interface marks uncertainty and requires confirmation or manual category selection. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-PRI-001 | Estimate from confirmed category, item count, selected condition and active dated reference data. | Must | Unit test | Known fixtures reproduce approved minimum and maximum values. |
+| FR-PRI-002 | Require positive approximate weight and unit for mixed scrap and explain that photographs cannot measure weight reliably. | Must | UI test | Calculation remains disabled until both are supplied. |
+| FR-PRI-003 | Allow known approximate weight for item categories and record whether it was supplied. | Should | Unit/UI test | Weighted and unweighted paths preserve input provenance. |
+| FR-PRI-004 | Show minimum, maximum, currency, basis, condition, source, update date and a non-offer disclaimer. | Must | UI test | Every estimate contains all fields and the disclaimer. |
+| FR-PRI-005 | When current reference data is absent, show unavailable and never invent a price. | Must | Failure test | Missing or stale data returns no numeric value. |
+| FR-PRI-006 | Keep recycler final price and measured weight separate from the original estimate. | Must | Data test | Completed records retain both estimate and final price. |
+| FR-PRI-007 | Separate any example incentive from scrap price and label it simulated unless an authorised live programme exists. | Must | UI test | The calculation shows its sample rule, status and separate subtotal. |
 
-## Safety assistant and LLM
+## Nearby receiving locations
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-SAF-001 | The system shall retrieve an approved safety card matching the confirmed category. | Safety claims must come from reviewed content. | The response includes card version, source, approval date, review date, and approved content or a controlled unavailable result. | Must | Proposed |
-| FR-SAF-002 | The LLM shall explain, simplify, or translate only retrieved approved information. | Controlled grounding reduces unsafe invention. | Evaluation detects and rejects responses adding unsupported dismantling, hazard, disposal, or emergency instructions. | Must | Proposed |
-| FR-SAF-003 | When approved information or the LLM is unavailable, the system shall use an approved fallback and not guess. | Safety access must fail safely. | Simulated missing content/provider states show a reviewed fallback and referral to an approved handler or trained technician. | Must | Proposed |
-| FR-SAF-004 | Safety output shall answer what the item is, potential hazards, prohibited actions, safe immediate actions, and where to take it. | The Concept Note defines these five card functions. | Each supported category's approved card contains all five sections or a documented not-applicable rationale. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-LOC-001 | Store name, type, coordinates, accepted categories, hours, contact details and verification state/date for each location. | Must | Data test | Incomplete seed profiles cannot be published. |
+| FR-LOC-002 | With permission, rank published compatible locations by straight-line distance. | Must | Unit/system test | Known coordinate fixtures return correctly ordered compatible results. |
+| FR-LOC-003 | When geolocation is denied, allow approximate manual area selection without blocking the journey. | Must | UI test | Denial reveals a manual path and suitable results. |
+| FR-LOC-004 | Distinguish scrapyards, collection centres and recyclers; show a verified badge only after manager approval. | Must | UI/API test | Unverified profiles never show the badge. |
+| FR-LOC-005 | Provide list and map views, calling and external directions while online. | Must | UI test | Actions use stored contact details and coordinates. |
+| FR-LOC-006 | Keep the latest reviewed compact directory offline with its update date. | Must | Offline test | Compatible cached entries display offline and are labelled cached. |
+| FR-LOC-007 | On no match, show an approved safe-holding message and programme contact rather than unsafe disposal advice. | Must | Failure test | A no-match fixture shows the fallback and no unrelated location. |
+| FR-LOC-008 | Aggregate anonymous no-result searches by coarse area and category. | Should | Report test | Results contain counts without identity or precise coordinates. |
 
-## Price estimation
+## Offline capture and synchronization
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-PRI-EST-001 | The system shall display a price range, not an exact offer, using category, count, condition, and a dated sample local reference list. | A photograph cannot establish exact weight, material, or condition. | The output shows lower/upper estimate, currency, inputs, source date, and a non-binding label. | Must | Proposed |
-| FR-PRI-EST-002 | Mixed-scrap estimation shall require user-entered approximate weight; known weight may refine other estimates. | Image-only weight estimation is unreliable. | Mixed-scrap estimation is unavailable until approximate weight is entered; the value is marked user supplied. | Must | Proposed |
-| FR-PRI-EST-003 | The final buying price shall be entered after physical inspection and remain separate from any estimate or incentive. | Commercial outcome and programme reward are different facts. | Record history displays estimated range, final buying price, and any simulated incentive as distinct labelled values. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-OFF-001 | Save a validated draft locally before attempting network submission. | Must | Offline test | Network loss after capture preserves accepted metadata and form values. |
+| FR-OFF-002 | Give each local mutation a client ID, idempotency key, creation time, local version and sync state. | Must | Data test | Local inspection shows every field. |
+| FR-OFF-003 | Display `Offline`, `Pending synchronization`, `Synchronizing`, `Synchronized` and `Action required` in plain language. | Must | UI test | Injected connection and conflict states show the correct label. |
+| FR-OFF-004 | Retry after reconnection with bounded exponential backoff for transient failures. | Must | Integration test | A temporary failure later succeeds and creates at most one server record. |
+| FR-OFF-005 | Treat repeated idempotency keys as one logical mutation and return the existing result. | Must | API test | Three identical submissions create one state change. |
+| FR-OFF-006 | On local/server version conflict, preserve the local copy, stop automatic overwrite and require authorised action. | Must | Conflict test | Both values remain recoverable and the UI shows `Action required`. |
+| FR-OFF-007 | Warn when storage is nearly unavailable and never claim a draft was saved after storage failure. | Must | Failure test | Quota failure gives an error and a reduction/retry option. |
+| FR-OFF-008 | Scope sensitive caches to the signed-in user and clear them on explicit sign-out/clear. | Must | Security test | A second seeded user cannot see the first user's records. |
 
-## Nearby-location search
+## Recovery record and QR code
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-LOC-001 | With permission, the system shall rank participating locations by proximity and accepted waste type. | Users need actionable destinations. | Results use current or cached coordinates, filter incompatible locations, and disclose data freshness. | Must | Proposed |
-| FR-LOC-002 | Results shall show location type, verification status, hours, contact details, accepted waste, and directions availability. | A listing must not imply recycler approval. | Each result distinguishes scrapyard, collection centre, and recycler and never derives approval from proximity or listing alone. | Must | Proposed |
-| FR-LOC-003 | Users shall be able to search manually when location access is unavailable. | Location permission and GPS cannot be assumed. | A place or area input returns directory matches without requiring device location. | Should | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-REC-001 | Create individual-item or batch records; mixed scrap defaults to batch. | Must | UI test | Both types are available with the correct required fields. |
+| FR-REC-002 | Store ID, owner, evidence reference, confirmed category, applicable count/weight, condition, capture time, approximate area, estimate and selected destination. | Must | API/data test | Valid records contain applicable fields and incomplete input returns field errors. |
+| FR-REC-003 | Generate a QR containing only an opaque lookup token or URL without personal or location data. | Must | Security test | Decoding reveals only the approved token/URL format. |
+| FR-REC-004 | Show QR, human-readable short code and current status and allow reopening. | Must | UI test | A collector can present the record after closing and reopening the app. |
+| FR-REC-005 | Enforce the lifecycle server-side and audit every accepted state transition. | Must | API test | Invalid transitions fail; valid events include actor, time and prior/new state. |
+| FR-REC-006 | Version permitted changes after submission without silently replacing originals. | Must | Data test | Prior value and change actor remain visible. |
+| FR-REC-007 | Store an image digest and flag exact reuse across active records. | Must | System test | Reusing a fixture image creates a flag rather than automatic approval. |
 
-## Offline storage and synchronisation
+## Recycler handoff, weight and final price
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-OFF-001 | The client shall save a draft or queued recovery record locally without internet. | Capture sites may have weak connectivity. | In an offline test, required inputs and image persist across app restart and show local-only or pending status. | Must | Proposed |
-| FR-OFF-002 | The client shall synchronise queued operations after reconnection using idempotency keys and retry-safe requests. | Retries must not create duplicate records. | Replaying the same operation produces one canonical effect and returns the same mapping or outcome. | Must | Proposed |
-| FR-OFF-003 | The client shall expose sync status, last attempt, and actionable errors. | Users need to know whether evidence reached the server. | Pending, syncing, synced, conflict, and failed states are visually distinguishable and accessible. | Must | Proposed |
-| FR-OFF-004 | Cached approved safety cards, previously generated guides, and a recently saved directory shall remain available offline with freshness metadata. | Core guidance and access information should degrade safely. | Offline tests show available cached content and date; absent content produces a controlled message rather than invented data. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-HND-001 | Retrieve intake information by QR scan or short code. | Must | UI/security test | Valid codes open intake; invalid codes reveal no owner data. |
+| FR-HND-002 | Show expected category, item/batch type and only non-sensitive comparison evidence. | Must | UI test | Recycler can compare delivery without collector contact or precise coordinates. |
+| FR-HND-003 | Independently confirm category/condition and record positive weight/unit and non-negative final price/currency. | Must | UI/API test | Submission enforces each validation. |
+| FR-HND-004 | Require a handoff photo and readable scale evidence, subject to privacy guidance or an authorised exception. | Must | System test | Handoff cannot complete without configured evidence or exception reason. |
+| FR-HND-005 | Record receiving location, recycler, server time and client capture time. | Must | Data test | Completed handoff contains every provenance field. |
+| FR-HND-006 | Convert material category disagreement, unusual weight or duplicate evidence into review flags, not silent approval or blocking. | Must | Rule test | Each fixture creates the documented code and explanation. |
+| FR-HND-007 | Display estimate and recycler final price as separate journey values. | Must | UI test | Both are distinctly labelled. |
 
-## Records and QR codes
+## Processing evidence and human review
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-VER-001 | The system shall create uniquely identified item records for large items and batch records for small parts or mixed scrap. | Record granularity must match the physical handover. | Users can choose an allowed type; required fields and displayed identifier reflect item or batch semantics. | Must | Proposed |
-| FR-VER-002 | The system shall generate a QR code that references the record without exposing unnecessary personal data. | Scanning should retrieve, not duplicate, the record. | The QR resolves through authorised access and its payload contains no directly readable personal details. | Must | Proposed |
-| FR-VER-003 | The system shall retain an append-only history of material status and evidence changes. | Verification depends on traceability. | Authorised users can see who changed what and when; original evidence remains distinguishable. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-REV-001 | Record a controlled processing result, date, notes and supporting evidence. | Must | UI/API test | Result, date and configured evidence are required. |
+| FR-REV-002 | Evaluate evidence completeness, exact duplicate image, category disagreement, weight threshold and state rules and create named flags. | Must | Rule test | Each rule fixture yields expected code, severity and explanation. |
+| FR-REV-003 | Put flagged records `Under review` and exclude them from approved totals and simulated-incentive eligibility. | Must | System test | A flagged fixture contributes to neither. |
+| FR-REV-004 | Show reviewers flag reasons, category history, estimate, weight, evidence, locations, audit history and relevant model/reference versions. | Must | UI test | Every item is reachable from one review view. |
+| FR-REV-005 | Require a reason when a reviewer approves, requests information or rejects. | Must | UI/API test | Valid decisions record reviewer and time; reasonless decisions fail. |
+| FR-REV-006 | Return requested-information work to the responsible collector or recycler without exposing reviewer-only data. | Should | System test | The user sees only the request and allowed fields. |
+| FR-REV-007 | Mark only a complete unflagged or reviewer-approved record `Approved and completed`. | Must | State test | Incomplete or undecided records cannot reach that state. |
+| FR-REV-008 | Keep creation, sync, prediction, correction, handoff, evidence, flag and decision audit history append-only for ordinary roles. | Must | Security/data test | Ordinary users cannot change/delete audit rows and required actions create events. |
+| FR-REV-009 | Explain that flags require judgement and are not proof of fraud. | Must | UI test | Every flag panel shows the approved statement. |
 
-## Review and verification
+## Journey, dashboard and demonstration reporting
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-VER-004 | The system shall flag low confidence, category mismatch, suspected repeated image, unusual weight, and missing required evidence. | These conditions weaken record trust. | Controlled test records trigger their corresponding reason codes without being automatically approved. | Must | Proposed |
-| FR-VER-005 | An authorised reviewer shall be able to approve, reject, or request more information with a recorded reason. | Human judgement is required for exceptions. | Each decision requires a reason, actor, time, and immutable history entry. | Must | Proposed |
-| FR-VER-006 | Only records meeting defined completeness and review rules shall enter verified programme totals or simulated bonus calculations. | Incomplete evidence must not support official-looking claims. | Reporting queries exclude pending, incomplete, rejected, and unsynchronised records from verified totals. | Must | Proposed |
+| ID | Requirement | Priority | Verification | Acceptance criterion |
+|---|---|---|---|---|
+| FR-DSH-001 | Show capture, category, safety-card version, estimate, destination, handoff, weight, final price, processing and review status in time order. | Must | UI test | A seeded complete record shows every applicable event and timestamp. |
+| FR-DSH-002 | Limit collectors to own records, recyclers to authorised receiving locations, and reviewers/managers to assigned scope. | Must | Security test | Cross-owner and cross-location access is denied. |
+| FR-DSH-003 | Filter and total by date, category, coarse area, receiving location and status. | Must | Report test | Totals reconcile with seeded records. |
+| FR-DSH-004 | Include only `Approved and completed` records in verified-weight totals and show the unit. | Must | Report test | Flagged, rejected and draft records are excluded. |
+| FR-DSH-005 | Show freshness and active filters and never present incomplete records as verified recycling. | Must | UI test | Freshness, filters and status definitions are visible. |
+| FR-DSH-006 | Demonstrate a labelled simulated safe-delivery bonus using sample rate and verified weight. | Should | Demo test | Inputs, formula, result and `simulation—no payment sent` appear. |
+| FR-DSH-007 | Export authorised aggregate or record CSV without private image URLs, phone numbers or precise coordinates. | Could | Security/report test | Export fields match the approved role-specific schema. |
 
-## Reporting and dashboard
+## Business rules
 
-| Identifier | Requirement statement | Rationale | Acceptance condition | Priority | Status |
-|---|---|---|---|---|---|
-| FR-PRG-004 | The dashboard shall show programme-scoped categories, collection locations, measured verified weight, processing status, and record status. | Managers need an understandable end-to-end view. | Filters return internally consistent aggregates with definitions and freshness displayed. | Must | Proposed |
-| FR-PRG-005 | The system shall display a complete permitted journey from capture through processing. | The demonstration must connect evidence across stages. | An authorised user can view ordered events, actors, evidence state, and unresolved flags for a record. | Must | Proposed |
-| FR-PRG-006 | The dashboard shall separate verified, pending, flagged, rejected, and unsynchronised results. | Status ambiguity can overstate programme outcomes. | Counts and weights are grouped by defined state; verified totals do not include other states. | Must | Proposed |
-| FR-PRG-007 | The system may aggregate location searches without exposing searcher identity. | Search patterns may indicate access gaps. | If enabled, aggregates omit direct identifiers and suppress or protect small groups according to a policy **to be decided**. | Could | Proposed |
+| ID | Rule |
+|---|---|
+| BR-001 | The taxonomy contains exactly the seven top-level challenge-dataset categories. |
+| BR-002 | The confirmed category drives guidance and estimation; original prediction remains recorded. |
+| BR-003 | Only a current approved safety card may be displayed or supplied to the LLM. |
+| BR-004 | The LLM may explain or translate approved facts only and must not invent facts or dismantling instructions. |
+| BR-005 | Mixed-scrap estimation requires approximate weight; all estimates remain indicative until recycler confirmation. |
+| BR-006 | Only manager-reviewed location profiles display a verified badge. |
+| BR-007 | One idempotency key represents one logical mutation; one record ID identifies one item or declared batch. |
+| BR-008 | `Approved and completed` requires handoff and processing evidence with no unresolved flag. |
+| BR-009 | A flag requires review and is not proof of wrongdoing. |
+| BR-010 | Only `Approved and completed` records contribute to verified weight or simulated incentive eligibility. |
+| BR-011 | ScrapTrace does not send money, issue official EPR credits or certify legal compliance. |
+| BR-012 | Training reuse requires separate consent, human label approval and a versioned dataset release. |

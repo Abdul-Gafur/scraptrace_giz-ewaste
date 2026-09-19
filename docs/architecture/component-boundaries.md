@@ -1,10 +1,10 @@
 # Component boundaries
 
-All components below are **proposed**. “Owned data” means the authoritative logical boundary; physical storage and final team assignments remain to be decided.
+These are the SRS-required logical boundaries. “Owned data” means the authoritative logical boundary; physical schemas and final team assignments remain to be decided.
 
 ## Mobile-friendly web application
 
-- **Responsibility:** Present collector, household, recycler, reviewer, and manager workflows; manage permitted local cache and queued actions; expose connectivity and sync state.
+- **Responsibility:** Present all six seeded role experiences; manage the service worker, user-scoped local cache and queued actions; expose permission, connectivity and exact synchronization states.
 - **Owned data:** Ephemeral UI state, local drafts, encrypted/controlled offline queue, cached approved content and directory snapshots.
 - **Public interface:** Browser user interface and calls conforming to API contracts.
 - **Allowed dependencies:** `packages/ui`, `packages/contracts`, `packages/shared`, and `packages/configuration`.
@@ -13,7 +13,7 @@ All components below are **proposed**. “Owned data” means the authoritative 
 
 ## Application API
 
-- **Responsibility:** Authenticate and authorise; coordinate records, state transitions, review, reporting, persistence, services, and provider adapters.
+- **Responsibility:** Authenticate and enforce object/role scope; coordinate records, server-controlled state transitions, review, reporting, deterministic imports, persistence, workers and provider adapters.
 - **Owned data:** Canonical recovery-record metadata, role/programme associations, workflow states, reviews, audit references, and integration identifiers.
 - **Public interface:** Versioned application API, proposed as OpenAPI-described HTTP.
 - **Allowed dependencies:** Contracts, validated configuration, persistence/object-store adapters, and public vision, safety, and location interfaces.
@@ -67,8 +67,8 @@ All components below are **proposed**. “Owned data” means the authoritative 
 
 ## Location capability
 
-- **Responsibility:** Maintain/search participating-location profiles and isolate geocoding, distance, maps, and directions providers.
-- **Owned data:** Checked directory records, accepted types, hours, contacts, coordinates, status evidence, and freshness.
+- **Responsibility:** Maintain/search participating-location profiles and dated price references; isolate geocoding, straight-line distance, maps and directions providers.
+- **Owned data:** Checked directory records, accepted types, hours, contacts, coordinates, verification state/date, price ranges/source/effective date and freshness.
 - **Public interface:** Location search/profile contract through the application API.
 - **Allowed dependencies:** PostGIS if selected, map-provider adapters, contracts, and programme-authorised directory sources.
 - **Forbidden responsibilities:** Inferring recycler approval from proximity/listing, silently publishing unreviewed profiles, or tracking users beyond stated purposes.

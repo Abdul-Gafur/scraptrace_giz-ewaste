@@ -2,61 +2,49 @@
 
 ## Status and principles
 
-This is a proposed role-permission model; no authentication or authorisation exists. Final identity, role assignment, programme scope, multi-role policy, approval separation, and emergency access require security, privacy, product, and programme approval.
+The final [SRS](../product/ScrapTrace_Software_Requirements_Specification%20%282%29.docx) defines the application roles and access outcomes. No authentication or authorisation is implemented yet. Enforcement must be server-side, deny by default, apply role and object scope, and record security-relevant denials without exposing inaccessible data.
 
-- Authenticate identity before sensitive server operations; local unauthenticated guidance/drafts, if allowed, receive no server authority.
-- Authorise every operation by role, programme, resource relationship, field sensitivity, record state, and action.
-- Deny by default, minimise permissions, separate conflicting approvals, and audit material access/change.
-- UI visibility is not authorisation. API, object, export, service, and administrative paths enforce the same policy.
-- Avoid revealing whether an inaccessible record or object exists.
+The application seeds six roles: **collector, recycler, reviewer, manager, content administrator, and data reviewer**. A household user follows the collector experience; a scrapyard operator uses the recycler role only after programme affiliation is established. System administration is an operational privilege, not a seventh baseline business role.
 
-## Proposed role-permission matrix
+## Access matrix
 
-`Own` means resources attributable to that user; `facility` and `programme` are explicit scopes, not global access.
+| Capability | Collector | Recycler | Reviewer | Manager | Content administrator | Data reviewer |
+|---|---|---|---|---|---|---|
+| View current approved safety guidance and participating locations | Yes | Yes | Yes | Yes | Yes | As needed |
+| Create and update own draft record | Own records | No | No | No | No | No |
+| View submitted recovery record | Own records | Presented or assigned records | Assigned review scope | Programme scope | No | Minimised candidate-data view |
+| Correct suggested category | Own record before submission | Record discrepancy only | Resolve through review | View | No | Review candidate label |
+| Confirm handoff, measured weight, and final price | No | Presented or assigned record | Review only | View | No | No |
+| Add processing evidence | No | Assigned record | Review only | View | No | No |
+| Approve or reject flagged recovery record | No | No self-approval | Assigned records | Oversight; no routine rewrite | No | No |
+| View dashboard and exports | Own status only | Facility scope | Review scope | Programme scope | Content status only | Approved evaluation scope |
+| Draft, review, publish, supersede, or withdraw safety cards | No | No | No | Oversight | Authorised content scope with separation of duties | No |
+| Admit corrections to a governed dataset | Submit only | Evidence only | No | Oversight | No | Authorised review scope |
 
-| Capability | Collector | Household user | Scrapyard operator | Recycler | Programme reviewer | Programme manager | Data reviewer | System administrator |
-|---|---|---|---|---|---|---|---|---|
-| View approved safety content and public directory | Yes | Yes | Yes | Yes | Yes | Yes | As needed | As needed |
-| Create local/own recovery record | Own | Own/optional | No by default | No | No | No | No | No |
-| View recovery record | Own/minimised | Own/minimised | Intended facility deliveries only if authorised | Facility-assigned | Assigned programme cases | Programme-scoped | Minimum reviewed-data view only | Exceptional support access only |
-| Correct category | Own before/through allowed stage | Own | No | Record discrepancy separately | Review correction | View/manage policy, not rewrite source | Approve/reject dataset candidate | No domain approval |
-| Maintain location profile | No | No | Own profile proposal | Own facility proposal | Review if assigned | Programme approve/suspend | No | Technical administration only |
-| Confirm handoff/weight/final price | No | No unless programme explicitly permits | Only if assigned handoff role | Facility-scoped | Review, not originate | View/programme policy | No | No |
-| Add processing evidence | No | No | Only if assigned | Facility-scoped | Review | View | No | No |
-| Decide recovery-record review | No | No | No self-approval | No self-approval/disputed record | Assigned approve/reject/request info | Policy/oversight; exceptional decision only if separated | No | No |
-| View programme aggregates | Own summary only | Own only | Facility summary | Facility summary | Review scope | Programme scope | Approved research/evaluation only | Operational health, not business default |
-| Review training candidate | Submit correction only | Submit correction only | Evidence input if authorised | Evidence input if authorised | No automatic training approval | Oversight only | Assigned approve/reject | No model-data approval |
-| Manage users/roles | No | No | No | No | No | Programme assignment requests/limited policy | No | Technical role administration under approval |
-| Export restricted data | No by default | No | No by default | No by default | Case-limited if approved | Programme-approved export | Approved minimised dataset only | Exceptional audited support/export path |
+Exact field permissions and permissible role combinations require implementation design and security review. A QR code identifies a record; it does not grant access.
 
-This matrix is directional. Exact field/operation permissions, role combinations, facility delegation, and household authentication remain to be decided.
+## Authentication and sessions
 
-## Authentication requirements
+- Authentication is required for server-side record, handoff, review, dashboard, content-administration, and data-review actions.
+- Sessions use secure, HTTP-only, same-site cookies or an equivalently reviewed mechanism; credentials and tokens must not be stored in browser-accessible persistent storage.
+- Sign-in, sign-out, expiry, revocation, failed attempts, account recovery, and role change must be handled safely.
+- Privileged roles require stronger account controls and short, auditable administrative access where appropriate.
+- Offline drafts have no server authority until an authenticated, authorised synchronization succeeds.
 
-Future design must decide identity proofing proportionate to role, secure session/token lifecycle, phishing/account-recovery risk, supported devices, MFA for privileged/reviewer roles, revocation, failed-attempt controls, and offline session behaviour. Recycler/programme affiliation must be verified separately from login. Authentication success never establishes recycler approval or record ownership.
+## Object and programme scope
 
-## Record ownership and field access
+Every request is authorised against the actor, action, record or object, programme/facility relationship, lifecycle state, and requested fields. Object-storage access is mediated by the API or a short-lived scoped operation. Collectors cannot see other collectors' records; recyclers cannot browse unrelated records; reviewers and managers remain within assigned programme scope.
 
-A collector may see their record and evidence status but not unrelated identities, reviewer security notes, or other programmes. A recycler sees only fields needed to receive/process assigned or presented records. Reviewers see minimum evidence for assigned decisions. Managers see programme-scoped aggregates/details. Field-level rules protect contact, precise location, images, review signals, audit/security data, and future financial references.
+Recycler affiliation, a directory listing, and a location's participation or verification badge are separate facts. Login never proves that a recycler is approved, certified, or authorised for every category.
 
-Object-storage access uses API-mediated or short-lived authorised operations bound to actor, object, purpose, and expiry. A QR code is a reference, not permission.
+## Separation of duties
 
-## Approval separation
+A collector cannot verify their own record. A recycler cannot approve its own disputed evidence. A data submitter cannot solely admit a disputed label. Material safety content needs authorised review before publication. Technical administration does not confer programme, safety-content, or model-data decision authority.
 
-Proposed separation prevents a collector from verifying their record, a recycler from resolving its own disputed evidence, a data submitter from solely approving a high-risk label, a safety author from solely publishing material content, and an administrator from making domain decisions merely through technical privilege. Small-team exceptions need explicit risk approval, compensating independent review, and audit.
+## Audit and denial behaviour
 
-## Audit events
+Audit successful and denied sensitive actions, including sign-in, role or affiliation changes, record/evidence access, QR lookup, handoff, review, restricted export, content publication, dataset admission, and privileged support. A forbidden operation returns the defined unauthorised/forbidden response and creates a privacy-safe security event; it must not reveal whether an inaccessible object exists.
 
-Audit successful and denied sensitive actions where proportionate: login/recovery, role/affiliation change, record/evidence access/change, QR lookup, handoff/weight/processing, review outcome, restricted export, data/model/content approval, privileged support access, and policy/configuration change. Do not copy secret or full sensitive content into the audit event.
+## Administrative operations
 
-## Administrative access
-
-Administrator access is named, least-privilege, separately authenticated, time-/task-limited where possible, and monitored. Use normal role pathways for routine work; no shared admin accounts. Emergency/break-glass access requires reason, approval where feasible, short expiry, alert, complete audit, and post-use review. Implementation and authority remain to be decided.
-
-## Future identity-provider integration
-
-Keep domain roles and programme/resource policy independent of provider-specific groups. Before choosing a provider, validate user/device context, language/accessibility, offline needs, account recovery, MFA, organisation/facility affiliation, data region/retention, availability, cost, export/exit, webhook/token validation, and administrator lifecycle. External identity attributes are untrusted until mapped and verified by owned policy.
-
-## Access reviews
-
-Proposed reviews cover inactive accounts, role/affiliation changes, privileged/admin access, reviewer queues, facility status, service credentials, exports, and orphaned ownership. Cadence, reviewers, evidence, and automatic expiry require approval before pilot use.
+Named technical administrators may operate infrastructure under least privilege, approval, time limits, monitoring, and post-use review. Shared administrator accounts are prohibited. Administrative access is outside the six seeded business roles and cannot make domain decisions merely through technical privilege.

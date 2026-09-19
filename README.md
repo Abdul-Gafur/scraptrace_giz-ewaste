@@ -32,12 +32,13 @@ cd giz-ewaste
 
 There are no dependencies to install or services to start yet. For a documentation-first orientation, read:
 
-1. [Concept Note](concept_note.md) — authoritative problem, users, solution, workflow, and limitations.
-2. [Documentation index](docs/README.md) — entry point for all product and technical documentation.
-3. [Hackathon scope](docs/product/prototype-scope.md) — the initial delivery boundary.
-4. [System overview](docs/architecture/system-overview.md) — platform components and responsibilities.
-5. [Implementation plan](docs/prototype/implementation-plan.md) — recommended delivery sequence.
-6. [Contribution guide](CONTRIBUTING.md) — workflow and review expectations.
+1. [Final Software Requirements Specification](<docs/product/ScrapTrace_Software_Requirements_Specification (2).docx>) — authoritative application requirements and acceptance criteria.
+2. [SRS traceability and parity](docs/product/srs-traceability.md) — requirement coverage and source interpretation notes.
+3. [Documentation index](docs/README.md) — entry point for all product and technical documentation.
+4. [Concept Note](concept_note.md) — original problem context and intent.
+5. [System overview](docs/architecture/system-overview.md) — platform components and responsibilities.
+6. [Implementation plan](docs/prototype/implementation-plan.md) — recommended delivery sequence.
+7. [Contribution guide](CONTRIBUTING.md) — workflow and review expectations.
 
 ## Repository map
 
@@ -52,6 +53,10 @@ There are no dependencies to install or services to start yet. For a documentati
 
 Each implementation directory currently contains a short ownership README describing what belongs there and who reviews it.
 
+## Current status
+
+The repository contains the engineering documentation foundation and empty implementation boundaries. Application code, dependencies, environments, models, datasets, integrations, and deployment automation have not been created. Requirements describe the application to build; they are not claims of completed functionality.
+
 ## Important boundaries
 
 - AI category output is a suggestion and must expose uncertainty and correction.
@@ -65,3 +70,4 @@ Each implementation directory currently contains a short ownership README descri
 
 See the [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), [Code of Conduct](CODE_OF_CONDUCT.md), and [architecture decisions](docs/decisions/README.md).
 
+No software licence has been selected. Until one is added, no licence is granted beyond rights provided by applicable law.

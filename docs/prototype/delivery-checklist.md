@@ -2,7 +2,7 @@
 
 ## How to use this checklist
 
-This is a proposed release gate for the hackathon application release. It does not indicate that any item currently passes. Record an owner, dated evidence link, and result for each applicable item; “not applicable” requires approval and a rationale. Any unsafe guidance, exposed secret or personal data, broken access boundary, lost/duplicated evidence, or misleading verification claim blocks delivery.
+This is the SRS release gate for the hackathon application. It does not indicate that any item currently passes. Record an owner, dated evidence link, and result for each applicable item; “not applicable” requires approval and a rationale. Any unsafe guidance, exposed secret or personal data, broken access boundary, lost/duplicated evidence, or misleading verification claim blocks delivery.
 
 ## Release identity and scope
 
@@ -22,6 +22,7 @@ This is a proposed release gate for the hackathon application release. It does n
 
 - [ ] Dataset rights, manifest, split integrity, labels, exclusions, and known representativeness gaps are documented.
 - [ ] The released model is evaluated on an immutable held-out set with per-category metrics, confusion, calibration/confidence behaviour, failure slices, latency, and version/checksum.
+- [ ] The candidate achieves macro-F1 of at least 0.70 and no category recall below 0.50, or is blocked and clearly not represented as accepted.
 - [ ] Classification versus detection claims match the implemented model and available annotations.
 - [ ] Low-confidence, unsupported, and correction paths are tested; corrections do not trigger immediate unreviewed learning.
 - [ ] No image output is presented as exact weight, value, composition, ownership, hazard status, or processing proof.
@@ -33,6 +34,7 @@ This is a proposed release gate for the hackathon application release. It does n
 - [ ] Rendered output is structurally validated and safely encoded; sources and version remain visible.
 - [ ] Provider timeout, refusal, invalid output, absent network, and absent approved content follow the defined safe fallback without invented safety facts.
 - [ ] All required safety and language reviewers approve the exact released content and policy versions.
+- [ ] Every prohibited-output test falls back safely; no unapproved safety claim is displayed.
 
 ## Offline and data integrity
 
@@ -57,6 +59,7 @@ This is a proposed release gate for the hackathon application release. It does n
 - [ ] Critical flows pass automated checks and manual keyboard, focus, screen-reader, zoom/reflow, non-colour, touch-target, and status-announcement review.
 - [ ] Agreed phones, browsers, viewport sizes, camera flows, and constrained network conditions are exercised.
 - [ ] Released languages are reviewed for meaning, completeness, layout, truncation, and right-to-left behaviour where applicable.
+- [ ] English, French, Arabic, and Portuguese interface and safety-content bundles are present, reviewed, and selectable.
 - [ ] Confidence, price, safety, participation, verification, simulation, and offline status use clear language understandable without colour alone.
 
 ## Tests and evidence
@@ -65,6 +68,12 @@ This is a proposed release gate for the hackathon application release. It does n
 - [ ] The exact release completes the critical end-to-end journey in the target environment.
 - [ ] Contract compatibility and data migrations, if any, are verified with rollback or forward-recovery evidence.
 - [ ] Open defects are triaged; no release-blocking defect remains; results and exceptions are retained with the release.
+- [ ] Local save completes within 2 seconds for at least 95 of 100 attempts without accepted-data loss.
+- [ ] Prediction completes within 5 seconds for at least 95 of 100 valid compressed-image attempts on the documented host/network.
+- [ ] Non-AI API p95 is at most 2 seconds with 20 concurrent demonstration users and an error rate below 1%.
+- [ ] Seeded dashboard first-useful render completes within 5 seconds and record lists are paginated.
+- [ ] Ten defined interruption scenarios recover without losing acknowledged work; repeated/reordered requests create one canonical effect.
+- [ ] The controlled judging-window availability result meets the 99% objective and is not presented as a production SLA.
 
 ## Demonstration data and external services
 
@@ -103,4 +112,4 @@ This is a proposed release gate for the hackathon application release. It does n
 | Operations and deployment | To be assigned | Pending | To be added |
 | Delivery/submission | To be assigned | Pending | To be added |
 
-Final go/no-go authority, organiser requirements, and exception approval process are **to be decided**. No unchecked checklist should be represented as a completed release review.
+Final named go/no-go authority, organiser requirements, and exception approval process remain to be assigned. No unchecked checklist should be represented as a completed release review.

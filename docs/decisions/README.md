@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Architecture Decision Records (ADRs) capture significant, durable choices and their trade-offs. They supplement the [architecture documentation](../architecture/system-overview.md); they do not replace the authoritative [Concept Note](../../concept_note.md).
+Architecture Decision Records (ADRs) capture significant, durable choices and their trade-offs. They supplement the [architecture documentation](../architecture/system-overview.md); they cannot override the authoritative [final SRS](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>). The [Concept Note](../../concept_note.md) remains the original context source.
 
 ## Decision lifecycle
 

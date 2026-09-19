@@ -1,71 +1,69 @@
-# Success metrics
+# Success and acceptance measures
 
-Metrics are grouped by what the hackathon release can demonstrate and what requires later evidence. No baseline, sample size, or numeric target is accepted unless stated in the Concept Note; owners must propose them with an evaluation plan.
+The [approved SRS](<ScrapTrace_Software_Requirements_Specification (2).docx>) defines application acceptance, not field impact. A passing hackathon release demonstrates a safe, coherent implementation under documented conditions; it does not prove production readiness or social/environmental outcomes.
 
-## Hackathon demonstration success
+## End-to-end acceptance
 
-- A user completes the required journey from in-app capture to processing evidence without a technical explanation.
-- The demonstration covers all twelve steps in [Hackathon scope](prototype-scope.md).
-- A record created offline remains visible, later synchronises, and does not duplicate after retry.
-- Low-confidence output is visible and correctable.
-- Missing approved safety content or LLM connectivity produces a controlled fallback rather than invented advice.
-- A listing's type and verification status are distinct.
-- Verified dashboard totals exclude incomplete, flagged, rejected, and unsynchronised records.
+All eight steps in the [application acceptance journey](user-journeys.md#application-acceptance-journey) must be observable: offline capture, category/confidence and correction, approved guidance/estimate/cached locations, idempotent synchronization and QR, recycler measurement/evidence, deliberate flag, reasoned approval, updated verified weight and visibly simulated bonus.
 
-Evidence: scripted demonstration results, state-transition checks, screenshots or recordings, and known-issue log. Target: all critical demonstration scenarios pass; detailed criteria remain **proposed** until test design.
+All Must functional requirements pass or receive an owner-approved waiver that preserves this journey and every safety/privacy control. Should/Could work follows the [scope priority rules](prototype-scope.md).
 
-## Model evaluation
+## Performance and reliability targets
 
-- Per-category classification metrics and confusion patterns for all seven categories.
-- Calibration or confidence-quality assessment, especially for low-confidence routing.
-- Performance slices for documented conditions such as lighting, occlusion, damage, and capture device where the dataset supports them.
-- Correction rate and reasons during controlled evaluation.
-- Duplicate-image detection behaviour, reported separately from classification.
+| Measure | Acceptance target | Test conditions |
+|---|---|---|
+| Local draft save | ≤ 2 seconds for at least 95 of 100 attempts; zero accepted-data loss | Agreed demonstration phone |
+| Category prediction | ≤ 5 seconds for at least 95 of 100 valid compressed images | Documented demonstration network/hosting profile |
+| Non-AI API | p95 ≤ 2 seconds; error rate < 1% | 20 concurrent demonstration users |
+| Dashboard | First useful seeded summary ≤ 5 seconds; paginated lists | 10,000 synthetic metadata records |
+| Evidence image | Target ≤ 2 MB after compression | Supported image fixtures |
+| Draft recovery | All committed fields recovered | Ten close/reopen/network-interruption scenarios |
+| Synchronization | One logical server result | Repeated and reordered retries |
+| Judging-window availability | 99%, excluding documented organiser-network failure | Agreed judging window; not a production SLA |
 
-Dataset provenance, splits, sample sizes, metric choice, acceptance thresholds, and independent review are **to be decided**. No single accuracy number should represent unsupported field performance.
+## Vision-model release measures
 
-## User experience
+- Dataset manifest and duplicate report prove identical/near-duplicate separation across train/test.
+- Model card reports version, class counts, split, per-class precision/recall/F1, confusion matrix, threshold and limitations.
+- Product-approved threshold governs release. Until approved, the candidate target is macro-F1 ≥ 0.70 on the held-out challenge split with no class recall below 0.50.
+- Low-confidence cases never auto-advance without manual confirmation.
+- Correction paths never train/deploy automatically and prior model versions remain available.
 
-- Task completion and time for image capture, correction, guidance access, location selection, and record creation.
-- Comprehension of confidence, price-estimate limitations, safety warnings, record status, and location type.
-- Accessibility results and task success on the agreed phone/browser matrix.
-- Language-review findings for English, French, Arabic, and Portuguese.
-- User-reported clarity, trust, and effort from collectors and household users.
+These measures apply only to the documented evaluation set and do not establish field generalisation.
 
-Targets require usability testing with representative users and should not be inferred from internal demonstration.
+## Grounded-safety release measures
 
-## Verification process
+- Seven current approved cards contain all five required fields and approval/source/review metadata.
+- Reviewed interface and safety bundles cover English, French, Arabic and Portuguese and remain available offline.
+- Grounded-response evaluation covers every category/language plus missing-card, provider-failure and injection cases.
+- 100% of prohibited-safety cases refuse or fall back.
+- Every factual point displayed from LLM wording traces to the selected approved card.
+- Fixed emergency wording works without an external call.
 
-- Percentage and reasons for records flagged, completed, approved, rejected, or awaiting information.
-- Reviewer time and agreement on controlled cases.
-- Detection results for seeded duplicate, mismatch, unusual-weight, and missing-evidence scenarios.
-- Traceability from collection evidence to handover, measured weight, and processing outcome.
-- Rate of idempotent retry and conflict scenarios resolved without duplicate canonical records.
+## Security, privacy, accessibility and compliance gates
 
-These measures evaluate workflow operation, not proof that all fraud is detected or all processing is safe.
+- Role/object access matrix has no unauthorised success.
+- No unresolved critical/high security finding exists without explicit time-bound acceptance.
+- Repository secret scan has no unresolved high finding.
+- Captured LLM requests contain no name, phone, account ID, precise coordinate or image.
+- Consent denial prevents training-data export.
+- Core pages have no critical automated accessibility finding; keyboard and screen-reader smoke tests pass.
+- Primary mobile targets are at least 44 × 44 CSS pixels.
+- Legal/content review confirms no certification, official EPR, payment or statutory-report claim.
+
+## Data and reporting integrity
+
+- Seeded dashboard totals reconcile to source records.
+- Verified-weight totals include only `Approved and completed` records and always show unit.
+- Draft, unsynchronized, under-review and rejected records are excluded.
+- Estimate and final buying price remain separate.
+- Every material transition creates an attributable audit event.
+- Duplicate, mismatch, unusual-weight, missing-evidence and invalid-state fixtures produce named, explained flags rather than automatic fraud claims.
 
 ## Later pilot measurements
 
-- Completed handoffs and verified measured weight by authorised category, time, and area.
-- Time from collection record to receipt and completed processing evidence.
-- Directory usefulness, travel burden, failed destination attempts, and areas with unmet search demand.
-- Collector and recycler satisfaction, participation, retention, and operational burden.
-- Safety-guidance comprehension and reported handling decisions.
-- Model performance and correction patterns under real field conditions.
-- Programme review workload, data completeness, duplicate indicators, and reconciliation gaps.
-- If an authorised incentive exists: eligibility, payment instruction outcomes, failures, timeliness, and whether the model affects normal scrap income.
+Subject to consent, privacy review and an approved study design, a later pilot may measure completion time, handoffs, approved weight, directory usefulness, travel burden, no-result areas, comprehension, collector/recycler satisfaction, review workload, field model performance and operational reliability.
 
-Pilot metrics require consent, privacy controls, definitions, baselines, and an approved evaluation design.
+## Claims unavailable before field evidence
 
-## Claims requiring field evidence
-
-Until suitable field testing and independent review, ScrapTrace cannot claim that it:
-
-- increases collector income or guarantees a price, buyer, bonus, or payment;
-- reduces unsafe handling, exposure, dumping, burning, or environmental harm;
-- increases collection or recycling volume;
-- proves or guarantees safe recycling;
-- detects all duplicate, inaccurate, or fraudulent records;
-- provides accurate classification for all people, devices, locations, or e-waste;
-- certifies a scrapyard, collection point, or recycler;
-- produces regulator-accepted reports, EPR credits, or environmental results.
+ScrapTrace cannot yet claim increased income or collection volume; reduced unsafe handling, exposure, dumping or burning; guaranteed safe recycling; universal classification accuracy; comprehensive fraud detection; recycler certification; regulator-accepted reports; official EPR credits; or environmental outcomes.

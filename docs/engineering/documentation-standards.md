@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Documentation is part of the product and engineering system. It must help a defined reader act safely, distinguish facts from proposals, and remain traceable to requirements and decisions. The [Concept Note](../../concept_note.md) remains authoritative for the problem, users, solution, hackathon workflow, and limitations.
+Documentation is part of the product and engineering system. It must help a defined reader act safely, distinguish requirements from implementation status, and remain traceable to decisions. The [final SRS](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) is authoritative for requirements and acceptance; the [Concept Note](../../concept_note.md) remains the source for original problem context and intent.
 
 ## Document ownership
 

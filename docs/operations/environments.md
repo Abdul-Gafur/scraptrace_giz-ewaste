@@ -1,34 +1,35 @@
 # Environments
 
-## Status and principles
+## Status
 
-All environments below are **proposed and not provisioned**. No hosting provider, region, domain, identity system, database, storage, secret store, or deployment method is selected. Environments must be isolated by configuration, credentials, data, access, and provider accounts; names alone do not provide isolation.
+The SRS requires three application-delivery contexts: local development, continuous integration, and the controlled demonstration environment. None is provisioned by this documentation phase. A production environment is outside the authorised hackathon scope.
 
 ## Environment matrix
 
-| Environment | Purpose | Expected data | Access expectations | Configuration and secrets | Deployment approval | Current status |
-|---|---|---|---|---|---|---|
-| Local development | Individual development, unit/component work, and safe offline experiments | Synthetic or explicitly licensed minimal samples only; no production personal data, real credentials, or unrestricted challenge images | Assigned contributor on managed/personal device under future developer policy | Checked-in non-secret defaults plus an approved local secret mechanism; low-privilege non-production provider accounts if needed | Contributor may run approved local changes; dependency/tool installation follows engineering approval | Proposed; not provisioned or configured |
-| Shared development | Integrate branches/contracts and exercise service interactions before formal testing | Synthetic controlled data; approved restricted test data only when a governed environment exists | Authenticated project team; role separation where practical; no public access by default | Environment-specific validated configuration and dedicated secrets; never shared with local/staging/production | Component owner or delegated maintainer after review and basic checks | Proposed; not provisioned |
-| Testing or staging | Production-like acceptance, security, accessibility, offline, migration, model/LLM, and demo rehearsal | Controlled fictional demo data and approved evaluation assets; never copied production data by default | Named team/reviewers and, when authorised, organisers; least privilege and audit appropriate to sensitivity | Separate accounts/credentials/configuration; production-like topology where useful without production authority | Release owner plus required product, security/privacy, AI/safety, and data approvals | Proposed; not provisioned |
-| Production | Future field or programme operation after pilot/production authorisation | Real user/programme data only after legal, privacy, security, retention, and programme approval | Verified users and tightly controlled administrators; programme/resource-scoped permissions and audited privileged access | Managed secrets/keys, environment-specific provider accounts, change control, backup/recovery, monitoring, and documented configuration ownership | Formal production release authority and change process **to be decided** | Future only; not approved or provisioned |
+| Environment | Purpose | Permitted data | Access and isolation | Status |
+|---|---|---|---|---|
+| Local development | Developer work, component tests, and offline experiments | Synthetic, explicitly licensed, or approved minimal samples; no production personal data or unrestricted challenge assets | Per-developer configuration and non-production credentials; secrets outside source | Not configured |
+| Continuous integration | Repeatable static, unit, contract, build, security, and selected evaluation checks | Minimal synthetic fixtures and approved evaluation manifests only | Ephemeral jobs, least-privilege credentials, protected secrets, no public data exposure | Not configured |
+| Demonstration | Integrated acceptance, rehearsal, judging, and SRS performance evidence | Seeded fictional, synthetic, challenge-provided under permitted terms, or expressly authorised data | Named team/reviewer access, role separation, private evidence, isolated provider accounts, teardown plan | Not provisioned |
+| Production | Future field or programme operation | Real operational data only after separate authorisation | Requires legal, privacy, security, operational, and programme approval | Excluded from this phase |
+
+The demonstration baseline includes approximately 1,000 seed recovery records, a 10,000-record synthetic performance dataset, up to six images per record, 8–20 audit events per record, and up to 200 seeded locations. These are test-volume requirements, not evidence of real collection or impact.
 
 ## Data movement
 
-- Do not copy production data downward into staging, shared development, or local environments.
-- Promote code, contracts, configuration definitions, migrations, models, prompt/policy, and safety-content artefacts—not mutable environment data.
-- Demo/evaluation data needs provenance, licence, classification, and approved destination.
-- Exports between environments require owner approval, minimum scope, integrity checks, and audit where sensitive.
-- A staging result does not prove production readiness or field impact.
+- Promote reviewed code, contracts, configuration definitions, models, prompts, policies, and safety-content versions; do not copy uncontrolled mutable data between environments.
+- Every image, dataset, location, account, price reference, and evidence artefact needs provenance and permitted use.
+- Demonstration identities, processing events, prices, and locations are labelled fictional or authorised as applicable.
+- Exports require minimum scope, integrity checks, owner approval, and audit when sensitive.
 
-## Configuration
+## Configuration and secrets
 
-Configuration schemas and safe defaults may be shared through `packages/configuration` after implementation approval. Values remain environment-specific and validated at startup. Feature flags, provider endpoints, public origins, retention, model/content versions, and operational thresholds require explicit owners. Secrets are never stored in shared configuration or source.
+Configuration is environment-specific and validated at startup. Secret values never enter Git, documentation, browser bundles, logs, screenshots, fixtures, or QR codes. Provider endpoints, public origins, retention values, feature controls, model/content versions, and operational thresholds have named owners. Demonstration credentials and data have expiry and teardown procedures.
 
-## Environment access lifecycle
+## Acceptance in the demonstration environment
 
-Future procedures must cover request/approval, identity and MFA where appropriate, least privilege, expiry/review, role change, offboarding, service identities, emergency access, and access audit. Shared accounts are prohibited. Exact identity provider and review cadence remain to be decided.
+The exact release must complete the defined eight-stage acceptance journey, all Must requirements, all critical security/privacy/safety controls, four reviewed language bundles, and required performance/reliability checks. The judging-window availability objective is 99%; it is a time-bounded demonstration target, not a production SLA.
 
-## Readiness decisions
+## Future production decision
 
-Before provisioning, accept hosting/region, cost owner, data/controller roles, network boundaries, domain/certificate ownership, environment data policy, secret/key design, backup/recovery, observability, deletion, provider accounts, deployment authority, and decommissioning process.
+Production requires separate decisions for hosting and region, controller/processor roles, identity proofing, domain and certificates, secrets and keys, monitoring and response, backup/recovery, retention/deletion, cost ownership, release authority, support, and decommissioning. Passing the demonstration gate does not authorise field deployment.
