@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "processing_recorded"
+        },
+        "recovery_record_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "server_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outcome",
+        "recovery_record_id",
+        "server_revision",
+        "replayed"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "review_required"
+        },
+        "recovery_record_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "flag_codes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outcome",
+        "recovery_record_id",
+        "flag_codes",
+        "replayed"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "rejected"
+        },
+        "error_code": {
+          "type": "string",
+          "enum": [
+            "VALIDATION_FAILED",
+            "INVALID_STATE_TRANSITION",
+            "PERMISSION_DENIED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outcome",
+        "error_code",
+        "message",
+        "replayed"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/processing_response.schema.json",
+  "title": "processing_response"
+}

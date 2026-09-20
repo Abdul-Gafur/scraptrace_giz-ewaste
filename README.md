@@ -30,7 +30,7 @@ git clone https://github.com/Abdul-Gafur/giz-ewaste.git
 cd giz-ewaste
 ```
 
-There are no dependencies to install or services to start yet. For a documentation-first orientation, read:
+No application service is runnable yet. The first implementation is the standalone shared-contract package under `packages/contracts`; its README contains package setup and verification commands. For orientation, read:
 
 1. [Final Software Requirements Specification](<docs/product/ScrapTrace_Software_Requirements_Specification (2).docx>) — authoritative application requirements and acceptance criteria.
 2. [SRS traceability and parity](docs/product/srs-traceability.md) — requirement coverage and source interpretation notes.
@@ -51,11 +51,11 @@ There are no dependencies to install or services to start yet. For a documentati
 - `tests/`: cross-component and end-to-end testing
 - `scripts/`: repository maintenance and validation tooling
 
-Each implementation directory currently contains a short ownership README describing what belongs there and who reviews it.
+Each implementation directory contains ownership guidance. `packages/contracts` additionally contains the contract-first TypeScript foundation used by future components.
 
 ## Current status
 
-The repository contains the engineering documentation foundation and empty implementation boundaries. Application code, dependencies, environments, models, datasets, integrations, and deployment automation have not been created. Requirements describe the application to build; they are not claims of completed functionality.
+The repository contains the engineering documentation foundation and the shared contracts walking skeleton. Application screens, APIs, persistence, models, datasets, integrations, environments, and deployment automation have not been created. Requirements describe the application to build; only capabilities explicitly identified in [the contracts package](packages/contracts/README.md) are implemented.
 
 ## Important boundaries
 

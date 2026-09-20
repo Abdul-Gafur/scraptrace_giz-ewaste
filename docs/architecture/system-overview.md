@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-The [approved SRS v1.1](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) defines the required logical architecture below. The repository still contains documentation and directory placeholders only; no component is implemented. Financial, certification and government capabilities remain outside the active boundary.
+The [approved SRS v1.1](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) defines the required logical architecture below. The shared [contracts package](../../packages/contracts/README.md) is the first implemented boundary; application and service components remain unimplemented. Financial, certification and government capabilities remain outside the active boundary.
 
 ## Application components
 
@@ -53,4 +53,4 @@ All fourteen SRS figures are represented in [SRS analysis models](analysis-model
 
 ## Current implementation
 
-There is no current application architecture to operate: no source code, API, database, model, content catalogue, provider connection, or deployment has been created. Accepted repository organisation is recorded in [ADR-001](../decisions/ADR-001-monorepo-structure.md). Other architecture and technology choices remain proposed.
+There is no application architecture to operate: no UI, API route, database, model, content catalogue, provider connection, or deployment has been created. `packages/contracts` now implements the accepted shared schemas and pure rules described by [ADRs 002–007](../decisions/README.md). Accepted repository organisation is recorded in [ADR-001](../decisions/ADR-001-monorepo-structure.md); unrelated architecture and technology choices remain undecided or proposed.

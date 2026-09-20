@@ -2,7 +2,7 @@
 
 ## Decision status
 
-The repository organisation is **Accepted** because the project owner explicitly confirmed the target monorepo structure for Phase 1. See [ADR-001](../decisions/ADR-001-monorepo-structure.md). Component implementations and build tooling do not yet exist.
+The repository organisation is **Accepted** because the project owner explicitly confirmed the target monorepo structure for Phase 1. See [ADR-001](../decisions/ADR-001-monorepo-structure.md). The contract package now has package-local build/test tooling; repository-wide workspace and build orchestration remain undecided.
 
 ## Why a monorepo fits
 
@@ -53,7 +53,7 @@ Runtime calls from the web application go through the API's defined public contr
 
 ## Contract management
 
-Contracts should be provider-neutral, versioned, compatibility-tested, and reviewed by all affected owners. They should distinguish source evidence, user assertions, predictions, estimates, measurements, and review decisions. OpenAPI is proposed for HTTP interfaces; the source format and code-generation approach are **to be decided**.
+Contracts are provider-neutral, versioned, compatibility-tested, and reviewed by affected owners. They distinguish source evidence, user assertions, predictions, estimates, measurements, and review decisions. [ADR-002](../decisions/ADR-002-contract-source-of-truth.md) establishes Zod runtime schemas as the source and committed Draft 2020-12 JSON Schema as generated output. OpenAPI operation composition remains a later API task.
 
 ## Coordinating changes
 

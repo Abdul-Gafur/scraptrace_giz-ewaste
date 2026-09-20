@@ -268,24 +268,21 @@ classDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> Draft
-    Draft --> SavedOffline: save without network
     Draft --> Submitted: submit online
-    SavedOffline --> PendingSynchronization: queue for retry
-    PendingSynchronization --> SavedOffline: network unavailable
-    PendingSynchronization --> Submitted: server accepts
     Submitted --> AwaitingHandoff
     AwaitingHandoff --> Received
     Received --> ProcessingRecorded
-    ProcessingRecorded --> Completed: checks pass
+    ProcessingRecorded --> Completed: evidence complete
     ProcessingRecorded --> UnderReview: flag created
+    Completed --> UnderReview: flag created
+    Completed --> ApprovedAndCompleted: server checks pass
     UnderReview --> ApprovedAndCompleted: reviewer approves
     UnderReview --> Rejected: reviewer rejects
-    Completed --> [*]
     ApprovedAndCompleted --> [*]
     Rejected --> [*]
 ```
 
-The server rejects transitions not shown or not authorised for the actor. Information-request handling is a review action and must not erase the prior state or evidence.
+The server rejects transitions not shown or not authorised for the actor. Synchronization states remain orthogonal. Information-request handling is a review action and must not erase the prior state or evidence. See [ADR-003](../decisions/ADR-003-recovery-record-lifecycle.md) for the recorded resolution of the source-diagram ambiguity.
 
 ## Figure 14 Core traceability entity-relationship model
 

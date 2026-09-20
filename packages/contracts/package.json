@@ -1,0 +1,41 @@
+{
+  "name": "@scraptrace/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Canonical runtime schemas and cross-component contracts for ScrapTrace.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:generate": "npm run build && node scripts/generate-schemas.mjs --write",
+    "schema:check": "npm run build && node scripts/generate-schemas.mjs --check",
+    "check": "npm run typecheck && npm run test && npm run schema:check && npm run build"
+  },
+  "dependencies": {
+    "uuid": "14.0.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

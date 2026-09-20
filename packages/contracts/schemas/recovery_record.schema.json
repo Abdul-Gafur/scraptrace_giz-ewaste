@@ -1,0 +1,909 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_schema_version": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "record_id": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "human_reference": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "qr_payload": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "revision": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "record_kind": {
+      "$ref": "#/$defs/__schema5"
+    },
+    "category": {
+      "$ref": "#/$defs/__schema6"
+    },
+    "item_count": {
+      "$ref": "#/$defs/__schema7"
+    },
+    "approximate_weight": {
+      "$ref": "#/$defs/__schema8"
+    },
+    "condition": {
+      "$ref": "#/$defs/__schema10"
+    },
+    "original_image_evidence_id": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "collector": {
+      "$ref": "#/$defs/__schema11"
+    },
+    "captured_at": {
+      "$ref": "#/$defs/__schema12"
+    },
+    "capture_location": {
+      "$ref": "#/$defs/__schema13"
+    },
+    "approximate_area": {
+      "$ref": "#/$defs/__schema14"
+    },
+    "vision_result": {
+      "$ref": "#/$defs/__schema15"
+    },
+    "category_confirmation": {
+      "$ref": "#/$defs/__schema22"
+    },
+    "estimated_price": {
+      "$ref": "#/$defs/__schema23"
+    },
+    "safety_guide": {
+      "$ref": "#/$defs/__schema33"
+    },
+    "destination": {
+      "$ref": "#/$defs/__schema35"
+    },
+    "handoff": {
+      "$ref": "#/$defs/__schema36"
+    },
+    "processing": {
+      "$ref": "#/$defs/__schema37"
+    },
+    "review": {
+      "$ref": "#/$defs/__schema39"
+    },
+    "business_state": {
+      "$ref": "#/$defs/__schema50"
+    },
+    "handoff_state": {
+      "$ref": "#/$defs/__schema51"
+    },
+    "processing_state": {
+      "$ref": "#/$defs/__schema52"
+    },
+    "sync": {
+      "$ref": "#/$defs/__schema53"
+    },
+    "created_at": {
+      "$ref": "#/$defs/__schema12"
+    },
+    "updated_at": {
+      "$ref": "#/$defs/__schema12"
+    },
+    "integrity_digest": {
+      "$ref": "#/$defs/__schema54"
+    },
+    "previous_integrity_digest": {
+      "$ref": "#/$defs/__schema56"
+    }
+  },
+  "required": [
+    "contract_schema_version",
+    "record_id",
+    "human_reference",
+    "qr_payload",
+    "revision",
+    "record_kind",
+    "category",
+    "condition",
+    "original_image_evidence_id",
+    "collector",
+    "captured_at",
+    "approximate_area",
+    "category_confirmation",
+    "review",
+    "business_state",
+    "handoff_state",
+    "processing_state",
+    "sync",
+    "created_at",
+    "updated_at"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^ST-[A-Z0-9]{8,16}$"
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "contract_version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "record_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "lookup_token": {
+          "type": "string",
+          "minLength": 24,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "contract_version",
+        "record_id",
+        "lookup_token"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema5": {
+      "type": "string",
+      "enum": [
+        "item",
+        "batch"
+      ]
+    },
+    "__schema6": {
+      "type": "string",
+      "enum": [
+        "refrigerators",
+        "laptops_and_desktop_computers",
+        "televisions",
+        "microwaves",
+        "air_conditioners",
+        "compressors",
+        "mixed_scrap"
+      ]
+    },
+    "__schema7": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema8": {
+      "$ref": "#/$defs/__schema9"
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "kg",
+            "g"
+          ]
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "additionalProperties": false
+    },
+    "__schema10": {
+      "type": "string",
+      "enum": [
+        "working",
+        "repairable",
+        "damaged",
+        "unknown"
+      ]
+    },
+    "__schema11": {
+      "type": "object",
+      "properties": {
+        "actor_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "programme_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "facility_id": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "additionalProperties": false
+    },
+    "__schema12": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "__schema13": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "accuracy_metres": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "device",
+            "manual",
+            "facility",
+            "imported"
+          ]
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "__schema14": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "administrative_area": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "country_code": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2,
+          "pattern": "^[A-Z]{2}$"
+        }
+      },
+      "required": [
+        "label",
+        "country_code"
+      ],
+      "additionalProperties": false
+    },
+    "__schema15": {
+      "type": "object",
+      "properties": {
+        "prediction_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "model_name": {
+          "$ref": "#/$defs/__schema16"
+        },
+        "model_version": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "inferred_at": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "scores": {
+          "$ref": "#/$defs/__schema18"
+        },
+        "suggested_category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "confidence": {
+          "$ref": "#/$defs/__schema20"
+        },
+        "low_confidence": {
+          "$ref": "#/$defs/__schema21"
+        }
+      },
+      "required": [
+        "prediction_id",
+        "model_name",
+        "model_version",
+        "inferred_at",
+        "scores",
+        "suggested_category",
+        "confidence",
+        "low_confidence"
+      ],
+      "additionalProperties": false
+    },
+    "__schema16": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "__schema17": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version string."
+    },
+    "__schema18": {
+      "minItems": 7,
+      "maxItems": 7,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema19"
+      }
+    },
+    "__schema19": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "category",
+        "score"
+      ],
+      "additionalProperties": false
+    },
+    "__schema20": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "__schema21": {
+      "type": "boolean"
+    },
+    "__schema22": {
+      "type": "object",
+      "properties": {
+        "confirmed_category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "confirmed_by": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "confirmed_at": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "accepted_prediction",
+            "manual_selection",
+            "human_correction"
+          ]
+        },
+        "correction_reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "confirmed_category",
+        "confirmed_by",
+        "confirmed_at",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "__schema23": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "condition": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "count": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "approximate_weight": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "minimum_amount": {
+          "$ref": "#/$defs/__schema26"
+        },
+        "maximum_amount": {
+          "$ref": "#/$defs/__schema27"
+        },
+        "currency": {
+          "$ref": "#/$defs/__schema28"
+        },
+        "basis": {
+          "$ref": "#/$defs/__schema29"
+        },
+        "source": {
+          "$ref": "#/$defs/__schema30"
+        },
+        "effective_date": {
+          "$ref": "#/$defs/__schema31"
+        },
+        "disclaimer": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": [
+        "category",
+        "condition",
+        "minimum_amount",
+        "maximum_amount",
+        "currency",
+        "basis",
+        "source",
+        "effective_date",
+        "disclaimer"
+      ],
+      "additionalProperties": false
+    },
+    "__schema24": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema25": {
+      "$ref": "#/$defs/__schema9"
+    },
+    "__schema26": {
+      "type": "number",
+      "minimum": 0
+    },
+    "__schema27": {
+      "type": "number",
+      "minimum": 0
+    },
+    "__schema28": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3,
+      "pattern": "^[A-Z]{3}$"
+    },
+    "__schema29": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "__schema30": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "__schema31": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "__schema32": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "__schema33": {
+      "type": "object",
+      "properties": {
+        "card_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "card_version": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "en",
+            "fr",
+            "ar",
+            "pt"
+          ]
+        },
+        "approval_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "review_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "source_references": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema34"
+          }
+        }
+      },
+      "required": [
+        "card_id",
+        "card_version",
+        "category",
+        "language",
+        "approval_date",
+        "review_date",
+        "source_references"
+      ],
+      "additionalProperties": false
+    },
+    "__schema34": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "__schema35": {
+      "type": "object",
+      "properties": {
+        "location_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "facility_type": {
+          "type": "string",
+          "enum": [
+            "scrapyard",
+            "collection_centre",
+            "recycler"
+          ]
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "programme_verified",
+            "expired",
+            "suspended"
+          ]
+        },
+        "selected_at": {
+          "$ref": "#/$defs/__schema12"
+        }
+      },
+      "required": [
+        "location_id",
+        "facility_type",
+        "verification_status",
+        "selected_at"
+      ],
+      "additionalProperties": false
+    },
+    "__schema36": {
+      "type": "object",
+      "properties": {
+        "recycler": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "receiving_location_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "confirmed_category": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "confirmed_condition": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "measured_weight": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "final_price": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3,
+              "pattern": "^[A-Z]{3}$"
+            }
+          },
+          "required": [
+            "amount",
+            "currency"
+          ],
+          "additionalProperties": false
+        },
+        "handed_off_at": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "server_received_at": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "evidence_ids": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        }
+      },
+      "required": [
+        "recycler",
+        "receiving_location_id",
+        "confirmed_category",
+        "confirmed_condition",
+        "measured_weight",
+        "final_price",
+        "handed_off_at",
+        "server_received_at",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "__schema37": {
+      "type": "object",
+      "properties": {
+        "recycler": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "reuse_referral",
+            "repair_referral",
+            "material_recovery",
+            "safe_storage",
+            "other_reviewed"
+          ]
+        },
+        "result": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "material_entries": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema38"
+          }
+        },
+        "processed_at": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "evidence_ids": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        }
+      },
+      "required": [
+        "recycler",
+        "method",
+        "result",
+        "material_entries",
+        "processed_at",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "__schema38": {
+      "type": "object",
+      "properties": {
+        "material": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "weight": {
+          "$ref": "#/$defs/__schema9"
+        }
+      },
+      "required": [
+        "material",
+        "weight"
+      ],
+      "additionalProperties": false
+    },
+    "__schema39": {
+      "type": "object",
+      "properties": {
+        "review_state": {
+          "$ref": "#/$defs/__schema40"
+        },
+        "flag_codes": {
+          "$ref": "#/$defs/__schema41"
+        },
+        "assigned_reviewer": {
+          "$ref": "#/$defs/__schema43"
+        },
+        "evidence_considered": {
+          "$ref": "#/$defs/__schema44"
+        },
+        "decision": {
+          "$ref": "#/$defs/__schema45"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/__schema46"
+        },
+        "reviewer_note": {
+          "$ref": "#/$defs/__schema47"
+        },
+        "requested_correction": {
+          "$ref": "#/$defs/__schema48"
+        },
+        "decided_at": {
+          "$ref": "#/$defs/__schema49"
+        }
+      },
+      "required": [
+        "review_state",
+        "flag_codes",
+        "evidence_considered"
+      ],
+      "additionalProperties": false
+    },
+    "__schema40": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "open",
+        "awaiting_information",
+        "approved",
+        "rejected"
+      ]
+    },
+    "__schema41": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema42"
+      }
+    },
+    "__schema42": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "__schema43": {
+      "$ref": "#/$defs/__schema11"
+    },
+    "__schema44": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "__schema45": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "reject",
+        "request_correction"
+      ]
+    },
+    "__schema46": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "__schema47": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema48": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema49": {
+      "$ref": "#/$defs/__schema12"
+    },
+    "__schema50": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "awaiting_handoff",
+        "received",
+        "processing_recorded",
+        "completed",
+        "under_review",
+        "approved_and_completed",
+        "rejected"
+      ]
+    },
+    "__schema51": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "awaiting",
+        "received",
+        "disputed"
+      ]
+    },
+    "__schema52": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "evidence_recorded",
+        "completed"
+      ]
+    },
+    "__schema53": {
+      "type": "object",
+      "properties": {
+        "sync_state": {
+          "type": "string",
+          "enum": [
+            "offline",
+            "pending_synchronization",
+            "synchronizing",
+            "synchronized",
+            "action_required"
+          ]
+        },
+        "device_instance_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "local_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "server_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "last_attempt_at": {
+          "$ref": "#/$defs/__schema12"
+        }
+      },
+      "required": [
+        "sync_state",
+        "device_instance_id",
+        "local_revision"
+      ],
+      "additionalProperties": false
+    },
+    "__schema54": {
+      "$ref": "#/$defs/__schema55"
+    },
+    "__schema55": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "__schema56": {
+      "$ref": "#/$defs/__schema55"
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/recovery_record.schema.json",
+  "title": "recovery_record"
+}

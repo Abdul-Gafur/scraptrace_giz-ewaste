@@ -30,19 +30,16 @@ The recovery record is the SRS-defined aggregate root linking collection, guidan
 ```mermaid
 stateDiagram-v2
     [*] --> Draft
-    Draft --> SavedOffline: save without network
     Draft --> Submitted: submit online
-    SavedOffline --> PendingSynchronization: queue
-    PendingSynchronization --> SavedOffline: network unavailable
-    PendingSynchronization --> Submitted: server accepts
     Submitted --> AwaitingHandoff
     AwaitingHandoff --> Received
     Received --> ProcessingRecorded
-    ProcessingRecorded --> Completed: checks pass
+    ProcessingRecorded --> Completed: evidence complete
     ProcessingRecorded --> UnderReview: flag created
+    Completed --> UnderReview: flag created
+    Completed --> ApprovedAndCompleted: server checks pass
     UnderReview --> ApprovedAndCompleted: reviewer approves
     UnderReview --> Rejected: reviewer rejects
-    Completed --> [*]
     ApprovedAndCompleted --> [*]
     Rejected --> [*]
 ```
@@ -50,22 +47,20 @@ stateDiagram-v2
 | State | Meaning |
 |---|---|
 | `Draft` | Editable local or online record not submitted. |
-| `Saved offline` | Validated draft durably stored on the current device only. |
-| `Pending synchronization` | User requested submission but the server has not acknowledged it. |
 | `Submitted` | Canonical record accepted by the server. |
 | `Awaiting handoff` | Record can be presented to a participating receiving location. |
 | `Received` | Authorised recycler recorded handoff facts; processing is not yet complete. |
 | `Processing recorded` | Controlled result and required evidence were submitted. |
-| `Completed` | Required evidence passed automated completeness/trust checks without a flag. |
+| `Completed` | Required evidence is complete; final server checks have not yet marked it programme-approved. |
 | `Under review` | At least one named flag remains unresolved; excluded from approved totals. |
 | `Approved and completed` | Evidence-complete record accepted by the defined reviewer/rules and eligible for verified totals. |
 | `Rejected` | Authorised reviewer rejected the record for the defined programme purpose with reason. |
 
-The SRS shows `Completed` and `Approved and completed` as separate terminal paths while FR-DSH-004 allows only `Approved and completed` in verified-weight totals. Until the SRS is editorially corrected, the application must make the approval outcome explicit and must not count plain `Completed` as programme verified. See [parity notes](../product/srs-traceability.md#srs-interpretation-notes).
+The SRS diagram shows `Completed` as terminal while FR-REV-007, FR-DSH-004 and BR-010 allow only `Approved and completed` in verified-weight totals. [ADR-003](../decisions/ADR-003-recovery-record-lifecycle.md) resolves the contract ambiguity by treating `Completed` as evidence-complete but not final; an unflagged record advances after server checks, while a flagged record requires review. Plain `Completed` is never counted as programme verified.
 
 ## Synchronization status
 
-Synchronization is orthogonal to lifecycle. User-visible values are `Offline`, `Pending synchronization`, `Synchronizing`, `Synchronized` and `Action required`. A locally saved lifecycle record is not server-submitted, and server submission is not handoff or approval.
+Synchronization is orthogonal to lifecycle. User-visible values are `Offline`, `Pending synchronization`, `Synchronizing`, `Synchronized` and `Action required`. `Saved offline` describes durable local storage rather than a business state. A locally saved draft is not server-submitted, and server submission is not handoff or approval.
 
 ## Transition and mutation rules
 

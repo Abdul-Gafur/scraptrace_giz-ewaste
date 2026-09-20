@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "price_estimation_inputs": {
+      "type": "object",
+      "properties": {
+        "item_count": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "working",
+            "repairable",
+            "damaged",
+            "unknown"
+          ]
+        },
+        "approximate_weight_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "evidence_id"
+  ],
+  "additionalProperties": false,
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/vision_appraisal_request.schema.json",
+  "title": "vision_appraisal_request"
+}
