@@ -30,7 +30,14 @@ git clone https://github.com/Abdul-Gafur/giz-ewaste.git
 cd giz-ewaste
 ```
 
-No application service is runnable yet. The first implementation is the standalone shared-contract package under `packages/contracts`; its README contains package setup and verification commands. For orientation, read:
+Install the npm workspace and start the frontend:
+
+```bash
+npm ci
+npm run dev
+```
+
+The frontend is available at `http://localhost:3000/en`. For orientation, read:
 
 1. [Final Software Requirements Specification](<docs/product/ScrapTrace_Software_Requirements_Specification (2).docx>) — authoritative application requirements and acceptance criteria.
 2. [SRS traceability and parity](docs/product/srs-traceability.md) — requirement coverage and source interpretation notes.
@@ -53,9 +60,21 @@ No application service is runnable yet. The first implementation is the standalo
 
 Each implementation directory contains ownership guidance. `packages/contracts` additionally contains the contract-first TypeScript foundation used by future components.
 
+## Workspace commands
+
+```bash
+npm run build
+npm run typecheck
+npm run lint
+npm run format:check
+npm run test
+npm run test:e2e
+npm run contracts:check
+```
+
 ## Current status
 
-The repository contains the engineering documentation foundation and the shared contracts walking skeleton. Application screens, APIs, persistence, models, datasets, integrations, environments, and deployment automation have not been created. Requirements describe the application to build; only capabilities explicitly identified in [the contracts package](packages/contracts/README.md) are implemented.
+The repository contains the engineering documentation foundation, shared contracts, and a production-buildable Next.js frontend foundation. The frontend provides four locales, RTL support, responsive role shells, centralized route policy, contract-valid development mocks, semantic design tokens, and automated accessibility and browser tests. Complete feature screens, real authentication and APIs, persistence, models, datasets, integrations, environments, and deployment automation remain unimplemented. See the [frontend README](apps/web/README.md) for current boundaries.
 
 ## Important boundaries
 

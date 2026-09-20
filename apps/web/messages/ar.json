@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "title": "سكراب تريس",
+    "description": "استعادة آمنة للنفايات الإلكترونية من أول سجل حتى النتيجة المراجعة."
+  },
+  "common": {
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "brand": "سكراب تريس",
+    "language": "اللغة",
+    "openMenu": "افتح التنقل",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "retry": "حاول مرة أخرى",
+    "learnMore": "اعرف المزيد",
+    "developmentOnly": "جلسة تطوير — ليست مصادقة للإنتاج"
+  },
+  "languages": { "en": "الإنجليزية", "fr": "الفرنسية", "ar": "العربية", "pt": "البرتغالية" },
+  "roles": {
+    "collector": "الجامع",
+    "recycler": "المدوّر",
+    "programme_reviewer": "مراجع البرنامج",
+    "programme_manager": "مدير البرنامج",
+    "safety_content_administrator": "مسؤول محتوى السلامة",
+    "data_ml_reviewer": "مراجع البيانات والنموذج"
+  },
+  "public": {
+    "title": "تتبّع النفايات الإلكترونية بسلسلة أدلة واضحة",
+    "description": "يربط سكراب تريس بين التعرف الآمن والإرشاد المعتمد وسجلات الاستعادة دون المبالغة فيما يمكن أن تثبته الصورة.",
+    "collectorAction": "افتح مساحة الجامع",
+    "operationsAction": "افتح مساحة العمليات",
+    "principleOne": "يعمل مع الاتصال الضعيف",
+    "principleTwo": "يفصل الأدلة عن التقديرات",
+    "principleThree": "يستخدم إرشادات سلامة مراجعة"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "capture": "التقاط",
+    "records": "السجلات",
+    "locations": "المواقع",
+    "profile": "الملف",
+    "recycler": "استلام المدوّر",
+    "review": "قائمة المراجعة",
+    "management": "نظرة البرنامج",
+    "safety": "محتوى السلامة",
+    "ml": "مراجعة النموذج",
+    "administration": "الإدارة"
+  },
+  "shell": {
+    "collectorLabel": "مساحة الجامع",
+    "operationsLabel": "مساحة العمليات",
+    "breadcrumbLabel": "مسار التنقل",
+    "primaryNavigation": "التنقل الرئيسي",
+    "mobileNavigation": "التنقل على الهاتف",
+    "currentRole": "الدور الحالي"
+  },
+  "pages": {
+    "collectorTitle": "الرئيسية للجامع",
+    "collectorDescription": "ابدأ سجلاً أو ارجع إلى عمل محفوظ أو ابحث عن موقع استلام مناسب.",
+    "captureTitle": "أساس الالتقاط",
+    "captureDescription": "سيتم تنفيذ الكاميرا والرفع في مرحلة رحلة الجامع.",
+    "recordsTitle": "سجلات الاستعادة",
+    "recordsDescription": "سيتم تنفيذ القوائم وتفاصيل الرحلة في مرحلة لاحقة.",
+    "locationsTitle": "المواقع القريبة",
+    "locationsDescription": "سيستخدم البحث حد خدمة المواقع المعرّف بالأنواع.",
+    "profileTitle": "الملف الشخصي",
+    "profileDescription": "ستضاف إعدادات الحساب واللغة والبيانات المحلية مع المصادقة.",
+    "recyclerTitle": "استلام المدوّر",
+    "recyclerDescription": "تم تأجيل رمز QR والوزن المقاس والأدلة عمداً.",
+    "reviewTitle": "مراجعة البرنامج",
+    "reviewDescription": "تبقى العلامات مؤشرات تحتاج إلى حكم بشري.",
+    "managementTitle": "إدارة البرنامج",
+    "managementDescription": "ستفصل التقارير الإجماليات حسب الحالة والصلاحية.",
+    "safetyTitle": "إدارة محتوى السلامة",
+    "safetyDescription": "ستُبنى حوكمة البطاقات المعتمدة على عقد خدمة السلامة.",
+    "mlTitle": "مراجعة البيانات والنموذج",
+    "mlDescription": "تبقى التصحيحات مرشحات مراجعة ولا تعيد تدريب النموذج تلقائياً.",
+    "signInTitle": "دخول التطوير",
+    "signInDescription": "استخدم هذا النموذج الميسّر لاختبار التحقق والإرسال بلوحة المفاتيح.",
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundDescription": "الصفحة المطلوبة غير متاحة أو تم نقلها.",
+    "errorTitle": "حدث خطأ",
+    "errorDescription": "لم يتم حذف عملك. حاول تحميل الصفحة مرة أخرى.",
+    "loading": "جارٍ تحميل المساحة"
+  },
+  "form": {
+    "referenceLabel": "رمز دخول التطوير",
+    "referenceHint": "أدخل أربعة أحرف على الأقل.",
+    "referenceRequired": "أدخل رمز دخول التطوير.",
+    "referenceShort": "استخدم أربعة أحرف على الأقل.",
+    "submit": "متابعة",
+    "success": "نموذج العرض صالح."
+  },
+  "states": {
+    "emptyTitle": "لا يوجد شيء بعد",
+    "emptyDescription": "ستظهر السجلات الجديدة هنا.",
+    "errorTitle": "تعذر تحميل المحتوى",
+    "errorDescription": "تحقق من الاتصال وحاول مرة أخرى.",
+    "permissionTitle": "الوصول مقيّد",
+    "permissionDescription": "هذه المساحة غير متاحة لدور التطوير الحالي.",
+    "offlineTitle": "أنت غير متصل",
+    "offlineDescription": "يبقى العمل المحفوظ على هذا الجهاز حتى يتوفر اتصال.",
+    "syncPendingTitle": "المزامنة معلّقة",
+    "syncPendingDescription": "تم حفظ التغيير محلياً ولم يصل إلى الخادم.",
+    "syncFailedTitle": "يلزم إجراء",
+    "syncFailedDescription": "يحتاج التغيير إلى مراجعة قبل متابعة المزامنة."
+  }
+}

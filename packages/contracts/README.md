@@ -15,7 +15,14 @@ Two SRS inconsistencies are explicit:
 
 ## Install and use
 
-For package development:
+From the repository root:
+
+```bash
+npm ci
+npm run contracts:check
+```
+
+For focused package development, the existing commands continue to work:
 
 ```bash
 cd packages/contracts
@@ -23,7 +30,7 @@ npm ci
 npm run check
 ```
 
-Until repository-wide workspace tooling is selected, a local consumer can declare `"@scraptrace/contracts": "file:../../packages/contracts"` using the correct relative path. Consumers import only the package entry point:
+The package is an npm workspace dependency. Consumers import only the package entry point:
 
 ```ts
 import { RecoveryRecordSchema, type RecoveryRecord } from "@scraptrace/contracts";

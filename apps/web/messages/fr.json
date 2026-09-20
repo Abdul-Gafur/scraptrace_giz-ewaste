@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "title": "ScrapTrace",
+    "description": "Récupération sûre des déchets électroniques, du premier enregistrement au résultat examiné."
+  },
+  "common": {
+    "skipToContent": "Aller au contenu principal",
+    "brand": "ScrapTrace",
+    "language": "Langue",
+    "openMenu": "Ouvrir la navigation",
+    "close": "Fermer",
+    "back": "Retour",
+    "retry": "Réessayer",
+    "learnMore": "En savoir plus",
+    "developmentOnly": "Session de développement — pas une authentification de production"
+  },
+  "languages": { "en": "Anglais", "fr": "Français", "ar": "Arabe", "pt": "Portugais" },
+  "roles": {
+    "collector": "Collecteur",
+    "recycler": "Recycleur",
+    "programme_reviewer": "Réviseur du programme",
+    "programme_manager": "Responsable du programme",
+    "safety_content_administrator": "Administrateur du contenu de sécurité",
+    "data_ml_reviewer": "Réviseur des données et du modèle"
+  },
+  "public": {
+    "title": "Suivez les déchets électroniques avec une chaîne de preuves claire",
+    "description": "ScrapTrace relie l’identification sûre, les conseils approuvés et les dossiers de récupération sans exagérer ce qu’une photo peut prouver.",
+    "collectorAction": "Ouvrir l’espace collecteur",
+    "operationsAction": "Ouvrir l’espace opérations",
+    "principleOne": "Fonctionne avec une connexion faible",
+    "principleTwo": "Sépare preuves et estimations",
+    "principleThree": "Utilise des conseils de sécurité vérifiés"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "capture": "Capture",
+    "records": "Dossiers",
+    "locations": "Lieux",
+    "profile": "Profil",
+    "recycler": "Réception recycleur",
+    "review": "File de révision",
+    "management": "Vue du programme",
+    "safety": "Contenu sécurité",
+    "ml": "Révision du modèle",
+    "administration": "Administration"
+  },
+  "shell": {
+    "collectorLabel": "Espace collecteur",
+    "operationsLabel": "Espace opérations",
+    "breadcrumbLabel": "Fil d’Ariane",
+    "primaryNavigation": "Navigation principale",
+    "mobileNavigation": "Navigation mobile",
+    "currentRole": "Rôle actuel"
+  },
+  "pages": {
+    "collectorTitle": "Accueil collecteur",
+    "collectorDescription": "Commencez un dossier, reprenez un travail enregistré ou trouvez un lieu de réception adapté.",
+    "captureTitle": "Base de capture",
+    "captureDescription": "La caméra et les envois seront réalisés lors du jalon du parcours collecteur.",
+    "recordsTitle": "Dossiers de récupération",
+    "recordsDescription": "Les listes et parcours détaillés seront réalisés plus tard.",
+    "locationsTitle": "Lieux proches",
+    "locationsDescription": "La recherche utilisera la limite de service typée des lieux.",
+    "profileTitle": "Profil",
+    "profileDescription": "Le compte, la langue et les données locales arriveront avec l’authentification.",
+    "recyclerTitle": "Réception recycleur",
+    "recyclerDescription": "Le QR, le poids mesuré et les preuves sont volontairement reportés.",
+    "reviewTitle": "Révision du programme",
+    "reviewDescription": "Les alertes restent des indicateurs nécessitant un jugement humain.",
+    "managementTitle": "Gestion du programme",
+    "managementDescription": "Les rapports sépareront les totaux selon le statut et les autorisations.",
+    "safetyTitle": "Administration du contenu de sécurité",
+    "safetyDescription": "La gouvernance des fiches approuvées utilisera le contrat de sécurité.",
+    "mlTitle": "Révision des données et du modèle",
+    "mlDescription": "Les corrections restent des candidates vérifiées et n’entraînent jamais automatiquement un modèle.",
+    "signInTitle": "Accès de développement",
+    "signInDescription": "Utilisez ce formulaire accessible pour tester la validation et le clavier.",
+    "notFoundTitle": "Page introuvable",
+    "notFoundDescription": "La page demandée est indisponible ou déplacée.",
+    "errorTitle": "Une erreur est survenue",
+    "errorDescription": "Votre travail n’a pas été supprimé. Réessayez.",
+    "loading": "Chargement de l’espace"
+  },
+  "form": {
+    "referenceLabel": "Code d’accès de développement",
+    "referenceHint": "Saisissez au moins quatre caractères.",
+    "referenceRequired": "Saisissez un code d’accès de développement.",
+    "referenceShort": "Utilisez au moins quatre caractères.",
+    "submit": "Continuer",
+    "success": "Le formulaire de démonstration est valide."
+  },
+  "states": {
+    "emptyTitle": "Rien pour le moment",
+    "emptyDescription": "Les nouveaux dossiers apparaîtront ici.",
+    "errorTitle": "Impossible de charger ce contenu",
+    "errorDescription": "Vérifiez la connexion et réessayez.",
+    "permissionTitle": "Accès limité",
+    "permissionDescription": "Cet espace n’est pas disponible pour le rôle de développement actuel.",
+    "offlineTitle": "Vous êtes hors ligne",
+    "offlineDescription": "Le travail enregistré reste sur cet appareil jusqu’au retour de la connexion.",
+    "syncPendingTitle": "Synchronisation en attente",
+    "syncPendingDescription": "Cette modification est enregistrée localement et n’a pas atteint le serveur.",
+    "syncFailedTitle": "Action requise",
+    "syncFailedDescription": "La modification doit être examinée avant de poursuivre la synchronisation."
+  }
+}

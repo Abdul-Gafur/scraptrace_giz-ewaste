@@ -3,4 +3,10 @@ dist/
 coverage/
 *.tsbuildinfo
 .DS_Store
-
+.next/
+.env
+.env.local
+.env.*.local
+!.env.example
+playwright-report/
+test-results/

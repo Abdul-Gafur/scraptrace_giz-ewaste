@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "title": "ScrapTrace",
+    "description": "Safe e-waste recovery, from first record to reviewed outcome."
+  },
+  "common": {
+    "skipToContent": "Skip to main content",
+    "brand": "ScrapTrace",
+    "language": "Language",
+    "openMenu": "Open navigation",
+    "close": "Close",
+    "back": "Back",
+    "retry": "Try again",
+    "learnMore": "Learn more",
+    "developmentOnly": "Development session — not production authentication"
+  },
+  "languages": { "en": "English", "fr": "French", "ar": "Arabic", "pt": "Portuguese" },
+  "roles": {
+    "collector": "Collector",
+    "recycler": "Recycler",
+    "programme_reviewer": "Programme reviewer",
+    "programme_manager": "Programme manager",
+    "safety_content_administrator": "Safety content administrator",
+    "data_ml_reviewer": "Data and model reviewer"
+  },
+  "public": {
+    "title": "Track e-waste with a clear chain of evidence",
+    "description": "ScrapTrace connects safe identification, approved guidance and recovery records without overstating what a photo can prove.",
+    "collectorAction": "Open collector workspace",
+    "operationsAction": "Open operations workspace",
+    "principleOne": "Works with weak connectivity",
+    "principleTwo": "Keeps evidence and estimates distinct",
+    "principleThree": "Uses reviewed safety guidance"
+  },
+  "navigation": {
+    "home": "Home",
+    "capture": "Capture",
+    "records": "Records",
+    "locations": "Locations",
+    "profile": "Profile",
+    "recycler": "Recycler intake",
+    "review": "Review queue",
+    "management": "Programme overview",
+    "safety": "Safety content",
+    "ml": "Model review",
+    "administration": "Administration"
+  },
+  "shell": {
+    "collectorLabel": "Collector workspace",
+    "operationsLabel": "Operations workspace",
+    "breadcrumbLabel": "Breadcrumb",
+    "primaryNavigation": "Primary navigation",
+    "mobileNavigation": "Mobile navigation",
+    "currentRole": "Current role"
+  },
+  "pages": {
+    "collectorTitle": "Collector home",
+    "collectorDescription": "Start a record, revisit saved work or find a suitable receiving location.",
+    "captureTitle": "Capture foundation",
+    "captureDescription": "Camera capture and uploads will be implemented in the collector journey milestone.",
+    "recordsTitle": "Recovery records",
+    "recordsDescription": "Record lists and journey details will be implemented in a later milestone.",
+    "locationsTitle": "Nearby locations",
+    "locationsDescription": "Location search will use the typed location service boundary.",
+    "profileTitle": "Profile",
+    "profileDescription": "Account, language and local-data controls will be added with authentication.",
+    "recyclerTitle": "Recycler intake",
+    "recyclerDescription": "QR intake, measured weight and evidence workflows are intentionally deferred.",
+    "reviewTitle": "Programme review",
+    "reviewDescription": "The review queue will preserve flags as indicators requiring human judgement.",
+    "managementTitle": "Programme management",
+    "managementDescription": "Reporting will include only role-authorised, status-separated totals.",
+    "safetyTitle": "Safety content administration",
+    "safetyDescription": "Approved-card governance will be built against the safety service contract.",
+    "mlTitle": "Data and model review",
+    "mlDescription": "Corrections will remain reviewed candidates and will never retrain a model automatically.",
+    "signInTitle": "Development access",
+    "signInDescription": "Use this accessible form fixture to exercise validation and keyboard submission.",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The requested page is unavailable or has moved.",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "Your work has not been discarded. Try the page again.",
+    "loading": "Loading workspace"
+  },
+  "form": {
+    "referenceLabel": "Development access code",
+    "referenceHint": "Enter at least four characters.",
+    "referenceRequired": "Enter a development access code.",
+    "referenceShort": "Use at least four characters.",
+    "submit": "Continue",
+    "success": "The demonstration form is valid."
+  },
+  "states": {
+    "emptyTitle": "Nothing here yet",
+    "emptyDescription": "New records will appear here after they are created.",
+    "errorTitle": "This content could not load",
+    "errorDescription": "Check the connection and try again.",
+    "permissionTitle": "Access restricted",
+    "permissionDescription": "This workspace is not available for the current development role.",
+    "offlineTitle": "You are offline",
+    "offlineDescription": "Saved work remains on this device until a connection is available.",
+    "syncPendingTitle": "Pending synchronization",
+    "syncPendingDescription": "This change is saved locally and has not reached the server.",
+    "syncFailedTitle": "Action required",
+    "syncFailedDescription": "The change needs review before synchronization can continue."
+  }
+}

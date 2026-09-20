@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "title": "ScrapTrace",
+    "description": "Recuperação segura de resíduos eletrónicos, do primeiro registo ao resultado revisto."
+  },
+  "common": {
+    "skipToContent": "Ir para o conteúdo principal",
+    "brand": "ScrapTrace",
+    "language": "Idioma",
+    "openMenu": "Abrir navegação",
+    "close": "Fechar",
+    "back": "Voltar",
+    "retry": "Tentar novamente",
+    "learnMore": "Saber mais",
+    "developmentOnly": "Sessão de desenvolvimento — não é autenticação de produção"
+  },
+  "languages": { "en": "Inglês", "fr": "Francês", "ar": "Árabe", "pt": "Português" },
+  "roles": {
+    "collector": "Coletor",
+    "recycler": "Reciclador",
+    "programme_reviewer": "Revisor do programa",
+    "programme_manager": "Gestor do programa",
+    "safety_content_administrator": "Administrador de conteúdo de segurança",
+    "data_ml_reviewer": "Revisor de dados e modelo"
+  },
+  "public": {
+    "title": "Acompanhe resíduos eletrónicos com uma cadeia de provas clara",
+    "description": "O ScrapTrace liga identificação segura, orientação aprovada e registos de recuperação sem exagerar o que uma fotografia pode provar.",
+    "collectorAction": "Abrir área do coletor",
+    "operationsAction": "Abrir área de operações",
+    "principleOne": "Funciona com ligação fraca",
+    "principleTwo": "Mantém provas e estimativas separadas",
+    "principleThree": "Usa orientação de segurança revista"
+  },
+  "navigation": {
+    "home": "Início",
+    "capture": "Capturar",
+    "records": "Registos",
+    "locations": "Locais",
+    "profile": "Perfil",
+    "recycler": "Receção do reciclador",
+    "review": "Fila de revisão",
+    "management": "Visão do programa",
+    "safety": "Conteúdo de segurança",
+    "ml": "Revisão do modelo",
+    "administration": "Administração"
+  },
+  "shell": {
+    "collectorLabel": "Área do coletor",
+    "operationsLabel": "Área de operações",
+    "breadcrumbLabel": "Navegação estrutural",
+    "primaryNavigation": "Navegação principal",
+    "mobileNavigation": "Navegação móvel",
+    "currentRole": "Função atual"
+  },
+  "pages": {
+    "collectorTitle": "Início do coletor",
+    "collectorDescription": "Inicie um registo, retome trabalho guardado ou encontre um local adequado.",
+    "captureTitle": "Base de captura",
+    "captureDescription": "A câmara e os carregamentos serão implementados no marco do percurso do coletor.",
+    "recordsTitle": "Registos de recuperação",
+    "recordsDescription": "As listas e os detalhes do percurso serão implementados mais tarde.",
+    "locationsTitle": "Locais próximos",
+    "locationsDescription": "A pesquisa usará o limite tipado do serviço de locais.",
+    "profileTitle": "Perfil",
+    "profileDescription": "Conta, idioma e controlos locais serão adicionados com a autenticação.",
+    "recyclerTitle": "Receção do reciclador",
+    "recyclerDescription": "QR, peso medido e provas foram intencionalmente adiados.",
+    "reviewTitle": "Revisão do programa",
+    "reviewDescription": "Os alertas serão indicadores que exigem julgamento humano.",
+    "managementTitle": "Gestão do programa",
+    "managementDescription": "Os relatórios terão totais separados por estado e autorização.",
+    "safetyTitle": "Administração de conteúdo de segurança",
+    "safetyDescription": "A governação dos cartões aprovados usará o contrato de segurança.",
+    "mlTitle": "Revisão de dados e modelo",
+    "mlDescription": "As correções serão candidatas revistas e nunca treinarão o modelo automaticamente.",
+    "signInTitle": "Acesso de desenvolvimento",
+    "signInDescription": "Use este formulário acessível para testar validação e teclado.",
+    "notFoundTitle": "Página não encontrada",
+    "notFoundDescription": "A página pedida não está disponível ou mudou.",
+    "errorTitle": "Ocorreu um erro",
+    "errorDescription": "O seu trabalho não foi eliminado. Tente novamente.",
+    "loading": "A carregar a área"
+  },
+  "form": {
+    "referenceLabel": "Código de acesso de desenvolvimento",
+    "referenceHint": "Introduza pelo menos quatro caracteres.",
+    "referenceRequired": "Introduza um código de acesso.",
+    "referenceShort": "Use pelo menos quatro caracteres.",
+    "submit": "Continuar",
+    "success": "O formulário de demonstração é válido."
+  },
+  "states": {
+    "emptyTitle": "Ainda não há conteúdo",
+    "emptyDescription": "Novos registos aparecerão aqui.",
+    "errorTitle": "Não foi possível carregar",
+    "errorDescription": "Verifique a ligação e tente novamente.",
+    "permissionTitle": "Acesso restrito",
+    "permissionDescription": "Esta área não está disponível para a função atual.",
+    "offlineTitle": "Está offline",
+    "offlineDescription": "O trabalho guardado fica neste dispositivo até haver ligação.",
+    "syncPendingTitle": "Sincronização pendente",
+    "syncPendingDescription": "Esta alteração está guardada localmente e ainda não chegou ao servidor.",
+    "syncFailedTitle": "Ação necessária",
+    "syncFailedDescription": "A alteração precisa de revisão antes de continuar a sincronização."
+  }
+}

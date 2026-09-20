@@ -29,3 +29,4 @@ Architecture Decision Records (ADRs) capture significant, durable choices and th
 | [ADR-005](ADR-005-offline-sync-idempotency.md) | Offline synchronization and idempotency | Accepted | 2026-09-20 |
 | [ADR-006](ADR-006-roles-permissions.md) | Role and permission boundaries | Accepted | 2026-09-20 |
 | [ADR-007](ADR-007-service-responses-errors.md) | Standard service response and error contracts | Accepted | 2026-09-20 |
+| [ADR-008](ADR-008-frontend-architecture.md) | Frontend application architecture | Accepted | 2026-09-20 |

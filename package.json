@@ -1,0 +1,31 @@
+{
+  "name": "scraptrace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ScrapTrace monorepo",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @scraptrace/web",
+    "build": "npm run build --workspace @scraptrace/contracts && npm run build --workspace @scraptrace/web",
+    "typecheck": "npm run typecheck --workspace @scraptrace/contracts && npm run typecheck --workspace @scraptrace/web",
+    "lint": "npm run lint --workspace @scraptrace/web",
+    "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs README.md 'apps/web/**/*.{ts,tsx,mjs,json,css,md}' docs/decisions/ADR-008-frontend-architecture.md",
+    "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs README.md 'apps/web/**/*.{ts,tsx,mjs,json,css,md}' docs/decisions/ADR-008-frontend-architecture.md",
+    "test": "npm run test --workspace @scraptrace/contracts && npm run test --workspace @scraptrace/web",
+    "test:e2e": "npm run test:e2e --workspace @scraptrace/web",
+    "contracts:generate": "npm run schema:generate --workspace @scraptrace/contracts",
+    "contracts:check": "npm run check --workspace @scraptrace/contracts",
+    "audit:production": "npm audit --omit=dev"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "prettier-plugin-tailwindcss": "0.6.14",
+    "typescript": "6.0.3"
+  }
+}
