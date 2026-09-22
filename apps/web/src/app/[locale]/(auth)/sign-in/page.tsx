@@ -1,26 +1,37 @@
 import { getTranslations } from "next-intl/server";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DemoAccessForm } from "@/features/authentication/demo-access-form";
+import { Alert } from "@/components/ui/alert";
+import { PageHeading } from "@/components/ui/content";
+import { useDevelopmentMocks } from "@/config/env";
+import { RolePreview } from "@/features/authentication/role-preview";
 import { createPageMetadata } from "@/i18n/metadata";
 
 export const generateMetadata = () => createPageMetadata("signInTitle");
 
+/**
+ * Development role preview (Figma "role-sign-in"). Each entry only opens a workspace so its
+ * shell can be reviewed; it does not authenticate and grants no access.
+ */
 export default async function SignInPage() {
   const translate = await getTranslations("pages");
+  const translatePreview = await getTranslations("preview");
   return (
-    <div className="content-container py-12 sm:py-20">
-      <Card className="mx-auto max-w-lg">
-        <CardHeader>
-          <h1 className="text-2xl font-semibold">{translate("signInTitle")}</h1>
-          <p className="leading-6 text-[var(--color-text-secondary)]">
-            {translate("signInDescription")}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <DemoAccessForm />
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <PageHeading description={translate("signInDescription")}>
+        {translate("signInTitle")}
+      </PageHeading>
+      {useDevelopmentMocks ? (
+        <>
+          <RolePreview />
+          <Alert title={translatePreview("title")} tone="warning">
+            {translatePreview("description")}
+          </Alert>
+        </>
+      ) : (
+        <Alert title={translatePreview("unavailableTitle")} tone="info">
+          {translatePreview("unavailableDescription")}
+        </Alert>
+      )}
     </div>
   );
 }

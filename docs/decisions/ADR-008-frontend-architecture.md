@@ -99,7 +99,7 @@ Only `NEXT_PUBLIC_*` configuration reaches client code. Security headers restric
 - [x] Validate strict types, lint, unit tests, browser accessibility, contracts, and build.
 - [ ] Implement the collector journey against the established service ports.
 - [ ] Select production authentication and HTTP authorization boundaries.
-- [ ] Validate the approved Figma export when available and update semantic tokens.
+- [x] Validate the approved Figma export and update semantic tokens (see `docs/frontend/figma-implementation-map.md`).
 - [ ] Decide service-worker and local persistence technology in the offline milestone.
 
 ## Related documents

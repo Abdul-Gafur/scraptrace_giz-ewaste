@@ -2,11 +2,12 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
+/** Neutral label chip (for example a role or version tag). Use StatusBadge for record status. */
 export function Badge({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-6 items-center rounded-full bg-[var(--color-surface-subtle)] px-2.5 text-xs font-semibold text-[var(--color-text-secondary)]",
+        "bg-brand-subtle text-primary-dark inline-flex items-center rounded-xs border px-2 py-1 text-xs font-bold",
         className,
       )}
       {...props}

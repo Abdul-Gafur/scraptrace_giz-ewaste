@@ -12,7 +12,12 @@ type PageMessageKey =
   | "managementTitle"
   | "safetyTitle"
   | "mlTitle"
-  | "signInTitle";
+  | "signInTitle"
+  | "registerTitle"
+  | "onboardingTitle"
+  | "accessDeniedTitle"
+  | "sessionExpiredTitle"
+  | "privacyTitle";
 
 export async function createPageMetadata(key: PageMessageKey): Promise<Metadata> {
   const translate = await getTranslations("pages");

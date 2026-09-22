@@ -1,16 +1,12 @@
 import { UserRoleSchema } from "@scraptrace/contracts";
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
-import { OperationalShell } from "@/components/layout/operational-shell";
 
-export default async function SafetyLayout({ children }: { children: ReactNode }) {
-  const t = await getTranslations("navigation");
+import { AdministrationShell } from "@/components/layout/administration-shell";
+
+export default function SafetyLayout({ children }: { children: ReactNode }) {
   return (
-    <OperationalShell
-      role={UserRoleSchema.enum.safety_content_administrator}
-      pageLabel={t("safety")}
-    >
+    <AdministrationShell role={UserRoleSchema.enum.safety_content_administrator}>
       {children}
-    </OperationalShell>
+    </AdministrationShell>
   );
 }

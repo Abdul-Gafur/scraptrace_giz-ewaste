@@ -1,13 +1,10 @@
 import { UserRoleSchema } from "@scraptrace/contracts";
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
+
 import { OperationalShell } from "@/components/layout/operational-shell";
 
-export default async function ReviewLayout({ children }: { children: ReactNode }) {
-  const t = await getTranslations("navigation");
+export default function ReviewLayout({ children }: { children: ReactNode }) {
   return (
-    <OperationalShell role={UserRoleSchema.enum.programme_reviewer} pageLabel={t("review")}>
-      {children}
-    </OperationalShell>
+    <OperationalShell role={UserRoleSchema.enum.programme_reviewer}>{children}</OperationalShell>
   );
 }

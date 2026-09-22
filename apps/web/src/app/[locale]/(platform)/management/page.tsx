@@ -1,10 +1,8 @@
-import { getTranslations } from "next-intl/server";
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
 import { createPageMetadata } from "@/i18n/metadata";
+import { ManagementOverview } from "@/features/management/management-overview";
 
 export const generateMetadata = () => createPageMetadata("managementTitle");
 
-export default async function ManagementPage() {
-  const t = await getTranslations("pages");
-  return <PlaceholderPage title={t("managementTitle")} description={t("managementDescription")} />;
+export default function Page() {
+  return <ManagementOverview />;
 }

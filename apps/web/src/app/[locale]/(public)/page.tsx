@@ -19,7 +19,7 @@ export default async function HomePage() {
           <h1 className="text-4xl leading-[1.08] font-semibold tracking-[-0.035em] text-balance sm:text-5xl lg:text-6xl">
             {translate("title")}
           </h1>
-          <p className="max-w-2xl text-lg leading-8 text-[var(--color-text-secondary)]">
+          <p className="max-w-2xl text-lg leading-8 text-[var(--muted-foreground)]">
             {translate("description")}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -35,10 +35,10 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        <ul className="divide-y rounded-[var(--radius-lg)] border bg-[var(--color-surface)] px-5 shadow-[var(--shadow-raised)]">
+        <ul className="divide-y rounded-[var(--radius-lg)] border bg-[var(--surface)] px-5 shadow-[var(--shadow-raised)]">
           {principles.map(({ key, icon: Icon }) => (
             <li className="flex min-h-20 items-center gap-4 py-4" key={key}>
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-surface-subtle)] text-[var(--color-primary)]">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--primary)]">
                 <Icon aria-hidden="true" className="size-5" />
               </span>
               <span className="font-medium">{translate(key)}</span>

@@ -1,20 +1,52 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PermissionSchema, UserRoleSchema } from "@scraptrace/contracts";
+import { useTranslations } from "next-intl";
 
-export function PlaceholderPage({ title, description }: { title: string; description: string }) {
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DefinitionList, DefinitionRow, PageHeading } from "@/components/ui/content";
+import { NAVIGATION_ITEMS } from "@/navigation/navigation-config";
+
+/** Proves which role and permission a route is intended for. Not an authorization check. */
+function RequirementCard({ itemId }: { itemId: string }) {
+  const translate = useTranslations("placeholder");
+  const translateRoles = useTranslations("roles");
+  const item = NAVIGATION_ITEMS.find((candidate) => candidate.id === itemId);
+  if (!item) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-primary-dark text-sm font-bold">{translate("requirementsTitle")}</h2>
+      </CardHeader>
+      <CardContent>
+        <DefinitionList>
+          <DefinitionRow term={translate("requiredRole")}>
+            {item.roles.map((role) => translateRoles(UserRoleSchema.parse(role))).join(", ")}
+          </DefinitionRow>
+          <DefinitionRow term={translate("requiredPermission")}>
+            {PermissionSchema.parse(item.permission)}
+          </DefinitionRow>
+        </DefinitionList>
+        <p className="text-muted-foreground mt-3 text-xs leading-5">
+          {translate("authorizationNote")}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PlaceholderPage({
+  title,
+  description,
+  itemId,
+}: {
+  title: string;
+  description: string;
+  /** Navigation item whose role and permission requirement is displayed. */
+  itemId?: string;
+}) {
   return (
     <section className="max-w-3xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{title}</h1>
-        <p className="max-w-prose leading-7 text-[var(--color-text-secondary)]">{description}</p>
-      </div>
-      <Card>
-        <CardHeader>
-          <div className="h-2 w-20 rounded-full bg-[var(--color-primary)]" aria-hidden="true" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-20 rounded-md bg-[var(--color-surface-subtle)]" aria-hidden="true" />
-        </CardContent>
-      </Card>
+      <PageHeading description={description}>{title}</PageHeading>
+      {itemId ? <RequirementCard itemId={itemId} /> : null}
     </section>
   );
 }

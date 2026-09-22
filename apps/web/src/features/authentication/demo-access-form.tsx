@@ -48,14 +48,14 @@ export function DemoAccessForm() {
         />
         {errors.reference ? (
           <p
-            className="text-sm font-medium text-[var(--color-danger)]"
+            className="text-sm font-medium text-[var(--danger)]"
             id="development-reference-error"
             role="alert"
           >
             {errors.reference.message}
           </p>
         ) : (
-          <p className="text-sm text-[var(--color-text-secondary)]" id="development-reference-hint">
+          <p className="text-sm text-[var(--muted-foreground)]" id="development-reference-hint">
             {translate("referenceHint")}
           </p>
         )}
@@ -64,7 +64,7 @@ export function DemoAccessForm() {
         {translate("submit")}
       </Button>
       {submitted ? (
-        <p className="text-sm font-medium text-[var(--color-success)]" role="status">
+        <p className="text-sm font-medium text-[var(--success)]" role="status">
           {translate("success")}
         </p>
       ) : null}

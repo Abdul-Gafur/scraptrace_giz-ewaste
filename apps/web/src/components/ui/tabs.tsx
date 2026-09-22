@@ -10,7 +10,7 @@ export function Tab({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElem
   return (
     <button
       className={cn(
-        "min-h-11 border-b-2 border-transparent px-3 aria-selected:border-[var(--color-primary)]",
+        "min-h-11 border-b-2 border-transparent px-3 aria-selected:border-[var(--primary)]",
         className,
       )}
       role="tab"

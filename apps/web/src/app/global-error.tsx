@@ -24,7 +24,7 @@ export default function GlobalError({
             <h1 className="text-xl font-semibold">{en.pages.errorTitle}</h1>
             <p className="mt-2 text-sm">{en.pages.errorDescription}</p>
             <button
-              className="mt-4 min-h-11 rounded-md bg-[var(--color-primary)] px-4 font-semibold text-white"
+              className="mt-4 min-h-11 rounded-md bg-[var(--primary)] px-4 font-semibold text-white"
               onClick={reset}
               type="button"
             >

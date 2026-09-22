@@ -2,6 +2,7 @@ import { getLanguageDirection } from "@scraptrace/contracts";
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -11,6 +12,18 @@ import { routing } from "@/i18n/routing";
 import { AppProviders } from "@/providers/app-providers";
 
 import "../globals.css";
+
+const notoSans = Noto_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-noto-sans",
+  display: "swap",
+});
+
+const notoSansArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-noto-sans-arabic",
+  display: "swap",
+});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -43,7 +56,11 @@ export default async function LocaleLayout({
   const translate = await getTranslations("common");
   const direction = getLanguageDirection(locale);
   return (
-    <html lang={locale} dir={direction}>
+    <html
+      lang={locale}
+      dir={direction}
+      className={`${notoSans.variable} ${notoSansArabic.variable}`}
+    >
       <body>
         <NextIntlClientProvider>
           <AppProviders

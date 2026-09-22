@@ -37,6 +37,15 @@ npm run contracts:generate
 npm run contracts:check
 ```
 
+Set `PLAYWRIGHT_BASE_URL` (for example `http://localhost:3000`) to run `npm run test:e2e` against an already running dev server instead of starting one; Next.js allows only one dev server per checkout.
+
+### Shells, navigation and the component showcase
+
+- `src/navigation/navigation-config.ts` is the single source for role-aware navigation (labels, routes, icons, contract role and permission, active-route behaviour, mobile and desktop visibility). Components render what it returns and never check roles themselves. Hiding an item is not access control: backend authorization is mandatory (ADR-006).
+- `src/components/layout` holds the public, authentication, collector, operational and administration shells. The last three share `AppShell`.
+- `/[locale]/dev/components` is a development-only component showcase. `src/proxy.ts` returns 404 for `/dev` paths in production.
+- `/[locale]/sign-in` is a development role preview list that links to each workspace. It does not authenticate.
+
 The production build uses Next.js with webpack because the managed development environment blocks the internal process/port used by Turbopack's CSS worker.
 
 ## Environment variables
@@ -86,7 +95,7 @@ Routes own composition and metadata, not mock data or domain rules. Features mus
 
 ## Design tokens and responsive behavior
 
-Semantic tokens live in `src/app/globals.css`. Components consume background, surface, text, border, primary, status, focus, radius, shadow, touch-target, and container tokens. No repository Figma export was available, so the SRS-approved fallback palette is used.
+Semantic tokens live in `src/app/globals.css`. Components consume background, surface, text, border, primary, status, focus, radius, shadow, touch-target, and container tokens. Tokens are extracted from the approved Figma file (`ScrapTrace-UI`); see `docs/frontend/figma-implementation-map.md` for the frame inventory, token table and documented deviations.
 
 The collector shell keeps capture, records, locations, profile, and home navigation persistent on small screens, then moves navigation to the side on larger screens. Operational roles receive a sidebar on desktop and a scrollable mobile alternative. Logical CSS properties preserve directionality.
 

@@ -1,23 +1,34 @@
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
 
+import { OfflineNotice } from "@/components/feedback/connectivity";
 import { BrandMark } from "@/components/navigation/brand-mark";
 import { LanguageSwitcher } from "@/components/navigation/language-switcher";
+import { buttonVariants } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
-export async function PublicShell({ children }: { children: ReactNode }) {
-  const translate = await getTranslations("common");
+/** Public and information pages: brand, language control, sign-in entry and content. */
+export function PublicShell({ children }: { children: ReactNode }) {
+  const translate = useTranslations("common");
   return (
-    <div className="min-h-screen">
-      <header className="border-b bg-[var(--color-surface)]">
-        <div className="content-container flex min-h-16 items-center justify-between gap-4">
-          <Link href="/" aria-label={translate("brand")}>
+    <div className="min-h-screen" data-shell="public">
+      <OfflineNotice />
+      <header className="bg-surface border-b">
+        <div className="content-container flex min-h-16 items-center justify-between gap-3">
+          <Link aria-label={translate("brand")} href="/">
             <BrandMark label={translate("brand")} />
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Link className={buttonVariants({ variant: "secondary" })} href="/sign-in">
+              {translate("signIn")}
+            </Link>
+          </div>
         </div>
       </header>
-      <main id="main-content">{children}</main>
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }

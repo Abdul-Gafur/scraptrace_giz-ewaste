@@ -19,6 +19,8 @@ interface StatusPanelProps {
   title: string;
   description: string;
   tone?: StatusTone;
+  /** Heading level. Use `h1` when the panel is the page's primary content. */
+  heading?: "h1" | "h2";
   actionLabel?: string;
   onAction?: () => void;
   children?: ReactNode;
@@ -28,6 +30,7 @@ export function StatusPanel({
   title,
   description,
   tone = "empty",
+  heading: Heading = "h2",
   actionLabel,
   onAction,
   children,
@@ -35,22 +38,22 @@ export function StatusPanel({
   const Icon = icons[tone];
   return (
     <section
-      className="rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-6"
+      className="bg-surface rounded-md border p-6"
       aria-live={tone === "error" ? "assertive" : "polite"}
     >
       <div className="flex items-start gap-4">
         <span
           className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-surface-subtle)] text-[var(--color-primary)]",
-            tone === "error" && "text-[var(--color-danger)]",
-            tone === "permission" && "text-[var(--color-warning)]",
+            "bg-surface-subtle text-primary grid size-10 shrink-0 place-items-center rounded-full",
+            tone === "error" && "text-danger",
+            tone === "permission" && "text-warning",
           )}
         >
           <Icon aria-hidden="true" className="size-5" />
         </span>
         <div className="max-w-prose space-y-2">
-          <h2 className="font-semibold">{title}</h2>
-          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
+          <Heading className="font-bold">{title}</Heading>
+          <p className="text-muted-foreground text-sm leading-6">{description}</p>
           {actionLabel ? <Button onClick={onAction}>{actionLabel}</Button> : null}
           {children}
         </div>

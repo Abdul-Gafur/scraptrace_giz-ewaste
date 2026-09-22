@@ -1,13 +1,12 @@
 import { UserRoleSchema } from "@scraptrace/contracts";
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
-import { OperationalShell } from "@/components/layout/operational-shell";
 
-export default async function MlLayout({ children }: { children: ReactNode }) {
-  const t = await getTranslations("navigation");
+import { AdministrationShell } from "@/components/layout/administration-shell";
+
+export default function MlLayout({ children }: { children: ReactNode }) {
   return (
-    <OperationalShell role={UserRoleSchema.enum.data_ml_reviewer} pageLabel={t("ml")}>
+    <AdministrationShell role={UserRoleSchema.enum.data_ml_reviewer}>
       {children}
-    </OperationalShell>
+    </AdministrationShell>
   );
 }

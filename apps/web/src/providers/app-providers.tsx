@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { QueryProvider } from "./query-provider";
+import { ToastProvider } from "@/components/ui/toast";
 import { ServiceProvider } from "@/services/service-provider";
 
 export function AppProviders({
@@ -16,7 +17,9 @@ export function AppProviders({
 }) {
   return (
     <QueryProvider showDevtools={showQueryDevtools}>
-      <ServiceProvider mode={serviceMode}>{children}</ServiceProvider>
+      <ServiceProvider mode={serviceMode}>
+        <ToastProvider>{children}</ToastProvider>
+      </ServiceProvider>
     </QueryProvider>
   );
 }

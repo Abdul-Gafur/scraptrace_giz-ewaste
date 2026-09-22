@@ -1,62 +1,141 @@
 @config "../../tailwind.config.ts";
 @import "tailwindcss";
 
+/*
+ * ScrapTrace design tokens.
+ * Source: Figma "scrap-trace-design-system" frame (see docs/frontend/figma-implementation-map.md).
+ * Components consume semantic tokens only; raw colour values live here and nowhere else.
+ */
 :root {
-  --color-background: #f7f9f8;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #eef3f1;
-  --color-text-primary: #18211e;
-  --color-text-secondary: #5e6b66;
-  --color-primary: #176b52;
-  --color-primary-hover: #0f5b45;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #c78a12;
-  --color-border: #dce5e1;
-  --color-information: #2563eb;
-  --color-warning: #a15c00;
-  --color-danger: #b42318;
-  --color-success: #237a57;
-  --color-focus: #2563eb;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.875rem;
-  --shadow-raised: 0 1px 2px rgb(15 76 58 / 0.08), 0 8px 24px rgb(15 76 58 / 0.06);
+  /* Brand */
+  --primary: #176b52;
+  --primary-hover: #0f5b45;
+  --primary-foreground: #ffffff;
+  --primary-dark: #0f4c3a;
+  --accent: #237a57;
+
+  /* Surfaces and text */
+  --background: #f7f9f8;
+  --surface: #ffffff;
+  --surface-subtle: #eef3f1;
+  --foreground: #18211e;
+  --muted-foreground: #5e6b66;
+  --border: #dce5e1;
+  --focus: #2563eb;
+
+  /* Status: solid and tinted pairs */
+  --secondary: #c78a12;
+  --secondary-foreground: #18211e;
+  --success: #237a57;
+  --success-strong: #0f4c3a;
+  --success-subtle: #ecfdf5;
+  --warning: #a15c00;
+  --warning-subtle: #fff4e5;
+  --warning-tint: #fef3c7;
+  --caution-subtle: #fffbeb;
+  --caution-soft: #fff9e6;
+  --danger: #b42318;
+  --danger-subtle: #fef2f2;
+  --info: #2563eb;
+  --info-subtle: #eff6ff;
+  --neutral-subtle: #f3f4f6;
+  --brand-subtle: #ebf1ee;
+
+  /* Layout and interaction */
   --container-content: 72rem;
   --touch-target: 2.75rem;
+  --icon-sm: 1rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 1.5rem;
+  --header-height: 4.75rem;
+  --sidebar-width: 15rem;
+  --focus-ring-width: 3px;
+  --disabled-opacity: 0.5;
 }
 
-* {
-  border-color: var(--color-border);
+/* Shape, elevation (flat by default) and typography. Radii: 4px badges, 6px controls, 8px cards. */
+@theme static {
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-raised: 0 1px 2px rgb(15 76 58 / 0.08), 0 8px 24px rgb(15 76 58 / 0.06);
+  --font-sans: var(--font-noto-sans), "Segoe UI", Arial, sans-serif;
+  --font-arabic: var(--font-noto-sans-arabic), var(--font-noto-sans), "Segoe UI", Arial, sans-serif;
 }
 
-html {
-  background: var(--color-background);
-  color: var(--color-text-primary);
-  font-family: Inter, "Noto Sans Arabic", "Segoe UI", Arial, sans-serif;
-  text-rendering: optimizeLegibility;
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-focus: var(--focus);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-tint: var(--warning-tint);
+  --color-caution-subtle: var(--caution-subtle);
+  --color-caution-soft: var(--caution-soft);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-brand-subtle: var(--brand-subtle);
+  --spacing-touch: var(--touch-target);
+  --spacing-header: var(--header-height);
+  --spacing-sidebar: var(--sidebar-width);
 }
 
-body {
-  min-height: 100vh;
-  margin: 0;
-  background: var(--color-background);
-}
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 
-a,
-button,
-input,
-select,
-textarea {
-  -webkit-tap-highlight-color: transparent;
-}
+  html {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+  }
 
-:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 3px;
-}
+  html[lang="ar"] {
+    font-family: var(--font-arabic);
+  }
 
-::selection {
-  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--background);
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
+  }
 }
 
 .text-balance {
@@ -66,6 +145,56 @@ textarea {
 .content-container {
   inline-size: min(100% - 2rem, var(--container-content));
   margin-inline: auto;
+}
+
+/* Native <dialog> presentations: centred dialog, bottom sheet, side drawer. */
+dialog.overlay {
+  margin: auto;
+  max-inline-size: min(100vw - 2rem, 32rem);
+  max-block-size: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--foreground);
+  overflow: auto;
+}
+
+dialog.overlay::backdrop {
+  background: rgb(24 33 30 / 0.4);
+}
+
+dialog.overlay[data-presentation="sheet"] {
+  margin: auto 0 0;
+  inline-size: 100%;
+  max-inline-size: none;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+dialog.overlay[data-presentation="drawer"] {
+  margin: 0;
+  margin-inline-end: auto;
+  inline-size: min(20rem, 88vw);
+  block-size: 100dvh;
+  max-block-size: none;
+  border-radius: 0;
+  border-block: 0;
+  border-inline-start: 0;
+}
+
+@media (min-width: 40rem) {
+  dialog.overlay[data-presentation="sheet"] {
+    margin: auto;
+    max-inline-size: 32rem;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@keyframes st-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

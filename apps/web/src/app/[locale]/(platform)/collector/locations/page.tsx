@@ -6,5 +6,11 @@ export const generateMetadata = () => createPageMetadata("locationsTitle");
 
 export default async function LocationsPage() {
   const t = await getTranslations("pages");
-  return <PlaceholderPage title={t("locationsTitle")} description={t("locationsDescription")} />;
+  return (
+    <PlaceholderPage
+      itemId="collector-locations"
+      title={t("locationsTitle")}
+      description={t("locationsDescription")}
+    />
+  );
 }

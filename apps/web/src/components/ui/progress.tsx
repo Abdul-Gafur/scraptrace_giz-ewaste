@@ -11,9 +11,9 @@ export function Progress({ label, value }: ProgressProps) {
         <span>{label}</span>
         <span>{boundedValue}%</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-subtle)]">
+      <div className="bg-surface-subtle h-2 overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-[var(--color-primary)]"
+          className="bg-primary h-full rounded-full"
           role="progressbar"
           aria-label={label}
           aria-valuemin={0}
