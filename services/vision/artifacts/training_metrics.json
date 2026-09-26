@@ -1,9 +1,9 @@
 {
-  "model_name": "mobilenetv3_large_100",
+  "model_name": "efficientnet_b0",
   "best_epoch": 13,
-  "best_val_f1": 0.7426,
-  "test_acc": 0.871,
-  "test_f1": 0.8135,
+  "best_val_f1": 0.7657,
+  "test_acc": 0.8387,
+  "test_f1": 0.7806,
   "total_samples": 1232,
   "train_samples": 924,
   "val_samples": 184,
@@ -11,125 +11,125 @@
   "history": [
     {
       "epoch": 1,
-      "train_loss": 2.54346,
-      "train_acc": 0.3669,
-      "val_loss": 1.47215,
-      "val_acc": 0.6087,
-      "val_f1": 0.5209
+      "train_loss": 2.86736,
+      "train_acc": 0.46,
+      "val_loss": 2.19404,
+      "val_acc": 0.5652,
+      "val_f1": 0.5258
     },
     {
       "epoch": 2,
-      "train_loss": 1.33436,
-      "train_acc": 0.5855,
-      "val_loss": 1.05925,
-      "val_acc": 0.7228,
-      "val_f1": 0.6263
+      "train_loss": 1.79665,
+      "train_acc": 0.6667,
+      "val_loss": 1.67073,
+      "val_acc": 0.6902,
+      "val_f1": 0.6326
     },
     {
       "epoch": 3,
-      "train_loss": 0.88119,
-      "train_acc": 0.7273,
-      "val_loss": 1.02729,
-      "val_acc": 0.7717,
-      "val_f1": 0.6543
+      "train_loss": 1.31536,
+      "train_acc": 0.776,
+      "val_loss": 1.64456,
+      "val_acc": 0.6902,
+      "val_f1": 0.653
     },
     {
       "epoch": 4,
-      "train_loss": 0.66304,
-      "train_acc": 0.8052,
-      "val_loss": 0.98513,
-      "val_acc": 0.7935,
-      "val_f1": 0.6758
+      "train_loss": 1.22182,
+      "train_acc": 0.7814,
+      "val_loss": 1.36018,
+      "val_acc": 0.7446,
+      "val_f1": 0.685
     },
     {
       "epoch": 5,
-      "train_loss": 0.55622,
-      "train_acc": 0.8182,
-      "val_loss": 1.004,
-      "val_acc": 0.8261,
-      "val_f1": 0.7052
+      "train_loss": 1.03644,
+      "train_acc": 0.8203,
+      "val_loss": 1.2909,
+      "val_acc": 0.7989,
+      "val_f1": 0.727
     },
     {
       "epoch": 6,
-      "train_loss": 0.46053,
-      "train_acc": 0.8474,
-      "val_loss": 1.09187,
-      "val_acc": 0.8315,
-      "val_f1": 0.7122
+      "train_loss": 0.94386,
+      "train_acc": 0.855,
+      "val_loss": 1.1406,
+      "val_acc": 0.8043,
+      "val_f1": 0.7382
     },
     {
       "epoch": 7,
-      "train_loss": 0.43208,
-      "train_acc": 0.8582,
-      "val_loss": 0.94194,
-      "val_acc": 0.8424,
-      "val_f1": 0.7224
+      "train_loss": 0.9245,
+      "train_acc": 0.8474,
+      "val_loss": 1.12919,
+      "val_acc": 0.8098,
+      "val_f1": 0.7318
     },
     {
       "epoch": 8,
-      "train_loss": 0.43913,
-      "train_acc": 0.8766,
-      "val_loss": 0.93823,
-      "val_acc": 0.8424,
-      "val_f1": 0.7219
+      "train_loss": 0.86262,
+      "train_acc": 0.8799,
+      "val_loss": 1.13082,
+      "val_acc": 0.7772,
+      "val_f1": 0.7237
     },
     {
       "epoch": 9,
-      "train_loss": 0.37716,
-      "train_acc": 0.8831,
-      "val_loss": 1.02914,
-      "val_acc": 0.8533,
-      "val_f1": 0.7293
+      "train_loss": 0.83926,
+      "train_acc": 0.8972,
+      "val_loss": 1.06013,
+      "val_acc": 0.788,
+      "val_f1": 0.7278
     },
     {
       "epoch": 10,
-      "train_loss": 0.31442,
-      "train_acc": 0.9069,
-      "val_loss": 0.99771,
-      "val_acc": 0.8587,
-      "val_f1": 0.7336
+      "train_loss": 0.79891,
+      "train_acc": 0.8939,
+      "val_loss": 1.0529,
+      "val_acc": 0.7935,
+      "val_f1": 0.7289
     },
     {
       "epoch": 11,
-      "train_loss": 0.3063,
-      "train_acc": 0.8874,
-      "val_loss": 0.99146,
-      "val_acc": 0.8533,
-      "val_f1": 0.7298
+      "train_loss": 0.78456,
+      "train_acc": 0.9037,
+      "val_loss": 1.03318,
+      "val_acc": 0.7989,
+      "val_f1": 0.7342
     },
     {
       "epoch": 12,
-      "train_loss": 0.25004,
-      "train_acc": 0.908,
-      "val_loss": 0.96195,
-      "val_acc": 0.8533,
-      "val_f1": 0.7339
+      "train_loss": 0.7871,
+      "train_acc": 0.8972,
+      "val_loss": 1.03925,
+      "val_acc": 0.8207,
+      "val_f1": 0.7457
     },
     {
       "epoch": 13,
-      "train_loss": 0.28761,
-      "train_acc": 0.9091,
-      "val_loss": 0.9428,
-      "val_acc": 0.8696,
-      "val_f1": 0.7426
+      "train_loss": 0.78878,
+      "train_acc": 0.8983,
+      "val_loss": 1.02222,
+      "val_acc": 0.8478,
+      "val_f1": 0.7657
     },
     {
       "epoch": 14,
-      "train_loss": 0.28752,
-      "train_acc": 0.908,
-      "val_loss": 0.93179,
-      "val_acc": 0.8533,
-      "val_f1": 0.7298
+      "train_loss": 0.7698,
+      "train_acc": 0.9091,
+      "val_loss": 1.01886,
+      "val_acc": 0.8424,
+      "val_f1": 0.7434
     },
     {
       "epoch": 15,
-      "train_loss": 0.23651,
-      "train_acc": 0.9123,
-      "val_loss": 0.9214,
-      "val_acc": 0.8641,
-      "val_f1": 0.7405
+      "train_loss": 0.76811,
+      "train_acc": 0.9297,
+      "val_loss": 1.01064,
+      "val_acc": 0.837,
+      "val_f1": 0.7595
     }
   ],
-  "classification_report": "                               precision    recall  f1-score   support\n\n                refrigerators     0.9412    0.8421    0.8889        19\nlaptops_and_desktop_computers     0.9310    0.9310    0.9310        29\n                  televisions     0.7619    0.9412    0.8421        17\n                   microwaves     0.7857    0.7857    0.7857        14\n             air_conditioners     0.9375    0.7143    0.8108        21\n                  compressors     0.8800    1.0000    0.9362        22\n                  mixed_scrap     0.5000    0.5000    0.5000         2\n\n                     accuracy                         0.8710       124\n                    macro avg     0.8196    0.8163    0.8135       124\n                 weighted avg     0.8781    0.8710    0.8696       124\n",
-  "trained_at": "2026-09-26T13:48:02.242487+00:00"
+  "classification_report": "                               precision    recall  f1-score   support\n\n                refrigerators     0.9375    0.7895    0.8571        19\nlaptops_and_desktop_computers     1.0000    0.8276    0.9057        29\n                  televisions     0.8000    0.9412    0.8649        17\n                   microwaves     0.7059    0.8571    0.7742        14\n             air_conditioners     1.0000    0.6667    0.8000        21\n                  compressors     0.9545    0.9545    0.9545        22\n                  mixed_scrap     0.1818    1.0000    0.3077         2\n\n                     accuracy                         0.8387       124\n                    macro avg     0.7971    0.8624    0.7806       124\n                 weighted avg     0.9085    0.8387    0.8589       124\n",
+  "trained_at": "2026-09-26T14:25:39.583577+00:00"
 }

@@ -31,9 +31,13 @@ def load_checkpoint(checkpoint_path: str, model_name: str = DEFAULT_MODEL_NAME, 
     """
     Loads model weights from a checkpoint file.
     """
-    model = build_model(model_name=model_name, pretrained=False)
     state_dict = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    if "model_state_dict" in state_dict:
+    resolved_model_name = model_name
+    if isinstance(state_dict, dict) and "model_name" in state_dict:
+        resolved_model_name = state_dict["model_name"]
+
+    model = build_model(model_name=resolved_model_name, pretrained=False)
+    if isinstance(state_dict, dict) and "model_state_dict" in state_dict:
         model.load_state_dict(state_dict["model_state_dict"])
     else:
         model.load_state_dict(state_dict)

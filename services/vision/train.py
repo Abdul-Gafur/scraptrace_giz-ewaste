@@ -1,9 +1,14 @@
 """
 Training script for ScrapTrace E-Waste Vision Classifier.
-Trains on pre-cropped 224x224 images from data/processed/.
-Supports Apple Silicon MPS, CUDA, and CPU.
+Supports MobileNetV3 and EfficientNet-B0 architectures.
+Features:
+- Label-smoothed Cross-Entropy loss with inverse frequency weights
+- Cosine Annealing learning rate schedule
+- Metal Performance Shaders (Apple Silicon MPS) / CUDA acceleration
+- Comprehensive per-category evaluation metrics
 """
 
+import sys
 import json
 import time
 from datetime import datetime, timezone
@@ -11,7 +16,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 import numpy as np
 from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -95,10 +100,10 @@ def evaluate(model, dataloader, criterion, device):
 
 
 def run_training(
-    model_name: str = DEFAULT_MODEL_NAME,
-    epochs: int = NUM_EPOCHS,
+    model_name: str = "efficientnet_b0",
+    epochs: int = 15,
     batch_size: int = BATCH_SIZE,
-    lr: float = LEARNING_RATE,
+    lr: float = 3e-4,
 ):
     torch.manual_seed(SEED)
     np.random.seed(SEED)
@@ -136,9 +141,10 @@ def run_training(
     val_samples = [all_samples[i] for i in val_idx]
     test_samples = [all_samples[i] for i in test_idx]
 
-    train_dataset = EWasteLocalDataset(train_samples, is_train=True)
-    val_dataset = EWasteLocalDataset(val_samples, is_train=False)
-    test_dataset = EWasteLocalDataset(test_samples, is_train=False)
+    # Clean datasets without over-distorting the distribution
+    train_dataset = EWasteLocalDataset(train_samples, is_train=True, oversample_minority=False)
+    val_dataset = EWasteLocalDataset(val_samples, is_train=False, oversample_minority=False)
+    test_dataset = EWasteLocalDataset(test_samples, is_train=False, oversample_minority=False)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -151,22 +157,22 @@ def run_training(
     model = build_model(model_name=model_name, num_classes=NUM_CLASSES, pretrained=True)
     model.to(device)
 
-    # Class weights for imbalanced data (mixed_scrap has only 16 samples)
+    # Balanced class weights
     class_counts = np.bincount(all_labels, minlength=NUM_CLASSES).astype(np.float32)
     class_weights = 1.0 / np.maximum(class_counts, 1.0)
     class_weights = class_weights / class_weights.sum() * NUM_CLASSES
     weights_tensor = torch.tensor(class_weights, dtype=torch.float32).to(device)
-    print(f"Class weights: {dict(zip(CONTRACT_CATEGORIES, class_weights.tolist()))}")
 
-    criterion = nn.CrossEntropyLoss(weight=weights_tensor)
+    # Label smoothing 0.05 helps regularize confidence on visually ambiguous e-waste
+    criterion = nn.CrossEntropyLoss(weight=weights_tensor, label_smoothing=0.05)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     best_val_f1 = 0.0
     history = []
 
     print("\n" + "=" * 60)
-    print("Starting training...")
+    print(f"Starting Training: {model_name} ({epochs} epochs, Label Smoothing=0.05)...")
     print("=" * 60)
     start_time = time.time()
 
@@ -181,15 +187,18 @@ def run_training(
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
             checkpoint_path = CHECKPOINTS_DIR / "best_model.pth"
-            torch.save({
-                "epoch": epoch,
-                "model_name": model_name,
-                "model_state_dict": model.state_dict(),
-                "val_f1": val_f1,
-                "val_acc": val_acc,
-                "categories": CONTRACT_CATEGORIES,
-                "trained_at": datetime.now(timezone.utc).isoformat(),
-            }, checkpoint_path)
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_name": model_name,
+                    "model_state_dict": model.state_dict(),
+                    "val_f1": float(val_f1),
+                    "val_acc": float(val_acc),
+                    "categories": CONTRACT_CATEGORIES,
+                    "trained_at": datetime.now(timezone.utc).isoformat(),
+                },
+                checkpoint_path,
+            )
             marker = " ★ best"
 
         print(
@@ -199,14 +208,16 @@ def run_training(
             f"({elapsed:.1f}s){marker}"
         )
 
-        history.append({
-            "epoch": epoch,
-            "train_loss": round(train_loss, 5),
-            "train_acc": round(train_acc, 4),
-            "val_loss": round(val_loss, 5),
-            "val_acc": round(val_acc, 4),
-            "val_f1": round(val_f1, 4),
-        })
+        history.append(
+            {
+                "epoch": epoch,
+                "train_loss": round(float(train_loss), 5),
+                "train_acc": round(float(train_acc), 4),
+                "val_loss": round(float(val_loss), 5),
+                "val_acc": round(float(val_acc), 4),
+                "val_f1": round(float(val_f1), 4),
+            }
+        )
 
     total_time = time.time() - start_time
     print(f"\nTraining completed in {total_time/60:.1f} minutes.")
@@ -218,7 +229,9 @@ def run_training(
     best_cp = torch.load(CHECKPOINTS_DIR / "best_model.pth", map_location=device, weights_only=False)
     model.load_state_dict(best_cp["model_state_dict"])
 
-    test_loss, test_acc, test_f1, test_preds, test_targets = evaluate(model, test_loader, criterion, device)
+    test_loss, test_acc, test_f1, test_preds, test_targets = evaluate(
+        model, test_loader, criterion, device
+    )
 
     report_str = classification_report(
         test_targets,
@@ -235,9 +248,9 @@ def run_training(
     metrics = {
         "model_name": model_name,
         "best_epoch": best_cp["epoch"],
-        "best_val_f1": round(best_val_f1, 4),
-        "test_acc": round(test_acc, 4),
-        "test_f1": round(test_f1, 4),
+        "best_val_f1": round(float(best_val_f1), 4),
+        "test_acc": round(float(test_acc), 4),
+        "test_f1": round(float(test_f1), 4),
         "total_samples": len(all_samples),
         "train_samples": len(train_samples),
         "val_samples": len(val_samples),
@@ -255,4 +268,5 @@ def run_training(
 
 
 if __name__ == "__main__":
-    run_training()
+    model_arg = sys.argv[1] if len(sys.argv) > 1 else "efficientnet_b0"
+    run_training(model_name=model_arg)

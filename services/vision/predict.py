@@ -22,7 +22,7 @@ from dataset import get_transforms
 from model import load_checkpoint
 
 MODEL_VERSION = "0.1.0"
-MODEL_NAME = "scraptrace-vision-mobilenetv3"
+MODEL_NAME = "scraptrace-vision-classifier"
 
 
 def format_utc_timestamp(dt: datetime = None) -> str:

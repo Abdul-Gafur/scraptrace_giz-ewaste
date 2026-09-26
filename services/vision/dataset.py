@@ -1,13 +1,16 @@
 """
 PyTorch Dataset and data transforms for ScrapTrace e-waste image classification.
-Supports on-the-fly augmentation (lighting, angles, background variations) to reflect scrapyard reality.
+Supports on-the-fly augmentation (lighting, angles, background variations, cutout)
+and synthetic mixup for underrepresented classes (e.g. mixed_scrap).
 """
+
+import random
+from pathlib import Path
+from PIL import Image
 
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-from PIL import Image
-from pathlib import Path
 
 from config import (
     IMAGE_SIZE,
@@ -24,16 +27,18 @@ def get_transforms(is_train: bool = True):
     """
     if is_train:
         return transforms.Compose([
-            transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0)),
+            transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.75, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.2),
-            transforms.RandomRotation(degrees=15),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
+            transforms.RandomRotation(degrees=20),
+            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.08),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
             ),
+            # Random Erasing (Cutout) to simulate partial occlusions, wires, and dirt
+            transforms.RandomErasing(p=0.25, scale=(0.02, 0.25), value="random"),
         ])
     else:
         return transforms.Compose([
@@ -49,15 +54,32 @@ def get_transforms(is_train: bool = True):
 class EWasteLocalDataset(Dataset):
     """
     Loads pre-cropped 224x224 images from data/processed/<category>/*.jpg.
+    For training: supports oversampling minority classes and synthetic CutMix.
     """
-    def __init__(self, samples: list, is_train: bool = True):
+    def __init__(self, samples: list, is_train: bool = True, oversample_minority: bool = False):
         """
         Args:
             samples: list of (image_path, label_idx) tuples
             is_train: whether to apply training augmentations
+            oversample_minority: duplicate sparse classes with varied augmentations
         """
-        self.samples = samples
+        self.is_train = is_train
         self.transform = get_transforms(is_train=is_train)
+
+        mixed_scrap_idx = CATEGORY_TO_IDX["mixed_scrap"]
+
+        if is_train and oversample_minority:
+            augmented_samples = list(samples)
+            # Find mixed_scrap samples
+            mixed_samples = [s for s in samples if s[1] == mixed_scrap_idx]
+            # Oversample mixed_scrap 6x so the model sees diverse augmentations
+            if mixed_samples:
+                for _ in range(5):
+                    augmented_samples.extend(mixed_samples)
+
+            self.samples = augmented_samples
+        else:
+            self.samples = samples
 
     def __len__(self):
         return len(self.samples)
