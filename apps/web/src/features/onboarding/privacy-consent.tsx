@@ -2,18 +2,27 @@
 
 import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice-controls";
 import { PageHeading } from "@/components/ui/content";
-import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
+import { useConsent, useProgrammeMutation } from "@/services/queries";
 
-/** Figma: privacy-consent. The optional training reuse choice is held locally in this milestone. */
+/**
+ * Figma: privacy-consent. The optional training-reuse choice is stored on the device and is
+ * what the export service honours later; it can be changed again from the account screen.
+ */
 export function PrivacyConsent() {
   const translate = useTranslations("screens.privacy");
-  const [optional, setOptional] = useState(false);
+  const router = useRouter();
+  const { data: consent } = useConsent();
+  const setConsent = useProgrammeMutation((services, value: boolean) =>
+    services.consent.set(value),
+  );
+  const optional = consent?.trainingReuse ?? false;
+  const setOptional = (value: boolean) => setConsent.mutate(value);
   return (
     <div className="space-y-4">
       <PageHeading description={translate("subtitle")}>{translate("title")}</PageHeading>
@@ -51,18 +60,28 @@ export function PrivacyConsent() {
       </p>
 
       <div className="flex flex-col gap-2">
-        <Link className={buttonVariants({ block: true, size: "large" })} href="/collector">
+        <Button
+          block
+          onClick={async () => {
+            await setConsent.mutateAsync(optional);
+            router.push("/collector");
+          }}
+          size="large"
+        >
           {translate("accept")}
-        </Link>
-        <Link
-          className={cn(
-            buttonVariants({ variant: "secondary", block: true, size: "large" }),
-            "bg-neutral-subtle text-muted-foreground",
-          )}
-          href="/collector"
+        </Button>
+        <Button
+          block
+          className={cn("bg-neutral-subtle text-muted-foreground")}
+          onClick={async () => {
+            await setConsent.mutateAsync(false);
+            router.push("/collector");
+          }}
+          size="large"
+          variant="secondary"
         >
           {translate("decline")}
-        </Link>
+        </Button>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
-import { ItemPlaceholder, itemMetadata } from "@/components/layout/section-placeholder";
+import { SystemReports } from "@/features/management/system-reports";
+import { createPageMetadata } from "@/i18n/metadata";
 
-export const generateMetadata = () => itemMetadata("management-reports");
+export const generateMetadata = () => createPageMetadata("reportsTitle");
 
 export default function Page() {
-  return <ItemPlaceholder itemId="management-reports" />;
+  return <SystemReports />;
 }

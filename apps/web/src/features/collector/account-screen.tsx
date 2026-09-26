@@ -1,24 +1,32 @@
+"use client";
+
 import { UserRoleSchema } from "@scraptrace/contracts";
 import { useLocale, useTranslations } from "next-intl";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Switch } from "@/components/ui/choice-controls";
 import { DefinitionList, DefinitionRow, PageHeading, SectionLabel } from "@/components/ui/content";
-import { Link } from "@/i18n/navigation";
+import { useToast } from "@/components/ui/toast";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useConsent, useProgrammeMutation, useSession } from "@/services/queries";
 
-const NATIVE_NAMES: Record<string, string> = {
-  en: "English",
-  fr: "Français",
-  ar: "العربية",
-  pt: "Português",
-};
-
-/** Figma: account-privacy. */
+/** Figma: account-privacy. The training-reuse choice and the sign-out are both real here. */
 export function AccountScreen() {
   const translate = useTranslations("screens.account");
   const translatePages = useTranslations("pages");
   const translateRoles = useTranslations("roles");
+  const translateLanguages = useTranslations("languages");
   const locale = useLocale();
+  const router = useRouter();
+  const { show } = useToast();
+  const { data: session } = useSession();
+  const { data: consent } = useConsent();
+
+  const setConsent = useProgrammeMutation((services, value: boolean) =>
+    services.consent.set(value),
+  );
+  const signOut = useProgrammeMutation((services) => services.authentication.signOut());
+
   return (
     <div className="max-w-2xl space-y-5">
       <PageHeading visuallyHiddenBelowDesktop>{translatePages("profileTitle")}</PageHeading>
@@ -30,9 +38,11 @@ export function AccountScreen() {
         <div className="bg-surface rounded-md border px-4 py-2">
           <DefinitionList>
             <DefinitionRow term={translate("accountRole")} tone="success">
-              {translateRoles(UserRoleSchema.enum.collector)}
+              {translateRoles(session?.role ?? UserRoleSchema.enum.collector)}
             </DefinitionRow>
-            <DefinitionRow term={translate("nodeId")}>ST-CN-88029</DefinitionRow>
+            <DefinitionRow term={translate("nodeId")}>
+              {session ? `ST-CN-${session.actorId.slice(-5).toUpperCase()}` : "—"}
+            </DefinitionRow>
           </DefinitionList>
         </div>
       </section>
@@ -44,9 +54,7 @@ export function AccountScreen() {
         <div className="bg-surface rounded-md border px-4 py-2">
           <DefinitionList>
             <DefinitionRow term={translate("preferredLanguage")} tone="success">
-              <span lang={locale}>
-                {NATIVE_NAMES[locale]} ({locale.toUpperCase()})
-              </span>
+              {translateLanguages(locale)}
             </DefinitionRow>
           </DefinitionList>
         </div>
@@ -57,8 +65,16 @@ export function AccountScreen() {
           <span id="privacy">{translate("privacyControls")}</span>
         </SectionLabel>
         <div className="bg-surface rounded-md border px-4">
-          <Switch label={translate("training")} />
+          <Switch
+            checked={consent?.trainingReuse ?? false}
+            label={translate("training")}
+            onChange={async (event) => {
+              await setConsent.mutateAsync(event.target.checked);
+              show({ title: translate("trainingSaved"), tone: "success" });
+            }}
+          />
         </div>
+        <p className="text-muted-foreground text-xs leading-5">{translate("trainingHint")}</p>
       </section>
 
       <section aria-labelledby="local-data" className="space-y-2">
@@ -74,12 +90,18 @@ export function AccountScreen() {
         <p className="text-muted-foreground text-xs leading-5">{translate("clearHint")}</p>
       </section>
 
-      <Link
-        className={buttonVariants({ variant: "secondary", block: true, size: "large" })}
-        href="/sign-in"
+      <Button
+        block
+        loading={signOut.isPending}
+        onClick={async () => {
+          await signOut.mutateAsync(undefined);
+          router.push("/sign-in");
+        }}
+        size="large"
+        variant="secondary"
       >
         {translate("signOut")}
-      </Link>
+      </Button>
     </div>
   );
 }

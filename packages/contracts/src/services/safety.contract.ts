@@ -52,3 +52,6 @@ export const SafetyGuidanceResponseSchema = z.discriminatedUnion("outcome", [
   ApprovedSafetyGuidanceSchema,
   SafetyFallbackSchema,
 ]);
+
+export type SafetyQuestionAnswers = z.infer<typeof SafetyQuestionAnswersSchema>;
+export type SafetyGuidanceResponse = z.infer<typeof SafetyGuidanceResponseSchema>;

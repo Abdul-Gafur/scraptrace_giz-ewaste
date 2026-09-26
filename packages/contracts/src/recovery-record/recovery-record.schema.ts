@@ -219,6 +219,13 @@ export const RecoveryRecordSchema = RecoveryRecordBaseSchema.superRefine((value,
   });
 
 export type EwasteCategory = z.infer<typeof EwasteCategorySchema>;
+export type RecordKind = z.infer<typeof RecordKindSchema>;
+export type ItemCondition = z.infer<typeof ItemConditionSchema>;
+export type PriceEstimate = z.infer<typeof PriceEstimateSchema>;
+export type CategoryConfirmation = z.infer<typeof CategoryConfirmationSchema>;
+export type SafetyGuideReference = z.infer<typeof SafetyGuideReferenceSchema>;
+export type HandoffInformation = z.infer<typeof HandoffInformationSchema>;
+export type ProcessingInformation = z.infer<typeof ProcessingInformationSchema>;
 export type VisionResult = z.infer<typeof VisionResultSchema>;
 export type RecoveryRecordIntegrityPayload = z.infer<typeof RecoveryRecordIntegrityPayloadSchema>;
 export type RecoveryRecord = z.infer<typeof RecoveryRecordSchema>;

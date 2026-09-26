@@ -1,14 +1,15 @@
 "use client";
 
-import { UserRoleSchema, type UserRole } from "@scraptrace/contracts";
+import { UserRoleSchema, type SupportedLanguage, type UserRole } from "@scraptrace/contracts";
 import { ChevronRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
 import { ROLE_WORKSPACES } from "@/navigation/navigation-config";
+import { useProgrammeMutation } from "@/services/queries";
 
 /**
  * Figma: role-sign-in. Development preview only: choosing a role and entering opens that
@@ -19,6 +20,11 @@ export function RolePreview() {
   const translateDescriptions = useTranslations("roleDescriptions");
   const translate = useTranslations("screens.signIn");
   const [selected, setSelected] = useState<UserRole>(UserRoleSchema.enum.collector);
+  const locale = useLocale() as SupportedLanguage;
+  const router = useRouter();
+  const signIn = useProgrammeMutation((services, role: UserRole) =>
+    services.authentication.signIn(role, locale),
+  );
   return (
     <div className="space-y-3">
       <fieldset className="space-y-2">
@@ -61,12 +67,17 @@ export function RolePreview() {
           );
         })}
       </fieldset>
-      <Link
-        className={buttonVariants({ block: true, size: "large" })}
-        href={ROLE_WORKSPACES[selected].home}
+      <Button
+        block
+        loading={signIn.isPending}
+        onClick={async () => {
+          await signIn.mutateAsync(selected);
+          router.push(ROLE_WORKSPACES[selected].home);
+        }}
+        size="large"
       >
         {translate("enter")}
-      </Link>
+      </Button>
     </div>
   );
 }

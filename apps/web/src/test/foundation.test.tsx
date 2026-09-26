@@ -15,7 +15,7 @@ import fr from "../../messages/fr.json";
 import pt from "../../messages/pt.json";
 import { canEnterRoute } from "@/auth/route-policy";
 import { StatusPanel } from "@/components/feedback/status-panel";
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { PageHeading } from "@/components/ui/content";
 import { DemoAccessForm } from "@/features/authentication/demo-access-form";
 import { createMockServices } from "@/services/mocks/mock-services";
 import { FIXTURE_IDS } from "@/services/mocks/deterministic-fixtures";
@@ -29,8 +29,9 @@ const keys = (value: unknown, prefix = ""): string[] => {
 
 describe("frontend foundation", () => {
   it("renders the application page foundation", () => {
-    render(<PlaceholderPage title="Collector home" description="Foundation description" />);
+    render(<PageHeading description="Foundation description">Collector home</PageHeading>);
     expect(screen.getByRole("heading", { name: "Collector home" })).toBeInTheDocument();
+    expect(screen.getByText("Foundation description")).toBeInTheDocument();
   });
 
   it("loads all locale bundles with the same required keys", () => {

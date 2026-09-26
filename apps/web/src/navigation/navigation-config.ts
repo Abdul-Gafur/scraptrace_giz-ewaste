@@ -62,8 +62,6 @@ export interface NavItem {
   readonly mobile: boolean;
   /** Shown in the desktop sidebar. */
   readonly desktop: boolean;
-  /** True when a dedicated page file exists; otherwise the section placeholder route renders it. */
-  readonly dedicatedPage: boolean;
 }
 
 export interface RoleWorkspace {
@@ -116,13 +114,12 @@ export const ROLE_WORKSPACES = {
 } as const satisfies Record<UserRole, RoleWorkspace>;
 
 const item = (
-  definition: Omit<NavItem, "match" | "mobile" | "desktop" | "dedicatedPage"> &
-    Partial<Pick<NavItem, "match" | "mobile" | "desktop" | "dedicatedPage">>,
+  definition: Omit<NavItem, "match" | "mobile" | "desktop"> &
+    Partial<Pick<NavItem, "match" | "mobile" | "desktop">>,
 ): NavItem => ({
   match: "exact",
   mobile: true,
   desktop: true,
-  dedicatedPage: false,
   ...definition,
 });
 
@@ -142,7 +139,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "home",
     roles: collector,
     permission: permission["recovery_record:create"],
-    dedicatedPage: true,
   }),
   item({
     id: "collector-capture",
@@ -151,7 +147,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "camera",
     roles: collector,
     permission: permission["recovery_record:create"],
-    dedicatedPage: true,
   }),
   item({
     id: "collector-records",
@@ -160,7 +155,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "records",
     roles: collector,
     permission: permission["recovery_record:create"],
-    dedicatedPage: true,
   }),
   item({
     id: "collector-locations",
@@ -169,7 +163,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "location",
     roles: collector,
     permission: permission["recovery_record:create"],
-    dedicatedPage: true,
   }),
   item({
     id: "collector-profile",
@@ -179,7 +172,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     roles: collector,
     permission: permission["recovery_record:create"],
     match: "prefix",
-    dedicatedPage: true,
   }),
 
   // Recycler: Intake, Received, Processing, Account (Figma mobile-recycler-en)
@@ -191,7 +183,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     roles: recycler,
     permission: permission["recovery_record:view_operational"],
     alsoActiveFor: ["/recycler"],
-    dedicatedPage: true,
   }),
   item({
     id: "recycler-received",
@@ -200,7 +191,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "received",
     roles: recycler,
     permission: permission["recovery_record:view_operational"],
-    dedicatedPage: true,
   }),
   item({
     id: "recycler-processing",
@@ -228,7 +218,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     roles: reviewer,
     permission: permission["review:evidence"],
     alsoActiveFor: ["/review"],
-    dedicatedPage: true,
   }),
   item({
     id: "review-assigned",
@@ -263,7 +252,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "overview",
     roles: manager,
     permission: permission["programme_report:view"],
-    dedicatedPage: true,
   }),
   item({
     id: "management-ledger",
@@ -297,7 +285,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "reports",
     roles: manager,
     permission: permission["programme_report:view"],
-    dedicatedPage: true,
   }),
   item({
     id: "management-settings",
@@ -316,7 +303,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "safety",
     roles: safety,
     permission: permission["safety_content:manage"],
-    dedicatedPage: true,
   }),
   item({
     id: "safety-translations",
@@ -351,7 +337,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "correction",
     roles: ml,
     permission: permission["model_correction:review"],
-    dedicatedPage: true,
   }),
   item({
     id: "ml-labels",
@@ -413,9 +398,4 @@ export function findActiveNavItem(
   return items
     .filter((candidate) => isNavItemActive(candidate, pathname))
     .sort((first, second) => second.href.length - first.href.length)[0];
-}
-
-/** Placeholder section routes for a role: items without a dedicated page file. */
-export function getSectionItems(userRole: UserRole): readonly NavItem[] {
-  return getNavigationForRole(userRole).filter((candidate) => !candidate.dedicatedPage);
 }

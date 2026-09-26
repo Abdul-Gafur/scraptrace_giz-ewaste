@@ -48,3 +48,6 @@ export const VisionAppraisalResponseSchema = z.discriminatedUnion("outcome", [
 ]);
 
 export const VisionHumanCorrectionSchema = CategoryConfirmationSchema;
+
+export type VisionAppraisalRequest = z.infer<typeof VisionAppraisalRequestSchema>;
+export type VisionAppraisalResponse = z.infer<typeof VisionAppraisalResponseSchema>;

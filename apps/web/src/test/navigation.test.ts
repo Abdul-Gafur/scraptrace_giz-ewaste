@@ -4,7 +4,7 @@ import {
   UserRoleSchema,
   type UserRole,
 } from "@scraptrace/contracts";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -12,14 +12,21 @@ import {
   ROLE_WORKSPACES,
   findActiveNavItem,
   getNavigationForRole,
-  getSectionItems,
   isNavItemActive,
 } from "@/navigation/navigation-config";
+import { ROUTE_PAGE_TITLES, getPageTitleKey } from "@/navigation/page-titles";
 
 import en from "../../messages/en.json";
 import { bundles } from "./render";
 
 const roles = UserRoleSchema.options;
+
+const walk = (directory: string): string[] =>
+  readdirSync(directory).flatMap((name) => {
+    const full = path.join(directory, name);
+    return statSync(full).isDirectory() ? walk(full) : [full];
+  });
+
 const ids = (role: UserRole, surface?: "mobile" | "desktop") =>
   getNavigationForRole(role, surface).map((item) => item.id);
 
@@ -83,12 +90,42 @@ describe("navigation configuration", () => {
     expect(home && isNavItemActive(home, "/collector/")).toBe(true);
   });
 
-  it("lists placeholder sections only for items without a dedicated page", () => {
-    expect(getSectionItems("programme_reviewer").map((item) => item.href)).toEqual([
-      "/review/assigned",
-      "/review/decisions",
-      "/review/history",
-    ]);
+  it("gives every navigation destination a page file under its route group", () => {
+    const routes = path.resolve(import.meta.dirname, "../app/[locale]/(platform)");
+    for (const item of NAVIGATION_ITEMS) {
+      const file = path.join(routes, item.href.replace(/^\//, ""), "page.tsx");
+      expect({ href: item.href, exists: existsSync(file) }).toEqual({
+        href: item.href,
+        exists: true,
+      });
+    }
+  });
+
+  it("titles every workspace route the way its page metadata does", () => {
+    const platform = path.resolve(import.meta.dirname, "../app/[locale]/(platform)");
+    const routeOf = (file: string) =>
+      `/${path.relative(platform, path.dirname(file)).split(path.sep).join("/")}`;
+
+    const pages = walk(platform).filter((file) => file.endsWith("page.tsx"));
+    expect(pages.length).toBeGreaterThan(0);
+
+    for (const file of pages) {
+      const route = routeOf(file);
+      const key = getPageTitleKey(route);
+      // The mobile header shows the page title, so every workspace route must declare one.
+      expect({ route, declared: key !== undefined }).toEqual({ route, declared: true });
+      // …and it must be the key the route's own metadata uses.
+      const metadata = /createPageMetadata\("([^"]+)"\)/.exec(readFileSync(file, "utf8"));
+      expect({ route, key: metadata?.[1] }).toEqual({ route, key });
+    }
+  });
+
+  it("points every declared page title at a real message key", () => {
+    for (const bundle of Object.values(bundles)) {
+      for (const key of Object.values(ROUTE_PAGE_TITLES)) {
+        expect(bundle.pages).toHaveProperty(key);
+      }
+    }
   });
 
   it("has a translation for every navigation label in all four languages", () => {
@@ -107,11 +144,6 @@ describe("navigation configuration", () => {
 
 describe("contract role usage", () => {
   const source = path.resolve(import.meta.dirname, "..");
-  const walk = (directory: string): string[] =>
-    readdirSync(directory).flatMap((name) => {
-      const full = path.join(directory, name);
-      return statSync(full).isDirectory() ? walk(full) : [full];
-    });
 
   it("does not redeclare role identifiers outside packages/contracts", () => {
     const literal = new RegExp(`["'](${roles.join("|")})["']`);

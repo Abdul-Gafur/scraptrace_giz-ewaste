@@ -84,11 +84,45 @@ export const createMockServices = ({
           developmentOnly: true,
         };
       },
+      async signIn(signedInRole) {
+        await wait();
+        return {
+          actorId: FIXTURE_IDS.actor,
+          role: signedInRole,
+          preferredLanguage: "en",
+          displayLabel: "Development user",
+          developmentOnly: true,
+        };
+      },
       async signOut() {
         await wait();
       },
     },
     recoveryRecords: {
+      async list() {
+        await wait();
+        if (failure === "recovery-records") fail(failure);
+        return [createRecoveryRecordFixture()];
+      },
+      async lookup(code) {
+        await wait();
+        const record = createRecoveryRecordFixture();
+        return record.human_reference === code ? record : null;
+      },
+      async create() {
+        await wait();
+        if (failure === "recovery-records") fail(failure);
+        return createRecoveryRecordFixture();
+      },
+      async submit() {
+        await wait();
+        if (failure === "recovery-records") fail(failure);
+        return createRecoveryRecordFixture();
+      },
+      async events() {
+        await wait();
+        return [];
+      },
       async listOwn() {
         await wait();
         if (failure === "recovery-records") fail(failure);
@@ -104,6 +138,189 @@ export const createMockServices = ({
         await wait();
         if (failure === "recovery-records") fail(failure);
         return RecoveryRecordSchema.parse(record);
+      },
+    },
+    evidence: {
+      async store() {
+        await wait();
+        return FIXTURE_IDS.evidence;
+      },
+      async read() {
+        await wait();
+        return null;
+      },
+    },
+    prices: {
+      async estimate(input) {
+        await wait();
+        return {
+          category: input.category,
+          condition: input.condition,
+          minimum_amount: 1,
+          maximum_amount: 2,
+          currency: "USD",
+          basis: "Demonstration reference rate.",
+          source: "ScrapTrace demonstration reference rates",
+          effective_date: FIXTURE_TIMESTAMP.slice(0, 10),
+          disclaimer: "Indicative range for planning only. It is not an offer.",
+          ...(input.category === "mixed_scrap"
+            ? { approximate_weight: { value: input.approximateWeightKg ?? 1, unit: "kg" as const } }
+            : {}),
+        };
+      },
+    },
+    safetyContent: {
+      async listCards() {
+        await wait();
+        return [];
+      },
+      async createCard(input) {
+        await wait();
+        return {
+          id: FIXTURE_IDS.card,
+          title: input.title,
+          category: input.category,
+          version: "0.1.0",
+          status: "inReview",
+          author: input.author,
+          languages: {},
+        };
+      },
+      async approve(cardId, approver) {
+        await wait();
+        return {
+          id: cardId,
+          category: "televisions",
+          version: "1.0.0",
+          status: "approved",
+          author: "SC-01",
+          approvedBy: approver,
+          languages: {},
+        };
+      },
+      async requestChanges(cardId) {
+        await wait();
+        return {
+          id: cardId,
+          category: "televisions",
+          version: "1.0.0",
+          status: "draft",
+          author: "SC-01",
+          languages: {},
+        };
+      },
+      async requestTranslationReview(cardId, requestedLanguage) {
+        await wait();
+        return {
+          id: cardId,
+          category: "televisions",
+          version: "1.0.0",
+          status: "approved",
+          author: "SC-01",
+          languages: { [requestedLanguage]: "inReview" },
+        };
+      },
+    },
+    modelLabels: {
+      async list() {
+        await wait();
+        return [];
+      },
+      async commit(input) {
+        await wait();
+        return {
+          id: FIXTURE_IDS.evidence,
+          category: input.category,
+          reviewer: input.reviewer,
+          approvedOn: FIXTURE_TIMESTAMP.slice(0, 10),
+          corrected: input.corrected,
+        };
+      },
+    },
+    dataExports: {
+      async list() {
+        await wait();
+        return [];
+      },
+      async request(scopeKey) {
+        await wait();
+        return {
+          id: "EX-0001",
+          scopeKey,
+          status: "ready",
+          requestedOn: FIXTURE_TIMESTAMP.slice(0, 10),
+          rows: 0,
+        };
+      },
+      async build() {
+        await wait();
+        return "";
+      },
+    },
+    settings: {
+      async getProgramme() {
+        await wait();
+        return {
+          defaultLanguage: "en",
+          retentionDays: 30,
+          weightUnit: "kg",
+          reviewAlerts: true,
+          weeklyDigest: false,
+        };
+      },
+      async saveProgramme(values) {
+        await wait();
+        return values;
+      },
+      async getFacility() {
+        await wait();
+        return { intakeAlerts: false, weeklySummary: false };
+      },
+      async saveFacility(values) {
+        await wait();
+        return values;
+      },
+    },
+    consent: {
+      async get() {
+        await wait();
+        return { trainingReuse: false };
+      },
+      async set(trainingReuse) {
+        await wait();
+        return { trainingReuse, decidedAt: FIXTURE_TIMESTAMP };
+      },
+    },
+    device: {
+      async summary() {
+        await wait();
+        return {
+          recordCount: 1,
+          draftCount: 1,
+          queuedMutationCount: 0,
+          photographCount: 0,
+          storedBytes: 0,
+        };
+      },
+      async clearLocalData() {
+        await wait();
+        return {
+          recordCount: 0,
+          draftCount: 0,
+          queuedMutationCount: 0,
+          photographCount: 0,
+          storedBytes: 0,
+        };
+      },
+    },
+    outbox: {
+      async pending() {
+        await wait();
+        return [];
+      },
+      async flush() {
+        await wait();
+        return { accepted: 0, remaining: 0 };
       },
     },
     vision: {

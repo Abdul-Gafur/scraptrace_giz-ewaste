@@ -41,3 +41,8 @@ export const LocationSearchResponseSchema = z.discriminatedUnion("outcome", [
   z.strictObject({ outcome: z.literal("offline_data_unavailable"), message: z.string().min(1).max(500) }),
 ]);
 
+
+export type FacilityType = z.infer<typeof FacilityTypeSchema>;
+export type FacilityVerificationStatus = z.infer<typeof FacilityVerificationStatusSchema>;
+export type ParticipatingLocation = z.infer<typeof ParticipatingLocationSchema>;
+export type LocationSearchResponse = z.infer<typeof LocationSearchResponseSchema>;

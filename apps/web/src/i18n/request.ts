@@ -9,6 +9,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
+    // Dates are programme facts, not viewer-local moments: a fixed zone keeps the server and
+    // the browser rendering the same day, so hydration never disagrees.
+    timeZone: "UTC",
     messages: (await import(`../../messages/${locale}.json`)).default,
     onError(error) {
       if (process.env.NODE_ENV !== "production") {

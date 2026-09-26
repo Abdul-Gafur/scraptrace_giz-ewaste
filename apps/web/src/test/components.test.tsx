@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { STATUS_KEYS, StatusBadge } from "@/components/ui/status-badge";
+import { ToneBadge } from "@/components/ui/tone-badge";
 import { Tooltip } from "@/components/ui/tooltip";
 
 import { bundles, renderWithIntl } from "./render";
@@ -214,6 +215,11 @@ describe("shared components", () => {
     expect(onPageChange).toHaveBeenCalledWith(2);
   });
 
+  it("tone badges carry their meaning as text, not colour alone", () => {
+    renderWithIntl(<ToneBadge tone="warning">{bundles.en.screens.workflow.inReview}</ToneBadge>);
+    expect(screen.getByText(bundles.en.screens.workflow.inReview)).toBeInTheDocument();
+  });
+
   it("renders shared states in Arabic", () => {
     renderWithIntl(<EmptyState />, "ar");
     expect(screen.getByRole("heading", { name: bundles.ar.states.emptyTitle })).toBeInTheDocument();
@@ -229,6 +235,7 @@ describe("shared components", () => {
         <Checkbox label="Safe" />
         <Switch label="Toggle" />
         <StatusBadge status="action_required" />
+        <ToneBadge tone="neutral">Not verified</ToneBadge>
         <Alert title="Warning" tone="warning">
           Details
         </Alert>

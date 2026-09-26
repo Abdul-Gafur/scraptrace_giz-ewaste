@@ -7,7 +7,8 @@ import { useState } from "react";
 
 import { Drawer } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
+import { getPageTitleKey } from "@/navigation/page-titles";
 
 import { BrandMark } from "./brand-mark";
 import { LanguageSwitcher } from "./language-switcher";
@@ -19,13 +20,22 @@ interface MobileHeaderProps {
   fallbackTitle: string;
 }
 
-/** Collector and operational header below 1024px: menu, page title and language control. */
+/**
+ * Collector and operational header below 1024px: menu, page title and language control.
+ *
+ * The frames title this header with the page, not the navigation entry ("Confirm Cleared Cache"
+ * while Account is the active tab), so the route's own title wins; the navigation label and then
+ * the workspace name are fallbacks for a route that declares no title.
+ */
 export function MobileHeader({ items, role, fallbackTitle }: MobileHeaderProps) {
   const translate = useTranslations("common");
+  const translatePages = useTranslations("pages");
   const translateShell = useTranslations("shell");
   const translateRoles = useTranslations("roles");
   const [menuOpen, setMenuOpen] = useState(false);
-  const title = useActiveLabel(items) ?? fallbackTitle;
+  const navigationLabel = useActiveLabel(items);
+  const pageTitleKey = getPageTitleKey(usePathname());
+  const title = pageTitleKey ? translatePages(pageTitleKey) : (navigationLabel ?? fallbackTitle);
   return (
     <header className="bg-surface sticky top-0 z-30 border-b lg:hidden">
       <div className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 px-2">

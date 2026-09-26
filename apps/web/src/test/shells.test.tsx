@@ -149,6 +149,8 @@ describe("operational and administration shells", () => {
     expect(hrefs.every((href) => href?.startsWith("/review"))).toBe(true);
   });
 
+  // Six shells, each mounted with its providers and then scanned by axe: slower than the
+  // default per-test budget allows.
   it("previews every role through the shared frame without accessibility violations", async () => {
     for (const userRole of UserRoleSchema.options) {
       navigationState.pathname = ROLE_WORKSPACES[userRole].home;
@@ -169,7 +171,7 @@ describe("operational and administration shells", () => {
       expect(results).toHaveNoViolations();
       unmount();
     }
-  });
+  }, 30_000);
 });
 
 describe("public and authentication shells", () => {

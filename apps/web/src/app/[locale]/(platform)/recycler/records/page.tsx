@@ -1,7 +1,8 @@
-import { ItemPlaceholder, itemMetadata } from "@/components/layout/section-placeholder";
+import { ReceivedScreen } from "@/features/recycler/received-screen";
+import { createPageMetadata } from "@/i18n/metadata";
 
-export const generateMetadata = () => itemMetadata("recycler-received");
+export const generateMetadata = () => createPageMetadata("receivedTitle");
 
 export default function Page() {
-  return <ItemPlaceholder itemId="recycler-received" />;
+  return <ReceivedScreen />;
 }

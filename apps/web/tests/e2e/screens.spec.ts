@@ -10,64 +10,99 @@ const expectClean = async (page: Page) => {
   expect(results.violations).toEqual([]);
 };
 
+/** A minimal valid PNG, so the capture screen's downscaling and preview run for real. */
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const clearProgrammeState = async (page: Page) => {
+  await page.goto("/en");
+  await page.evaluate(() => {
+    window.localStorage.clear();
+    indexedDB.deleteDatabase("scraptrace-evidence");
+  });
+};
+
 test.describe("collector screens", () => {
-  test("home shows the capture card, draft and recent records with status badges", async ({
-    page,
-  }) => {
+  test.beforeEach(async ({ page }) => clearProgrammeState(page));
+
+  test("home lists the records this device holds", async ({ page }) => {
     await page.goto("/en/collector");
     await expect(page.getByRole("heading", { name: "Register Recovered E-Waste" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Capture New Recovery" })).toHaveAttribute(
       "href",
       "/en/collector/capture",
     );
-    await expect(page.getByText("Resume (80%)")).toBeVisible();
-    await expect(page.getByText("Recent local records (3)")).toBeVisible();
-    await expect(page.getByText("Pending Sync")).toBeVisible();
-    await expect(page.getByText("Action Required")).toBeVisible();
-    await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+    await expect(page.getByText("ST-0941TVGH")).toBeVisible();
+    await expect(page.getByText("Approved").first()).toBeVisible();
     await expectClean(page);
   });
 
-  test("records lists the sample records with a critical safety panel", async ({ page }) => {
+  test("records shows the synchronization summary and opens one record", async ({ page }) => {
     await page.goto("/en/collector/records");
     await expect(page.getByRole("heading", { level: 1, name: "Collected E-Waste" })).toBeVisible();
-    await expect(page.getByText("Lead-Acid Battery (Industrial)")).toBeVisible();
-    await expect(page.getByText("Pending Sync: 3 Records")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "CRITICAL SAFETY" })).toBeVisible();
+    await expect(page.getByText("Pending Sync: 0 Records")).toBeVisible();
+    await page.getByRole("link", { name: "Televisions" }).first().click();
+    await expect(page.getByRole("heading", { level: 1, name: "Recovery Record" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Transfer code" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy transfer code" })).toBeVisible();
     await expectClean(page);
   });
 
-  test("capture form validates the required serial field and announces the error", async ({
-    page,
-  }) => {
+  test("capture requires a photograph, then creates a real record", async ({ page }) => {
     await page.goto("/en/collector/capture");
+    // The form is interactive only once React has hydrated; before that a click submits natively.
+    await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Register New Material" }).click();
+    await expect(page.getByText("This record is not complete yet")).toBeVisible();
     await expect(
-      page.getByRole("alert").filter({ hasText: "Enter a serial number or brand name." }),
+      page.getByText("A photograph is required before a record can be created.").first(),
     ).toBeVisible();
-    await expect(page.getByLabel("E-Waste Serial / Brand Name")).toHaveAttribute(
-      "aria-invalid",
-      "true",
-    );
-    await page.getByLabel("E-Waste Serial / Brand Name").fill("Model X");
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "item.png",
+      mimeType: "image/png",
+      buffer: TINY_PNG,
+    });
+    await expect(page.getByRole("img", { name: "The photograph you captured" })).toBeVisible();
+
+    await page.getByLabel("Device Sub-Category").selectOption("televisions");
+    await expect(page.getByRole("heading", { name: "Approved safety guidance" })).toBeVisible();
+    await expect(page.getByText("Indicative estimate").first()).toBeVisible();
+
+    // The demonstration classifier suggests a category from the photograph, so choosing a
+    // different one is a correction and the reason is required.
+    const correction = page.getByLabel("Why the suggestion was wrong");
+    if (await correction.isVisible())
+      await correction.fill("Screen is a television, not the suggestion.");
+
+    await page.getByLabel("Coarse area").fill("Kumasi North");
     await page.getByRole("button", { name: "Register New Material" }).click();
-    await expect(page.getByText(/Nothing is saved yet/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Record created" })).toBeVisible();
+
+    await page.goto("/en/collector/records");
+    await expect(page.getByText("Televisions").first()).toBeVisible();
     await expectClean(page);
   });
 
-  test("account settings lead to the clear-cache confirmation without deleting anything", async ({
+  test("account keeps the training choice and clearing local data removes records", async ({
     page,
   }) => {
     await page.goto("/en/collector/profile");
-    await expect(page.getByText("ST-CN-88029")).toBeVisible();
-    await expect(
-      page.getByRole("switch", { name: "Model Training Contribution" }),
-    ).not.toBeChecked();
+    await expect(page.getByText(/^ST-CN-/)).toBeVisible();
+    const training = page.getByRole("switch", { name: "Model Training Contribution" });
+    await expect(training).not.toBeChecked();
+    await training.click();
+    await expect(training).toBeChecked();
+    await page.reload();
+    await expect(page.getByRole("switch", { name: "Model Training Contribution" })).toBeChecked();
+
     await page.getByRole("link", { name: "Clear Local Records Cache" }).click();
     await expect(page).toHaveURL(/\/collector\/profile\/clear-cache$/);
     await expect(page.getByText("Destructive Action Warning")).toBeVisible();
     await page.getByRole("button", { name: "Yes, Clear All Offline Records" }).click();
-    await expect(page.getByText("Nothing was deleted.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Local data cleared" })).toBeVisible();
     await expectClean(page);
   });
 });
@@ -84,16 +119,16 @@ test.describe("onboarding", () => {
     ).toBeVisible();
   });
 
-  test("privacy consent toggles the optional choice and is accessible", async ({ page }) => {
+  test("privacy consent stores the optional choice and continues", async ({ page }) => {
     await page.goto("/en/onboarding/privacy");
     await expect(page.getByText("Unselected")).toBeVisible();
-    await page.getByRole("checkbox", { name: "Optional ML Training Reuse" }).check();
+    await page.getByRole("checkbox", { name: "Optional ML Training Reuse" }).click();
     await expect(page.getByText("Selected", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Accept Policies & Continue" })).toHaveAttribute(
-      "href",
-      "/en/collector",
-    );
     await expectClean(page);
+    await page.getByRole("button", { name: "Accept Policies & Continue" }).click();
+    await expect(page).toHaveURL(/\/en\/collector$/);
+    await page.goto("/en/collector/profile");
+    await expect(page.getByRole("switch", { name: "Model Training Contribution" })).toBeChecked();
   });
 });
 

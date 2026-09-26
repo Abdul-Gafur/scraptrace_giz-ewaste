@@ -1,20 +1,29 @@
+"use client";
+
 import { Camera } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { EmptyState } from "@/components/feedback/states";
 import { buttonVariants } from "@/components/ui/button";
-import { ListItem, PageHeading, SectionLabel } from "@/components/ui/content";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { PageHeading, SectionLabel } from "@/components/ui/content";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { useNumber } from "@/i18n/use-number";
+import { useOwnRecords } from "@/services/queries";
 
-import { SAMPLE_RECORDS } from "../samples";
+import { RecordListItem } from "../records/record-display";
+import { OutboxPanel } from "./outbox-panel";
 
-/** Figma: collector-home. */
+/** Figma: collector-home, over the records this device actually holds. */
 export function CollectorHome() {
   const translate = useTranslations("screens.collectorHome");
   const translatePages = useTranslations("pages");
-  const translateSamples = useTranslations("samples");
   const number = useNumber();
+  const { data: records, isPending } = useOwnRecords();
+
+  const drafts = records?.filter((record) => record.business_state === "draft") ?? [];
+  const recent = records?.slice(0, 5) ?? [];
+
   return (
     <div className="max-w-2xl space-y-6">
       <PageHeading visuallyHiddenBelowDesktop>{translatePages("collectorTitle")}</PageHeading>
@@ -39,29 +48,30 @@ export function CollectorHome() {
         </Link>
       </section>
 
-      <section aria-labelledby="drafts-heading" className="space-y-2">
-        <SectionLabel>
-          <span id="drafts-heading">{translate("draftsHeading")}</span>
-        </SectionLabel>
-        <Link
-          className="min-h-touch bg-surface hover:bg-surface-subtle flex items-center justify-between gap-3 rounded-md border px-4"
-          href="/collector/capture"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <span aria-hidden="true" className="bg-secondary size-2 shrink-0 rounded-full" />
-            <span className="text-sm font-bold">{translate("draftName")}</span>
-          </span>
-          <span className="text-primary shrink-0 text-xs font-bold">
-            {translate("resume", { percent: number(80) })}
-          </span>
-        </Link>
-      </section>
+      <OutboxPanel />
+
+      {drafts.length > 0 ? (
+        <section aria-labelledby="drafts-heading" className="space-y-2">
+          <SectionLabel>
+            <span id="drafts-heading">{translate("draftsHeading")}</span>
+          </SectionLabel>
+          <ul className="space-y-2">
+            {drafts.map((record) => (
+              <RecordListItem
+                href={`/collector/records/${record.record_id}`}
+                key={record.record_id}
+                record={record}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="recent-heading" className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <SectionLabel>
             <span id="recent-heading">
-              {translate("recentHeading", { count: number(SAMPLE_RECORDS.length) })}
+              {translate("recentHeading", { count: number(records?.length ?? 0) })}
             </span>
           </SectionLabel>
           <Link
@@ -71,17 +81,21 @@ export function CollectorHome() {
             {translate("nearbyLink")}
           </Link>
         </div>
-        <ul className="space-y-2">
-          {SAMPLE_RECORDS.map((record) => (
-            <ListItem
-              key={record.id}
-              status={<StatusBadge status={record.status} />}
-              subtitle={record.id}
-              title={translateSamples(`${record.key}.shortName`)}
-              value={translateSamples(`${record.key}.massShort`)}
-            />
-          ))}
-        </ul>
+        {isPending ? (
+          <Skeleton className="h-24 w-full" />
+        ) : recent.length > 0 ? (
+          <ul className="space-y-2">
+            {recent.map((record) => (
+              <RecordListItem
+                href={`/collector/records/${record.record_id}`}
+                key={record.record_id}
+                record={record}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyState />
+        )}
       </section>
 
       <p className="bg-surface text-muted-foreground rounded-md border p-3 text-xs leading-5">

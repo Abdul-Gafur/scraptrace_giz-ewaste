@@ -3,20 +3,28 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 import { createHttpServices } from "./http/http-services";
-import { createMockServices } from "./mocks/mock-services";
+import { createLocalServices } from "./local/local-services";
 import type { FrontendServices } from "./ports/service-ports";
 
 const ServiceContext = createContext<FrontendServices | null>(null);
 
 interface ServiceProviderProps {
   children: ReactNode;
-  mode: "mock" | "http";
+  mode?: "mock" | "http";
+  /** Supplied directly by tests, which need a deterministic, failure-injectable set. */
+  services?: FrontendServices;
 }
 
-export function ServiceProvider({ children, mode }: ServiceProviderProps) {
+export function ServiceProvider({
+  children,
+  mode = "mock",
+  services: provided,
+}: ServiceProviderProps) {
+  // "mock" is the in-browser programme implementation: every port is real, but nothing leaves
+  // the device. "http" is the seam a backend will fill.
   const services = useMemo(
-    () => (mode === "mock" ? createMockServices() : createHttpServices()),
-    [mode],
+    () => provided ?? (mode === "mock" ? createLocalServices() : createHttpServices()),
+    [mode, provided],
   );
   return <ServiceContext.Provider value={services}>{children}</ServiceContext.Provider>;
 }

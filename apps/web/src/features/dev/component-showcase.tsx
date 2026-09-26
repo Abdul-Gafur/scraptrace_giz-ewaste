@@ -5,7 +5,7 @@
  * (English and Arabic) and is excluded from production by the route that renders it.
  */
 
-import { NextIntlClientProvider } from "next-intl";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import ar from "../../../messages/ar.json";
@@ -46,8 +46,10 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { STATUS_KEYS, StatusBadge } from "@/components/ui/status-badge";
+import { ToneBadge } from "@/components/ui/tone-badge";
 import { useToast } from "@/components/ui/toast";
 import { Tooltip } from "@/components/ui/tooltip";
+import { SecurityStateCard } from "@/features/security/security-state-card";
 import { Trash2 } from "lucide-react";
 
 const COPY = {
@@ -117,11 +119,43 @@ const SWATCHES = [
   ["border", "bg-border"],
 ] as const;
 
+/** Tones ToneBadge carries for meanings outside the record lifecycle. */
+const TONES = ["success", "warning", "danger", "info", "neutral"] as const;
+
 const ROWS = [
   { id: "ST-0941", batch: "Lead-Acid", status: "awaiting_handoff" },
   { id: "ST-0832", batch: "CRT", status: "action_required" },
   { id: "ST-0192", batch: "Circuit boards", status: "synchronized" },
 ] as const;
+
+/** Figma SharedSecurityStatesShell shows both cards side by side; the routes show one each. */
+function SecurityStatePair() {
+  const translate = useTranslations("security");
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <SecurityStateCard
+        actionHref="/"
+        actionLabel={translate("accessDeniedAction")}
+        as="h3"
+        description={translate("accessDeniedDescription")}
+        notice={translate("accessDeniedNotice")}
+        noticeTitle={translate("accessDeniedNoticeTitle")}
+        title={translate("accessDeniedTitle")}
+        tone="danger"
+      />
+      <SecurityStateCard
+        actionHref="/sign-in"
+        actionLabel={translate("sessionExpiredAction")}
+        as="h3"
+        description={translate("sessionExpiredDescription")}
+        notice={translate("sessionExpiredNotice")}
+        noticeTitle={translate("sessionExpiredNoticeTitle")}
+        title={translate("sessionExpiredTitle")}
+        tone="warning"
+      />
+    </div>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -230,11 +264,22 @@ function ComponentSet({ copy }: { copy: Copy }) {
         <FormError title={copy.error}>{copy.hint}</FormError>
       </Section>
 
+      <Section title="Security states">
+        <SecurityStatePair />
+      </Section>
+
       <Section title="Status badges">
         <ul className="flex flex-wrap gap-2">
           {STATUS_KEYS.map((key) => (
             <li key={key}>
               <StatusBadge status={key} />
+            </li>
+          ))}
+        </ul>
+        <ul className="flex flex-wrap gap-2">
+          {TONES.map((tone) => (
+            <li key={tone}>
+              <ToneBadge tone={tone}>{tone}</ToneBadge>
             </li>
           ))}
         </ul>

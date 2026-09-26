@@ -113,10 +113,12 @@ test.describe("application shells (English)", () => {
     await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
   });
 
-  test("placeholder sections resolve and unknown sections 404", async ({ page }) => {
+  test("every sidebar destination resolves and unknown routes 404", async ({ page }) => {
     await page.goto("/en/review/history");
     await expect(page.getByRole("heading", { level: 1, name: "System History" })).toBeVisible();
-    await expect(page.getByText("review:evidence")).toBeVisible();
+    await expect(
+      page.getByText("Flagged for review").locator("visible=true").first(),
+    ).toBeVisible();
     const response = await page.goto("/en/review/does-not-exist");
     expect(response?.status()).toBe(404);
   });
@@ -125,9 +127,62 @@ test.describe("application shells (English)", () => {
     await page.goto("/en/sign-in");
     await expect(page.getByRole("radio")).toHaveCount(6);
     await expect(page.getByText("Active")).toBeVisible();
-    await page.getByRole("radio", { name: /Data and model reviewer/ }).check({ force: true });
-    await page.getByRole("link", { name: "Enter Selected Environment" }).click();
+    await page.getByRole("radio", { name: /Data \/ ML Reviewer/ }).check({ force: true });
+    await page.getByRole("button", { name: "Enter Selected Environment" }).click();
     await expect(page).toHaveURL(/\/en\/administration\/ml$/);
+  });
+
+  test("security routes use the frame's security shell", async ({ page }, testInfo) => {
+    await page.goto("/en/access-denied");
+    await expect(page.locator('[data-shell="security"]')).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "403 — Unauthorized Access" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your session has expired" })).toHaveCount(0);
+    if (testInfo.project.name === "chromium") {
+      await expect(page.getByText("System Security View")).toBeVisible();
+    }
+    await page.goto("/en/session-expired");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Your session has expired" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in again" })).toBeVisible();
+  });
+
+  test("the mobile header shows the page title, not the navigation label", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "mobile-chromium",
+      "The mobile header exists below 1024px.",
+    );
+    await page.goto("/en/collector/profile/clear-cache");
+    await expect(
+      page.getByRole("banner").getByText("Confirm Cleared Cache", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Mobile navigation" }).locator('[aria-current="page"]'),
+    ).toContainText("Account");
+    await page.goto("/en/recycler/intake");
+    await expect(
+      page.getByRole("banner").getByText("Recycler Intake", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("roles are named as the frames name them", async ({ page }) => {
+    await page.goto("/en/sign-in");
+    await expect(page.getByRole("radio", { name: /Collector Node/ })).toHaveCount(1);
+    await expect(page.getByRole("radio", { name: /Recycler Intake/ })).toHaveCount(1);
+    await expect(page.getByRole("radio", { name: /Safety-Content Admin/ })).toHaveCount(1);
+    await expect(page.getByRole("radio", { name: /Data \/ ML Reviewer/ })).toHaveCount(1);
+  });
+
+  test("the desktop header badge carries the frame's role name", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "The role badge sits in the desktop header.");
+    await page.goto("/en/management");
+    await expect(
+      page.getByRole("banner").getByText("Programme Manager", { exact: true }),
+    ).toBeVisible();
   });
 
   test("public, authentication and security routes render", async ({ page }) => {
@@ -226,12 +281,20 @@ test.describe("responsive widths", () => {
       await page.setViewportSize({ width, height: 900 });
       for (const path of [
         "/en/collector",
+        "/en/collector/locations",
         "/en/recycler",
+        "/en/recycler/records",
         "/en/review/queue",
+        "/en/review/assigned",
         "/en/management",
+        "/en/management/ledger",
+        "/en/management/settings",
         "/en/administration/safety",
+        "/en/administration/safety/translations",
         "/en/administration/ml",
+        "/en/administration/ml/model",
         "/ar/management",
+        "/ar/management/ledger",
       ]) {
         await page.goto(path);
         expect(await hasHorizontalOverflow(page), `${path} at ${width}px`).toBe(false);
