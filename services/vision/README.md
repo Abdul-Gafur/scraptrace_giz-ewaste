@@ -29,13 +29,13 @@ uv pip install -r services/vision/requirements.txt
 
 ## Dataset Workflow
 
-### 1. Download & Inspect GIZ E-Waste Dataset
+### 1. Download & Extract E-Waste Crops
 
-Downloads the official ~5,000 Ghanaian scrapyard images and checks label distributions against the contract schema:
+Extracts bounding-box crops from the GIZ COCO dataset (~1,232 samples) and formats them into `data/processed/` (compact ~23 MB):
 
 ```bash
 source .venv/bin/activate
-python services/vision/download_data.py
+python services/vision/extract_crops.py
 ```
 
 ### 2. Train Vision Classifier

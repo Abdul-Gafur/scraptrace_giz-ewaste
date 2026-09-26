@@ -24,9 +24,22 @@ from model import load_checkpoint
 MODEL_VERSION = "0.1.0"
 MODEL_NAME = "scraptrace-vision-mobilenetv3"
 
+
+def format_utc_timestamp(dt: datetime = None) -> str:
+    """Format datetime as strict UTC ISO 8601 string ending in Z, e.g. 2026-09-26T13:30:14.101Z."""
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+    # Format with 3 decimal places for milliseconds and trailing Z to satisfy UtcTimestampSchema
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:23] + "Z"
+
+
 class VisionClassifier:
     def __init__(self, checkpoint_path: Path = None):
-        self.device = torch.device("mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = torch.device(
+            "mps"
+            if torch.backends.mps.is_available()
+            else ("cuda" if torch.cuda.is_available() else "cpu")
+        )
         self.transform = get_transforms(is_train=False)
 
         if checkpoint_path is None:
@@ -34,11 +47,14 @@ class VisionClassifier:
 
         self.checkpoint_path = checkpoint_path
         if checkpoint_path.exists():
-            print(f"Loading checkpoint from: {checkpoint_path} on {self.device}")
+            sys.stderr.write(f"Loading checkpoint from: {checkpoint_path} on {self.device}\n")
             self.model = load_checkpoint(str(checkpoint_path), device=str(self.device))
         else:
-            print(f"Warning: No checkpoint found at {checkpoint_path}. Running with pre-trained backbone.")
+            sys.stderr.write(
+                f"Warning: No checkpoint found at {checkpoint_path}. Running with pre-trained backbone.\n"
+            )
             from model import build_model
+
             self.model = build_model(DEFAULT_MODEL_NAME, pretrained=True)
             self.model.to(self.device)
             self.model.eval()
@@ -47,12 +63,12 @@ class VisionClassifier:
         """
         Classifies an input image and outputs a VisionAppraisalResponse JSON structure.
         """
-        inferred_at = datetime.now(timezone.utc).isoformat()
+        inferred_at = format_utc_timestamp()
 
         if isinstance(image_input, (str, Path)):
             try:
                 img = Image.open(image_input).convert("RGB")
-            except Exception as e:
+            except Exception:
                 return {
                     "outcome": "unable_to_classify",
                     "reason": "invalid_image",
@@ -84,7 +100,7 @@ class VisionClassifier:
 
         top_idx = int(probs.argmax())
         top_category = CONTRACT_CATEGORIES[top_idx]
-        top_confidence = round(float(probs[top_idx]), 4)
+        top_confidence = scores[top_idx]["score"]
 
         if top_confidence < CONFIDENCE_THRESHOLD:
             return {
@@ -106,9 +122,10 @@ class VisionClassifier:
             "inferred_at": inferred_at,
         }
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python predict.py <path_to_image>")
+        print("Usage: python predict.py <path_to_image>", file=sys.stderr)
         sys.exit(1)
 
     classifier = VisionClassifier()
