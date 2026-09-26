@@ -4,6 +4,7 @@ This section defines governance for ScrapTrace computer vision, approved safety 
 
 - [AI system overview](ai-system-overview.md)
 - [Computer-vision design](computer-vision-design.md)
+- [ML pipeline implementation (MobileNetV3)](ml-pipeline-implementation.md)
 - [LLM safety and grounding](llm-safety-and-grounding.md)
 - [Safety-content governance](safety-content-governance.md)
 - [Model evaluation](model-evaluation.md)
