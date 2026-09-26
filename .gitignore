@@ -10,3 +10,16 @@ coverage/
 !.env.example
 playwright-report/
 test-results/
+
+# Python, ML Data and Model Artifacts
+.venv/
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+services/vision/checkpoints/
+services/vision/artifacts/

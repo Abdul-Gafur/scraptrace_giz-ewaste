@@ -21,6 +21,9 @@
     "test:e2e": "npm run test:e2e --workspace @scraptrace/web",
     "contracts:generate": "npm run schema:generate --workspace @scraptrace/contracts",
     "contracts:check": "npm run check --workspace @scraptrace/contracts",
+    "vision:download": ".venv/bin/python services/vision/download_data.py",
+    "vision:train": ".venv/bin/python services/vision/train.py",
+    "vision:predict": ".venv/bin/python services/vision/predict.py",
     "audit:production": "npm audit --omit=dev"
   },
   "devDependencies": {
