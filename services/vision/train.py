@@ -215,7 +215,7 @@ def run_training(
     print("\n" + "=" * 60)
     print("Final Test Set Evaluation (best checkpoint)")
     print("=" * 60)
-    best_cp = torch.load(CHECKPOINTS_DIR / "best_model.pth", map_location=device, weights_only=True)
+    best_cp = torch.load(CHECKPOINTS_DIR / "best_model.pth", map_location=device, weights_only=False)
     model.load_state_dict(best_cp["model_state_dict"])
 
     test_loss, test_acc, test_f1, test_preds, test_targets = evaluate(model, test_loader, criterion, device)
