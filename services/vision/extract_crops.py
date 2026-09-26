@@ -102,15 +102,21 @@ def extract_crops(coco: dict, file_to_sha: dict):
         else:
             clean_fn = raw_fn
 
-        sha256 = file_to_sha.get(clean_fn)
-        if not sha256:
-            skipped_no_cache += 1
-            continue
+        # 1. Try local cache first if available
+        blob_path = None
+        if file_to_sha:
+            sha256 = file_to_sha.get(clean_fn)
+            if sha256:
+                blob_path = resolve_blob_path(sha256)
 
-        blob_path = resolve_blob_path(sha256)
-        if not blob_path:
-            skipped_no_cache += 1
-            continue
+        # 2. Fallback: download on-demand from GIZ/e-waste-dataset-COCO-labels
+        if not blob_path or not blob_path.exists():
+            try:
+                coco_rel_path = f"COCO with Pictures/{meta['file_name']}"
+                blob_path = Path(hf_hub_download(HF_COCO_REPO, coco_rel_path, repo_type="dataset"))
+            except Exception:
+                skipped_no_cache += 1
+                continue
 
         try:
             img = Image.open(blob_path).convert("RGB")
