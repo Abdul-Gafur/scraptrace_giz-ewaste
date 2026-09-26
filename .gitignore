@@ -18,8 +18,9 @@ __pycache__/
 data/raw/
 data/processed/
 *.pt
-*.pth
-*.onnx
 *.safetensors
-services/vision/checkpoints/
-services/vision/artifacts/
+services/vision/checkpoints/*
+!services/vision/checkpoints/best_model.pth
+services/vision/artifacts/*
+!services/vision/artifacts/*.json
+
