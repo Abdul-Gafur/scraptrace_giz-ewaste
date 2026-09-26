@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "mutations": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    }
+  },
+  "required": [
+    "contract_version",
+    "mutations"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "contract_version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "client_mutation_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "record_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "device_instance_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "local_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "base_server_revision": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mutation_type": {
+          "type": "string",
+          "enum": [
+            "create_record",
+            "submit_record",
+            "attach_evidence",
+            "record_handoff",
+            "record_processing",
+            "record_review_decision",
+            "amend_record"
+          ]
+        },
+        "mutation_payload": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "created_at": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "idempotency": {
+          "type": "object",
+          "properties": {
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            "request_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "scope": {
+              "type": "object",
+              "properties": {
+                "actor_id": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "operation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "resource_id": {
+                  "$ref": "#/$defs/__schema1"
+                }
+              },
+              "required": [
+                "actor_id",
+                "operation"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "idempotency_key",
+            "request_digest",
+            "scope"
+          ],
+          "additionalProperties": false
+        },
+        "sync_state": {
+          "type": "string",
+          "enum": [
+            "offline",
+            "pending_synchronization",
+            "synchronizing",
+            "synchronized",
+            "action_required"
+          ]
+        },
+        "attempt": {
+          "type": "object",
+          "properties": {
+            "attempt_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "last_attempt_at": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "next_attempt_at": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "attempt_count"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "contract_version",
+        "client_mutation_id",
+        "record_id",
+        "device_instance_id",
+        "local_sequence",
+        "base_server_revision",
+        "mutation_type",
+        "mutation_payload",
+        "created_at",
+        "idempotency",
+        "sync_state",
+        "attempt"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/sync_batch_request.schema.json",
+  "title": "sync_batch_request"
+}

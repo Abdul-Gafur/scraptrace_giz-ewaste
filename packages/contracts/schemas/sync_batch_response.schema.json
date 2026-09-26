@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "results": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "server_timestamp": {
+      "$ref": "#/$defs/__schema2"
+    }
+  },
+  "required": [
+    "contract_version",
+    "results",
+    "server_timestamp"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "accepted"
+            },
+            "client_mutation_id": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "record_id": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "server_revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "server_timestamp": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "replay_status": {
+              "type": "string",
+              "enum": [
+                "created",
+                "replayed"
+              ]
+            }
+          },
+          "required": [
+            "outcome",
+            "client_mutation_id",
+            "record_id",
+            "server_revision",
+            "server_timestamp",
+            "replay_status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "rejected"
+            },
+            "client_mutation_id": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "error_code": {
+              "type": "string",
+              "enum": [
+                "VALIDATION_FAILED",
+                "PERMISSION_DENIED",
+                "INVALID_STATE_TRANSITION",
+                "UNSUPPORTED_CONTRACT_VERSION",
+                "INTEGRITY_FAILURE"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "retryable": {
+              "type": "boolean",
+              "const": false
+            }
+          },
+          "required": [
+            "outcome",
+            "client_mutation_id",
+            "error_code",
+            "message",
+            "retryable"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "conflicting"
+            },
+            "client_mutation_id": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "conflict": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD",
+                    "STALE_BASE_REVISION",
+                    "DUPLICATE_RECORD",
+                    "CLIENT_AND_SERVER_CHANGED",
+                    "UNSUPPORTED_CONTRACT_VERSION",
+                    "INTEGRITY_VERIFICATION_FAILED",
+                    "PERMANENT_VALIDATION_FAILURE",
+                    "TEMPORARY_SERVICE_FAILURE"
+                  ]
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "retryable": {
+                  "type": "boolean"
+                },
+                "client_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "server_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "client_digest": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "server_digest": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "resolution": {
+                  "type": "string",
+                  "enum": [
+                    "replay_original",
+                    "refresh_and_review",
+                    "manual_merge",
+                    "correct_and_resubmit",
+                    "retry_later",
+                    "stop"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "retryable",
+                "resolution"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "outcome",
+            "client_mutation_id",
+            "conflict"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "type": "string",
+              "const": "retryable"
+            },
+            "client_mutation_id": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "error_code": {
+              "type": "string",
+              "enum": [
+                "DEPENDENCY_UNAVAILABLE",
+                "RATE_LIMIT_REACHED",
+                "INTERNAL_FAILURE"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "retryable": {
+              "type": "boolean",
+              "const": true
+            },
+            "retry_after_seconds": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "outcome",
+            "client_mutation_id",
+            "error_code",
+            "message",
+            "retryable"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "__schema3": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/sync_batch_response.schema.json",
+  "title": "sync_batch_response"
+}

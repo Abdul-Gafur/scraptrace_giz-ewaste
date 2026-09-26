@@ -25,7 +25,7 @@ Offline operation is an SRS requirement. ScrapTrace is an installable PWA that s
 
 These are independent dimensions and must not be collapsed.
 
-**Recovery-record lifecycle:** `Draft` → `Saved offline` → `Pending synchronization` → `Submitted` → `Awaiting handoff` → `Received` → `Processing recorded` → `Completed` or `Under review` → `Approved and completed`/`Rejected` as applicable. The normative model is [Figure 13](analysis-models.md#figure-13-recovery-record-state-transition-model).
+**Recovery-record business lifecycle:** `Draft` → `Submitted` → `Awaiting handoff` → `Received` → `Processing recorded` → `Completed` or `Under review` → `Approved and completed`/`Rejected` as applicable. `Saved offline` and `Pending synchronization` are synchronization conditions, not business states. The executable interpretation is recorded in [ADR-003](../decisions/ADR-003-recovery-record-lifecycle.md).
 
 **User-visible synchronization status:**
 

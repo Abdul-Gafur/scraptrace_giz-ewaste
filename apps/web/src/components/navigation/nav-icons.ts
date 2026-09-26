@@ -1,0 +1,62 @@
+import {
+  Activity,
+  BadgeCheck,
+  BookOpen,
+  Camera,
+  ChartNoAxesColumn,
+  ClipboardCheck,
+  ClipboardList,
+  Cpu,
+  Download,
+  FileCheck,
+  History,
+  House,
+  Languages,
+  LayoutDashboard,
+  ListChecks,
+  LogIn,
+  MapPin,
+  Package,
+  ScanSearch,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Tags,
+  Tag,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
+
+import type { NavIconName } from "@/navigation/navigation-config";
+
+/**
+ * One outlined icon family (lucide) for all navigation. The Figma frames render several of
+ * these icons as placeholder shapes, so they are mapped here by meaning.
+ */
+export const NAV_ICONS: Record<NavIconName, LucideIcon> = {
+  home: House,
+  camera: Camera,
+  records: ListChecks,
+  location: MapPin,
+  account: UserRound,
+  intake: LogIn,
+  received: Package,
+  processing: Activity,
+  queue: ClipboardCheck,
+  assigned: ClipboardList,
+  decisions: ScrollText,
+  history: History,
+  overview: LayoutDashboard,
+  ledger: BookOpen,
+  prices: Tags,
+  reports: ChartNoAxesColumn,
+  settings: Settings,
+  safety: ShieldCheck,
+  translations: Languages,
+  approvals: BadgeCheck,
+  published: FileCheck,
+  correction: ScanSearch,
+  labels: Tag,
+  model: Cpu,
+  exports: Download,
+};

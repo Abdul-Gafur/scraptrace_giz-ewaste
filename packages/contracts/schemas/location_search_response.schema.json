@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "results"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "facility_type": {
+                "type": "string",
+                "enum": [
+                  "scrapyard",
+                  "collection_centre",
+                  "recycler"
+                ]
+              },
+              "accepted_categories": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "verification_status": {
+                "type": "string",
+                "enum": [
+                  "unverified",
+                  "programme_verified",
+                  "expired",
+                  "suspended"
+                ]
+              },
+              "verification_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "accuracy_metres": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "device",
+                      "manual",
+                      "facility",
+                      "imported"
+                    ]
+                  }
+                },
+                "required": [
+                  "latitude",
+                  "longitude",
+                  "source"
+                ],
+                "additionalProperties": false
+              },
+              "distance_km": {
+                "type": "number",
+                "minimum": 0
+              },
+              "opening_information": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "display_contact": {
+                "type": "string",
+                "maxLength": 240
+              },
+              "last_reviewed_at": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "data_source": {
+                "type": "string",
+                "enum": [
+                  "live_directory",
+                  "cached_directory"
+                ]
+              }
+            },
+            "required": [
+              "location_id",
+              "name",
+              "facility_type",
+              "accepted_categories",
+              "verification_status",
+              "coordinates",
+              "distance_km",
+              "last_reviewed_at",
+              "data_source"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "data_as_of": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "offline_limitations": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "outcome",
+        "locations",
+        "data_as_of"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "no_results"
+        },
+        "safe_holding_message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "programme_contact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        }
+      },
+      "required": [
+        "outcome",
+        "safe_holding_message"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "location_permission_denied"
+        },
+        "manual_area_supported": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "outcome",
+        "manual_area_supported"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "const": "offline_data_unavailable"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "outcome",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "enum": [
+        "refrigerators",
+        "laptops_and_desktop_computers",
+        "televisions",
+        "microwaves",
+        "air_conditioners",
+        "compressors",
+        "mixed_scrap"
+      ]
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/location_search_response.schema.json",
+  "title": "location_search_response"
+}

@@ -23,3 +23,10 @@ Architecture Decision Records (ADRs) capture significant, durable choices and th
 | ADR | Title | Status | Date |
 |---|---|---|---|
 | [ADR-001](ADR-001-monorepo-structure.md) | Monorepo structure | Accepted | 2026-09-18 |
+| [ADR-002](ADR-002-contract-source-of-truth.md) | Contract source of truth and schema generation | Accepted | 2026-09-20 |
+| [ADR-003](ADR-003-recovery-record-lifecycle.md) | Recovery-record lifecycle and event model | Accepted | 2026-09-20 |
+| [ADR-004](ADR-004-identifiers-qr-integrity.md) | Identifier, QR payload and integrity semantics | Accepted | 2026-09-20 |
+| [ADR-005](ADR-005-offline-sync-idempotency.md) | Offline synchronization and idempotency | Accepted | 2026-09-20 |
+| [ADR-006](ADR-006-roles-permissions.md) | Role and permission boundaries | Accepted | 2026-09-20 |
+| [ADR-007](ADR-007-service-responses-errors.md) | Standard service response and error contracts | Accepted | 2026-09-20 |
+| [ADR-008](ADR-008-frontend-architecture.md) | Frontend application architecture | Accepted | 2026-09-20 |

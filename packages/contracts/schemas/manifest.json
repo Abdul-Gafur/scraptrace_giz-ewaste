@@ -1,0 +1,89 @@
+{
+  "contract_schema_version": "1.0.0",
+  "generated_files": [
+    {
+      "name": "error_envelope.schema.json",
+      "sha256": "87c5c745e482a916e53a8f8c0c3879a1f745f39d7c729224fd51d33f444a982a"
+    },
+    {
+      "name": "evidence.schema.json",
+      "sha256": "988bcd6252c5372e00a98f830fee4d525c91a14ef8219156aafcb0f382dffc32"
+    },
+    {
+      "name": "handoff_request.schema.json",
+      "sha256": "c5a75dffab0051092c993f0389f2508f4d34be388395c80ca082bd24f81d41cd"
+    },
+    {
+      "name": "handoff_response.schema.json",
+      "sha256": "dca4ff9bf85e44f69b13e2fc36ad8dd9e701b8b7c1b8a895bb7505c108b05b29"
+    },
+    {
+      "name": "location_search_request.schema.json",
+      "sha256": "b1a51bd25d89e6d5084724a565cf4bbac23a7e5fe90f9f5c5ca15fbc822d98d8"
+    },
+    {
+      "name": "location_search_response.schema.json",
+      "sha256": "882c158aec2b1d4ad6414a387c8ec64fce250e01ccb6d7cea26b6a5d0ef80998"
+    },
+    {
+      "name": "processing_request.schema.json",
+      "sha256": "e1854492c85ca0e6c5cee60ef6e5215dabc8309ed1476b26d74ebe67d154af31"
+    },
+    {
+      "name": "processing_response.schema.json",
+      "sha256": "80326cb90fae9cd82ff66fc7e9d35fac05e237f65ed67ebbbeea38f4f2cddbfe"
+    },
+    {
+      "name": "programme_review_request.schema.json",
+      "sha256": "54da8bf37c51a461dfa8a3b082396b7fc20a006ab266ad00fa747272fc3505ad"
+    },
+    {
+      "name": "programme_review_response.schema.json",
+      "sha256": "24c765348ef71aa1253fced0c5672dd419fc9a89ba440f3dc256d65451c37d97"
+    },
+    {
+      "name": "qr_payload.schema.json",
+      "sha256": "f3c6cfeab0edf00c7fe7080288847012154037e1c16ef4ae15b16bac3ccd75e6"
+    },
+    {
+      "name": "recovery_record.schema.json",
+      "sha256": "ac677d5dab0e5554969c3a58720485d1a018171ca8ff4c32d2e56ab12c7cef66"
+    },
+    {
+      "name": "recovery_record_event.schema.json",
+      "sha256": "4316854020c03fa2959fc5934d65332ab1f688abe4f95065c9602708b588a867"
+    },
+    {
+      "name": "reporting_filters.schema.json",
+      "sha256": "9e6abbbdeb26ec926ed56f54b27725153d54b01a7275ca1b3f78329392331614"
+    },
+    {
+      "name": "reporting_summary.schema.json",
+      "sha256": "28c8a2c88ac1168a993143881ad7fe7ea9bd3a5f6480734078db32ccd2dbfa24"
+    },
+    {
+      "name": "safety_guidance_request.schema.json",
+      "sha256": "ce6a4dc3b155f9afb216242327743c5c3d59e258ed31766401f73ee7cd905600"
+    },
+    {
+      "name": "safety_guidance_response.schema.json",
+      "sha256": "4164a323a868c28db1bd2f03c5a2cfcdd87b4bb1356058b6049a03203d77da26"
+    },
+    {
+      "name": "sync_batch_request.schema.json",
+      "sha256": "01ee1db86022e483cbd0cf28262f1f26d374d1970e1fa6a9cfa5ed5389e57851"
+    },
+    {
+      "name": "sync_batch_response.schema.json",
+      "sha256": "b31aad9cdba0f22100d26548a2901343b12280b13bd9ed916b10445d9bb010c4"
+    },
+    {
+      "name": "vision_appraisal_request.schema.json",
+      "sha256": "7e45af554f07dd911c91182cb863ae941728abaa1c686e76e9868b39fd958417"
+    },
+    {
+      "name": "vision_appraisal_response.schema.json",
+      "sha256": "736cbc147c6414d708714e35adb158fd5063823cac739828f0c862f8b65763e1"
+    }
+  ]
+}

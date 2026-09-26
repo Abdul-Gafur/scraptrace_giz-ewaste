@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "lookup_token": {
+      "type": "string",
+      "minLength": 24,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  },
+  "required": [
+    "contract_version",
+    "record_id",
+    "lookup_token"
+  ],
+  "additionalProperties": false,
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/qr_payload.schema.json",
+  "title": "qr_payload"
+}

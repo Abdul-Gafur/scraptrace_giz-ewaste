@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "refrigerators",
+        "laptops_and_desktop_computers",
+        "televisions",
+        "microwaves",
+        "air_conditioners",
+        "compressors",
+        "mixed_scrap"
+      ]
+    },
+    "requested_language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "fr",
+        "ar",
+        "pt"
+      ]
+    },
+    "transformation_mode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "simplify",
+        "translate",
+        "prepare_for_speech"
+      ]
+    },
+    "offline": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "category",
+    "requested_language",
+    "transformation_mode",
+    "offline"
+  ],
+  "additionalProperties": false,
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/safety_guidance_request.schema.json",
+  "title": "safety_guidance_request"
+}
