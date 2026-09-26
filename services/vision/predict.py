@@ -46,18 +46,9 @@ class VisionClassifier:
             checkpoint_path = CHECKPOINTS_DIR / "best_model.pth"
 
         self.checkpoint_path = checkpoint_path
-        if checkpoint_path.exists():
-            sys.stderr.write(f"Loading checkpoint from: {checkpoint_path} on {self.device}\n")
-            self.model = load_checkpoint(str(checkpoint_path), device=str(self.device))
-        else:
-            sys.stderr.write(
-                f"Warning: No checkpoint found at {checkpoint_path}. Running with pre-trained backbone.\n"
-            )
-            from model import build_model
+        from foundation_models import ensure_model_available
+        self.model = ensure_model_available(checkpoint_path)
 
-            self.model = build_model(DEFAULT_MODEL_NAME, pretrained=True)
-            self.model.to(self.device)
-            self.model.eval()
 
     def predict(self, image_input) -> dict:
         """

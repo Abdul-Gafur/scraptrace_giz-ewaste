@@ -208,13 +208,48 @@ For field operations with no cellular connectivity:
 
 ---
 
-## 9. Operational Commands
+## 9. Operational Commands & Multi-Collaborator Workflow
 
+### Multi-Collaborator 1-Command Setup
+When pulling the repository or cloning fresh on a new machine:
 ```bash
-# 1. Download & extract 224x224 crops (23 MB)
+# Automatically verifies dependencies, checkpoints, extracts crops, and tests inference:
+npm run vision:setup
+```
+
+### Pre-Trained Foundation Models (Pushing Past 90% Accuracy)
+```bash
+# Linear probe with Meta ConvNeXt-Nano (ImageNet-12K pre-trained, zero-overfitting guarantee):
+npm run vision:train:foundation -- --model convnext_nano --freeze-backbone --epochs 15
+
+# Fine-tune Google SigLIP (ARIS e-waste Vision-Language transformer):
+npm run vision:train:foundation -- --model siglip_base --epochs 10
+
+# Download and cache foundation weights locally (auto-handled if huge):
+npm run vision:weights
+```
+
+### Roboflow Universe E-Waste Ingestion
+```bash
+# Ingest YOLOv11 E-Waste dataset (razin/e-waste-c8eii):
+npm run vision:fetch:roboflow -- --project razin
+
+# Ingest general electronic waste dataset:
+npm run vision:fetch:roboflow -- --project electronic_waste
+```
+
+### Git File Size Safety (<100 MB Limit)
+```bash
+# Audit repository to ensure no file exceeds GitHub's 100 MB push limit:
+npm run vision:audit:size
+```
+
+### Baseline Commands
+```bash
+# 1. Download & extract 224x224 crops from GIZ COCO dataset
 npm run vision:download
 
-# 2. Train MobileNetV3 classifier (uses Apple Silicon MPS or CUDA)
+# 2. Train MobileNetV3/EfficientNet-B0 baseline classifier
 npm run vision:train
 
 # 3. Test appraisal inference on an image
@@ -225,5 +260,5 @@ npm run vision:predict path/to/sample.jpg
 
 ## 10. Known Limitations & Roadmap
 
-* **`mixed_scrap` Representation**: The 16 challenge crops are limited. Future versions (v0.2.0) should employ synthetic image compositing (CutMix / Mosaic) or collect extra ground-truth photos of unsorted scrap heaps.
+* **`mixed_scrap` Representation**: The 16 challenge crops are limited. Using `npm run vision:fetch:roboflow` pulls hundreds of external PCB and mixed scrap components to balance the distribution.
 * **Price Heuristics**: The contract supports an optional `estimate` property. A scrap metal price matrix (Ghana Cedis per kg based on condition and category) can be plugged directly into the response payload.

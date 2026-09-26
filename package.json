@@ -23,7 +23,12 @@
     "contracts:check": "npm run check --workspace @scraptrace/contracts",
     "vision:download": ".venv/bin/python services/vision/extract_crops.py",
     "vision:train": ".venv/bin/python services/vision/train.py",
+    "vision:train:foundation": ".venv/bin/python services/vision/train_foundation.py",
+    "vision:fetch:roboflow": ".venv/bin/python services/vision/fetch_roboflow_data.py",
+    "vision:weights": ".venv/bin/python services/vision/download_weights.py",
+    "vision:setup": ".venv/bin/python services/vision/setup_all.py",
     "vision:predict": ".venv/bin/python services/vision/predict.py",
+    "vision:audit:size": ".venv/bin/python services/vision/check_large_files.py",
     "audit:production": "npm audit --omit=dev"
   },
   "devDependencies": {
