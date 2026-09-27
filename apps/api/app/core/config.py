@@ -70,7 +70,6 @@ class Settings(BaseModel):
     auth_token_ttl_seconds: int = Field(default=1800, ge=60, le=7200)
     auth_token_issuer: str = Field(default="scraptrace-api", min_length=3, max_length=120)
     auth_token_audience: str = Field(default="scraptrace-web", min_length=3, max_length=120)
-    auth_cookie_name: str = Field(default="scraptrace_session", pattern=r"^[a-z_]{3,64}$")
     auth_cookie_secure: bool | None = None
     password_hash_time_cost: int = Field(default=3, ge=1, le=10)
     password_hash_memory_cost_kib: int = Field(default=65536, ge=8, le=1_048_576)
@@ -162,7 +161,10 @@ class Settings(BaseModel):
         """Fails startup clearly, naming each missing variable without echoing values."""
         missing = [
             name
-            for name, value in (("SCRAPTRACE_DATABASE_URL", self.database_url),)
+            for name, value in (
+                ("SCRAPTRACE_DATABASE_URL", self.database_url),
+                ("SCRAPTRACE_AUTH_TOKEN_SECRET", self.auth_token_secret),
+            )
             if value is None
         ]
         if missing:

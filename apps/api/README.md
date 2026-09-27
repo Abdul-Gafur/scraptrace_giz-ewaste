@@ -43,11 +43,21 @@ Configuration is read from `SCRAPTRACE_*` environment variables. CPU is the defa
 curl http://localhost:8000/health/live
 curl http://localhost:8000/health/ready
 
+TOKEN=$(curl -s -X POST http://localhost:8000/v1/auth/sessions \
+  -H 'Content-Type: application/json' \
+  -d "{\"username\":\"collector.demo\",\"password\":\"$SCRAPTRACE_SEED_DEMO_PASSWORD\"}" \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["data"]["access_token"])')
+
 curl -X POST http://localhost:8000/v1/vision/appraise \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'X-Request-ID: demo-request-0001' \
   -F 'image=@sample.jpg' \
   -F 'evidence_id=0199a111-1111-7111-8111-111111111111'
 ```
+
+## Authentication and authorisation
+
+`SCRAPTRACE_AUTH_TOKEN_SECRET` is required. `POST /v1/auth/sessions` verifies an Argon2id password hash and issues a 30-minute access token, returned in the body for API clients and set as an HttpOnly cookie for browsers. `DELETE /v1/auth/sessions/current` revokes every earlier token. Every route enforces the contract permission matrix and programme, facility, ownership and review scope in the service layer. Vision appraisal requires authentication by default and always in production; health routes stay public. See [security controls](docs/security.md).
 
 `evidence_id` and form-level `request_id` are optional transport metadata. The shared `VisionAppraisalRequest` is a JSON domain contract and does not represent a multipart body; the frontend adapter combines its required evidence ID with an image upload. A successful response is the exact `VisionAppraisalResponse`, and the correlation ID is returned in the `X-Request-ID` header because the success contract has no request-ID field.
 

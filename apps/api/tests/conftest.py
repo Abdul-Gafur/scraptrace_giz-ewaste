@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import shutil
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +10,7 @@ import pytest
 from apps.api.app.core.config import Settings
 from apps.api.app.db.session import Database
 from apps.api.app.main import create_app
+from apps.api.tests.support.api import seed_database
 from apps.api.tests.support.database import (
     TEST_DATABASE_URL,
     reset_postgres_schema,
@@ -100,6 +101,9 @@ def database_url(migrated_template: str | Path, tmp_path_factory: pytest.TempPat
     return f"sqlite+aiosqlite:///{target}"
 
 
+TEST_AUTH_SECRET = "test-only-auth-signing-key-" + "k" * 32
+
+
 def build_settings(database_url: str, **overrides: Any) -> Settings:
     values: dict[str, Any] = {
         "environment": "test",
@@ -108,6 +112,7 @@ def build_settings(database_url: str, **overrides: Any) -> Settings:
         "password_hash_time_cost": 1,
         "password_hash_memory_cost_kib": 8,
         "password_hash_parallelism": 1,
+        "auth_token_secret": SecretStr(TEST_AUTH_SECRET),
     }
     values.update(overrides)
     return Settings(**values)
@@ -115,7 +120,25 @@ def build_settings(database_url: str, **overrides: Any) -> Settings:
 
 @pytest.fixture
 def settings(database_url: str) -> Settings:
-    return build_settings(database_url, maximum_upload_bytes=2048)
+    # The legacy vision tests exercise the classifier boundary itself; the authenticated vision
+    # policy (the default, and mandatory in production) is covered in test_auth.py.
+    return build_settings(
+        database_url, maximum_upload_bytes=2048, vision_requires_authentication=False
+    )
+
+
+@pytest.fixture
+def api_settings(database_url: str) -> Settings:
+    """Production-posture settings for authenticated API tests."""
+    return build_settings(database_url)
+
+
+@pytest.fixture
+def api(api_settings: Settings) -> Iterator[TestClient]:
+    """A client for an application whose database holds the deterministic seed data."""
+    seed_database(api_settings)
+    with TestClient(create_app(settings=api_settings, predictor=FakePredictor())) as test_client:
+        yield test_client
 
 
 @pytest.fixture

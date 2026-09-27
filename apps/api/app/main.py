@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 import anyio
 from apps.api.app.api.health import router as health_router
+from apps.api.app.api.openapi import install_openapi
 from apps.api.app.api.v1.router import router as v1_router
 from apps.api.app.container import build_services
 from apps.api.app.contracts.validation import ContractValidator
@@ -15,6 +16,7 @@ from apps.api.app.core.config import Settings, get_settings
 from apps.api.app.core.errors import register_error_handlers
 from apps.api.app.core.logging import RequestLoggingMiddleware, configure_logging
 from apps.api.app.core.request_id import RequestIdMiddleware
+from apps.api.app.core.security_headers import SecurityHeadersMiddleware
 from apps.api.app.domain.time import Clock
 from apps.api.app.services.vision_service import Predictor, VisionService
 from fastapi import FastAPI
@@ -78,6 +80,8 @@ def create_app(
     register_error_handlers(application)
     application.include_router(health_router)
     application.include_router(v1_router)
+    install_openapi(application, services.contracts)
+    application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
