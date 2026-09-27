@@ -18,16 +18,20 @@ from datetime import date
 from typing import Any
 
 import anyio
+from apps.api.app.container import AppServices
 from apps.api.app.core.passwords import PasswordService
 from apps.api.app.db.models import (
     FacilityLocation,
     Programme,
+    RecoveryRecord,
     RecyclerFacility,
     User,
     UserRoleAssignment,
 )
 from apps.api.app.domain.vocabulary import EWASTE_CATEGORIES
 from apps.api.app.repositories.identity import IdentityRepository
+from apps.api.app.services.audit import RequestContext
+from apps.api.app.services.image_validation import sanitize_image_bytes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 PROGRAMME_ID = uuid.UUID("0199b010-0010-7010-8010-000000000010")
@@ -261,3 +265,154 @@ async def seed_reference_data(
             report.unchanged += 1
     await session.flush()
     return report
+
+
+# Demonstration records ------------------------------------------------------------------------
+#
+# Records are created by replaying the real journeys through the service layer, never by
+# inserting rows in a lifecycle state, so every seeded record carries the same evidence, events,
+# digests and audit entries a user's actions would produce. Fixed record IDs and idempotency
+# keys make re-running the command a no-op.
+
+SEED_CAPTURED_AT = "2026-09-20T09:00:00.000Z"
+
+
+@dataclass(frozen=True)
+class SeedRecordPlan:
+    record_id: uuid.UUID
+    label: str
+    category: str
+    condition: str
+    declared_weight_kg: float
+    destination: uuid.UUID
+    stage: str  # "draft" | "awaiting_handoff"
+    item_count: int | None = 1
+
+
+SEED_RECORD_PLANS: tuple[SeedRecordPlan, ...] = (
+    SeedRecordPlan(
+        uuid.UUID("0199c001-0001-7001-8001-000000000001"),
+        "draft-television",
+        "televisions",
+        "damaged",
+        14.0,
+        COLLECTION_CENTRE_ID,
+        "draft",
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c002-0002-7002-8002-000000000002"),
+        "awaiting-laptops",
+        "laptops_and_desktop_computers",
+        "repairable",
+        9.5,
+        COLLECTION_CENTRE_ID,
+        "awaiting_handoff",
+        item_count=3,
+    ),
+)
+
+
+def seed_photo(label: str) -> bytes:
+    """A deterministic synthetic image per label: stable digests, no real photograph."""
+    import hashlib
+    import io
+
+    from PIL import Image, ImageDraw
+
+    colour = hashlib.sha256(label.encode("utf-8")).digest()
+    image = Image.new("RGB", (320, 240), color=(colour[0], colour[1], colour[2]))
+    draw = ImageDraw.Draw(image)
+    for index in range(0, 320, 20):
+        draw.line([(index, 0), (320 - index, 240)], fill=(colour[3], colour[4], colour[5]), width=3)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def _seed_scores(category: str) -> list[dict[str, Any]]:
+    return [
+        {"category": value, "score": 0.82 if value == category else 0.03}
+        for value in EWASTE_CATEGORIES
+    ]
+
+
+def seed_draft_metadata(plan: SeedRecordPlan, collector_id: uuid.UUID) -> dict[str, Any]:
+    reference = {"actor_id": str(collector_id), "programme_id": str(PROGRAMME_ID)}
+    metadata: dict[str, Any] = {
+        "record_id": str(plan.record_id),
+        "device_instance_id": "0199b020-0020-7020-8020-000000000020",
+        "category": plan.category,
+        "condition": plan.condition,
+        "approximate_weight": {"value": plan.declared_weight_kg, "unit": "kg"},
+        "captured_at": SEED_CAPTURED_AT,
+        "approximate_area": {
+            "label": "Greater Accra",
+            "administrative_area": "Greater Accra",
+            "country_code": "GH",
+        },
+        "vision_result": {
+            "prediction_id": _seed_prediction_id(plan.record_id),
+            "model_name": "scraptrace-vision-efficientnet-b0",
+            "model_version": "0.2.0",
+            "inferred_at": SEED_CAPTURED_AT,
+            "scores": _seed_scores(plan.category),
+            "suggested_category": plan.category,
+            "confidence": 0.82,
+            "low_confidence": False,
+        },
+        "category_confirmation": {
+            "confirmed_category": plan.category,
+            "confirmed_by": reference,
+            "confirmed_at": SEED_CAPTURED_AT,
+            "source": "accepted_prediction",
+        },
+        "destination_location_id": str(plan.destination),
+        "original_image": {
+            "captured_at": SEED_CAPTURED_AT,
+            "capture_source": "approved_demo_fixture",
+            "connectivity": "online",
+            "application_version": "0.1.0",
+        },
+    }
+    if plan.item_count is not None:
+        metadata["item_count"] = plan.item_count
+    return metadata
+
+
+def _seed_prediction_id(record_id: uuid.UUID) -> str:
+    # Same UUIDv7 timestamp and version bits as the record, different random tail.
+    text = str(record_id)
+    return text[:-12] + "0000000000ff"
+
+
+async def seed_demonstration_records(services: AppServices) -> int:
+    """Creates the planned records through the services. Returns how many were created."""
+    from apps.api.app.services.authentication import build_actor
+    from apps.api.app.services.records import RecordService
+
+    context = RequestContext(correlation_id="seed-demonstration-records")
+    async with services.database.session_scope() as session:
+        collector = await IdentityRepository(session).get_user(SEED_USER_IDS["collector.demo"])
+        if collector is None:
+            raise RuntimeError("Load reference data before demonstration records.")
+        actor = await build_actor(session, collector, "collector")
+
+    created = 0
+    for plan in SEED_RECORD_PLANS:
+        async with services.database.session_scope() as session:
+            if await session.get(RecoveryRecord, plan.record_id) is not None:
+                continue
+        image = sanitize_image_bytes(seed_photo(plan.label), services.settings, "original_image")
+        async with services.database.session_scope() as session:
+            await RecordService(session, services, context).create_draft(
+                actor,
+                seed_draft_metadata(plan, actor.user_id),
+                image,
+                image.original_digest,
+                f"seed-create-{plan.record_id}",
+            )
+        if plan.stage != "draft":
+            async with services.database.session_scope() as session:
+                await RecordService(session, services, context).submit(plan.record_id, actor, None)
+        created += 1
+    return created

@@ -96,3 +96,24 @@ def test_canonical_digest_matches_typescript(value: Any) -> None:
 def test_canonical_json_rejects_non_finite_numbers() -> None:
     with pytest.raises(TypeError):
         canonicalize_json({"weight": float("nan")})
+
+
+def test_transition_rules_match_typescript() -> None:
+    from apps.api.app.domain.transitions import TRANSITIONS
+
+    rules = evaluate({"transitions": True})["rules"]
+    ported = [
+        {
+            "from": rule.from_state,
+            "event": rule.event,
+            "required_roles": list(rule.required_roles),
+            "required_evidence": list(rule.required_evidence),
+            "to": rule.to_state,
+            "allowed_offline": rule.allowed_offline,
+            "retry_safe": rule.retry_safe,
+            "validation_failure": rule.validation_failure,
+            **({"requires_no_unresolved_flags": True} if rule.requires_no_unresolved_flags else {}),
+        }
+        for rule in TRANSITIONS
+    ]
+    assert ported == rules

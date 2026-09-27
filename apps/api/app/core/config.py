@@ -164,6 +164,7 @@ class Settings(BaseModel):
             for name, value in (
                 ("SCRAPTRACE_DATABASE_URL", self.database_url),
                 ("SCRAPTRACE_AUTH_TOKEN_SECRET", self.auth_token_secret),
+                ("SCRAPTRACE_QR_TOKEN_SECRET", self.qr_token_secret),
             )
             if value is None
         ]

@@ -13,27 +13,30 @@ import asyncio
 import os
 import sys
 
+from apps.api.app.container import build_services
 from apps.api.app.core.config import ConfigurationError, Settings, get_settings
-from apps.api.app.core.passwords import MINIMUM_PASSWORD_LENGTH, PasswordService
+from apps.api.app.core.passwords import MINIMUM_PASSWORD_LENGTH
 from apps.api.app.db.session import Database
 from apps.api.app.domain.time import utc_now
 from apps.api.app.repositories.operations import IdempotencyRepository
-from apps.api.app.seed import seed_reference_data
+from apps.api.app.seed import seed_demonstration_records, seed_reference_data
 
 
 async def run_seed(settings: Settings, demo_password: str, reset_passwords: bool) -> str:
-    database = Database(settings)
-    await database.start()
+    services = build_services(settings)
+    await services.database.start()
     try:
-        async with database.session_scope() as session, session.begin():
+        async with services.database.session_scope() as session, session.begin():
             report = await seed_reference_data(
-                session, PasswordService(settings), demo_password, reset_passwords=reset_passwords
+                session, services.passwords, demo_password, reset_passwords=reset_passwords
             )
+        records = await seed_demonstration_records(services)
     finally:
-        await database.stop()
+        await services.database.stop()
     return (
-        f"Seed complete: {report.created} created, {report.unchanged} already present, "
-        f"{report.passwords_reset} passwords reset."
+        f"Seed complete: {report.created} reference rows created, {report.unchanged} already "
+        f"present, {report.passwords_reset} passwords reset, {records} demonstration records "
+        "created."
     )
 
 

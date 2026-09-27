@@ -10,3 +10,11 @@ Backend Phase 1 traceability from the [functional requirements](../../../docs/pr
 | FR-ACC-002 server-side role enforcement, 403 + security event | `require_permission`, `require_roles`, `Authorizer` on every protected route | `isPermissionAllowed` (parity-tested) | 2 |
 | ADR-006 programme and facility scope | `GET /programmes/{programme_id}`, `GET /facilities/{facility_id}/receiving-locations` | `AuthorizationContext` | 2 |
 | Vision appraisal behind authentication | `POST /vision/appraise` (existing; now authenticated by default) | `VisionAppraisalResponse` | 2 |
+| FR-REC-001/002 item or batch draft with owner, evidence, category, count/weight, condition, time, area, estimate, destination | `POST /recovery-records` (multipart, `Idempotency-Key`), `PATCH /recovery-records/{id}` (`If-Match`) | `RecoveryRecord` fields (gap 1–3) | 3 |
+| FR-VIS-005/006/007 confirm or correct the category; keep the original prediction | `POST /recovery-records/{id}/category-confirmations`; `vision_result` associated at creation or once on a draft | `CategoryConfirmation` (= `VisionHumanCorrection`), `VisionResult` | 3 |
+| FR-REC-005 server-side lifecycle with audited transitions | `POST /recovery-records/{id}/submissions` (`submit_record` → `publish_for_handoff`) | `transitionRecoveryRecord` (parity-tested), `RecoveryRecordEvent` | 3 |
+| FR-REC-004 reopen and present a record | `GET /recovery-records/{id}`, `GET /recovery-records` (scoped, cursor-paginated, filtered) | `RecoveryRecord` | 3 |
+| FR-REV-008 timeline from persisted events | `GET /recovery-records/{id}/events` | `RecoveryRecordEvent` | 3 |
+| FR-REC-007 image digest and exact-reuse flag | Submission raises `DUPLICATE_EVIDENCE_DIGEST` on a review case | `Evidence.content_digest`, `ReviewInformation` | 3 |
+| Evidence storage, provenance and controlled retrieval | `POST/GET /recovery-records/{id}/evidence`, `GET /evidence/{id}`, `GET /evidence/{id}/content` | `Evidence`, `Provenance` (gap 6–8) | 3 |
+| FR-OFF-005 idempotent creation; FR-OFF-006 version conflicts | `Idempotency-Key`, `If-Match`/`ETag`, `VERSION_CONFLICT` | `IdempotencyMetadata` | 3 |

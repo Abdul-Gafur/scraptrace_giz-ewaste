@@ -38,6 +38,16 @@ Reusable FastAPI dependencies (`app/api/security.py`): `get_current_actor` (auth
 
 `POST /v1/vision/appraise` requires any authenticated role by default. `SCRAPTRACE_VISION_REQUIRES_AUTHENTICATION=false` restores the walking skeleton's open behaviour for local classifier work only, and production refuses that setting. Appraisal grants no record access and stores nothing. The health routes `/health/live`, `/health/ready` and `/health/database` are public by policy and return status only.
 
+## Evidence
+
+- **Separate from vision:** `POST /v1/vision/appraise` still stores nothing. Evidence is a distinct, authorised upload.
+- **Validation:** content type is checked, and so is the decoded signature (JPEG, PNG, WebP only). Uploads are bounded by `SCRAPTRACE_MAXIMUM_UPLOAD_BYTES`, width, height and total pixels. Decompression bombs and truncated or corrupt files are rejected. Uploaded filenames are ignored.
+- **Metadata removal:** images are decoded, EXIF orientation is applied, and they are re-encoded in their original format without EXIF (including GPS), text chunks or colour-profile metadata. `metadata_stripped` records this.
+- **Integrity:** SHA-256 of the stored bytes is recorded as `content_digest` and re-verified on every read; a mismatch returns `409 INTEGRITY_FAILURE`. A digest detects change; it does not prove the photograph is truthful.
+- **Storage:** `EvidenceStorage` is the replaceable boundary (local filesystem now, S3-compatible later). Keys are generated (`evidence/<record>/<evidence>`), must match a strict pattern, and must resolve inside the storage root, which prevents path traversal. Objects are written atomically with `0600` permissions and are immutable. If the metadata transaction fails, the stored object is deleted.
+- **Access:** content is served only through `GET /v1/evidence/{id}/content` to callers who may view the record, with `Cache-Control: private, no-store`, `nosniff` and a sandboxing CSP. Reviewer-decision evidence is limited to review roles. Every content read writes an `evidence.content-accessed` audit event.
+- **Upload policy:** collectors add photographs only to their own drafts. Recyclers add handoff and weight photographs to records awaiting handoff, processing photographs to records they received, and corrections when a reviewer requests them. Evidence types are restricted per role and state, and capture sources per role.
+
 ## Transport and headers
 
 - CORS allows only the configured origins, with credentials. A wildcard is rejected in every environment.
@@ -51,7 +61,7 @@ Reusable FastAPI dependencies (`app/api/security.py`): `get_current_actor` (auth
 
 ## Secrets and environment validation
 
-- `SCRAPTRACE_DATABASE_URL` and `SCRAPTRACE_AUTH_TOKEN_SECRET` are required at startup. A missing variable stops the process with a message naming it; values are never echoed.
+- `SCRAPTRACE_DATABASE_URL`, `SCRAPTRACE_AUTH_TOKEN_SECRET` and `SCRAPTRACE_QR_TOKEN_SECRET` are required at startup; the two secrets must differ. A missing variable stops the process with a message naming it; values are never echoed.
 - Secrets must be at least 32 characters and are rejected when they look like placeholders.
 - Production additionally refuses non-`Secure` cookies, demo discovery, unauthenticated vision and SQLite.
 - No secret is committed. `.env.example` holds placeholders only, and demo passwords come from `SCRAPTRACE_SEED_DEMO_PASSWORD` at seed time.

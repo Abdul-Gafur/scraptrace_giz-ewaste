@@ -14,6 +14,8 @@ from apps.api.app.domain.time import Clock, utc_now
 from apps.api.app.services.audit import AuditTrail
 from apps.api.app.services.authentication import AuthenticationService
 from apps.api.app.services.authorization import Authorizer
+from apps.api.app.services.evidence_storage import EvidenceStorage, LocalEvidenceStorage
+from apps.api.app.services.qr_tokens import QrTokenService
 
 
 @dataclass
@@ -27,6 +29,8 @@ class AppServices:
     audit: AuditTrail
     authorizer: Authorizer
     authentication: AuthenticationService
+    qr_tokens: QrTokenService
+    evidence_storage: EvidenceStorage
 
 
 def build_services(settings: Settings, clock: Clock | None = None) -> AppServices:
@@ -50,4 +54,6 @@ def build_services(settings: Settings, clock: Clock | None = None) -> AppService
         authentication=AuthenticationService(
             database, passwords, tokens, audit, sign_in_limiter, resolved_clock
         ),
+        qr_tokens=QrTokenService(settings, resolved_clock),
+        evidence_storage=LocalEvidenceStorage(settings.evidence_storage_root),
     )

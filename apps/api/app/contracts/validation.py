@@ -124,6 +124,38 @@ class ContractRegistry:
             self.schemas[name] = schema
             self._validators[name] = Draft202012Validator(schema)
 
+    def resolved(self, name: str, *pointer: str) -> dict[str, Any]:
+        """A self-contained copy of a contract subschema with every local `$ref` inlined.
+
+        Transport schemas that the contracts do not define (for example the draft-creation
+        document) are composed from these pieces, so each field keeps its contract definition.
+        """
+        root = self.schemas[name]
+        definitions = root.get("$defs", {})
+
+        def inline(node: Any) -> Any:
+            if isinstance(node, dict):
+                if "$ref" in node and str(node["$ref"]).startswith("#/$defs/"):
+                    target = definitions[str(node["$ref"]).rsplit("/", 1)[1]]
+                    merged = {
+                        **inline(target),
+                        **{k: inline(v) for k, v in node.items() if k != "$ref"},
+                    }
+                    return merged
+                return {
+                    key: inline(value)
+                    for key, value in node.items()
+                    if key not in ("$defs", "$id", "$schema")
+                }
+            if isinstance(node, list):
+                return [inline(item) for item in node]
+            return node
+
+        node: Any = root
+        for part in pointer:
+            node = inline(node)[part]
+        return cast(dict[str, Any], inline(node))
+
     def _validator(self, name: str, pointer: tuple[str, ...] = ()) -> Draft202012Validator:
         validator = self._validators[name]
         if not pointer:

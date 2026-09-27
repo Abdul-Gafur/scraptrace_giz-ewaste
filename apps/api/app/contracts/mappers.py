@@ -128,36 +128,68 @@ def review_information(case: ReviewCase | None, audience: RecordAudience) -> dic
     return review
 
 
-def recovery_record(
-    record: RecoveryRecord, *, lookup_token: str, audience: RecordAudience
-) -> dict[str, Any]:
+def integrity_payload(record: RecoveryRecord) -> dict[str, Any]:
+    """`RecoveryRecordIntegrityPayloadSchema`: the immutable identity, capture, category and
+    prediction facts. Built from the record's own columns, always with full coordinates, so the
+    digest never depends on who is reading."""
     if record.original_image_evidence_id is None:
         raise ValueError("A recovery record always references its original photograph.")
-    data: dict[str, Any] = {
+    payload: dict[str, Any] = {
         "contract_schema_version": CONTRACT_SCHEMA_VERSION,
         "record_id": str(record.id),
         "human_reference": record.human_reference,
-        "qr_payload": qr_payload(record.id, lookup_token),
-        "revision": record.revision,
         "record_kind": record.record_kind,
         "category": record.category,
     }
     if record.item_count is not None:
-        data["item_count"] = record.item_count
+        payload["item_count"] = record.item_count
     if record.approximate_weight_value is not None and record.approximate_weight_unit:
-        data["approximate_weight"] = weight(
+        payload["approximate_weight"] = weight(
             record.approximate_weight_value, record.approximate_weight_unit
         )
-    data["condition"] = record.condition
-    data["original_image_evidence_id"] = str(record.original_image_evidence_id)
-    data["collector"] = actor_reference(record.collector_id, record.programme_id)
-    data["captured_at"] = format_timestamp(record.captured_at)
-    if record.capture_location is not None and audience.personal_data:
-        data["capture_location"] = record.capture_location
-    data["approximate_area"] = record.approximate_area
+    payload["condition"] = record.condition
+    payload["original_image_evidence_id"] = str(record.original_image_evidence_id)
+    payload["collector"] = actor_reference(record.collector_id, record.programme_id)
+    payload["captured_at"] = format_timestamp(record.captured_at)
+    if record.capture_location is not None:
+        payload["capture_location"] = record.capture_location
+    payload["approximate_area"] = record.approximate_area
     if record.vision_result is not None:
-        data["vision_result"] = record.vision_result
-    data["category_confirmation"] = record.category_confirmation
+        payload["vision_result"] = record.vision_result
+    payload["category_confirmation"] = record.category_confirmation
+    payload["created_at"] = format_timestamp(record.created_at)
+    return payload
+
+
+def recovery_record(
+    record: RecoveryRecord, *, lookup_token: str, audience: RecordAudience
+) -> dict[str, Any]:
+    core = integrity_payload(record)
+    data: dict[str, Any] = {
+        "contract_schema_version": CONTRACT_SCHEMA_VERSION,
+        "record_id": core["record_id"],
+        "human_reference": record.human_reference,
+        "qr_payload": qr_payload(record.id, lookup_token),
+        "revision": record.revision,
+    }
+    for field in (
+        "record_kind",
+        "category",
+        "item_count",
+        "approximate_weight",
+        "condition",
+        "original_image_evidence_id",
+        "collector",
+        "captured_at",
+    ):
+        if field in core:
+            data[field] = core[field]
+    if "capture_location" in core and audience.personal_data:
+        data["capture_location"] = core["capture_location"]
+    data["approximate_area"] = core["approximate_area"]
+    if "vision_result" in core:
+        data["vision_result"] = core["vision_result"]
+    data["category_confirmation"] = core["category_confirmation"]
     for field in ("estimated_price", "safety_guide", "destination"):
         value = getattr(record, field)
         if value is not None:
@@ -178,7 +210,7 @@ def recovery_record(
         "local_revision": record.revision,
         "server_revision": record.revision,
     }
-    data["created_at"] = format_timestamp(record.created_at)
+    data["created_at"] = core["created_at"]
     data["updated_at"] = format_timestamp(record.updated_at)
     if record.integrity_digest:
         data["integrity_digest"] = record.integrity_digest

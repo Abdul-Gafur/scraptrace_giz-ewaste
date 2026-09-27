@@ -102,6 +102,7 @@ def database_url(migrated_template: str | Path, tmp_path_factory: pytest.TempPat
 
 
 TEST_AUTH_SECRET = "test-only-auth-signing-key-" + "k" * 32
+TEST_QR_SECRET = "test-only-qr-derivation-key-" + "q" * 32
 
 
 def build_settings(database_url: str, **overrides: Any) -> Settings:
@@ -113,24 +114,33 @@ def build_settings(database_url: str, **overrides: Any) -> Settings:
         "password_hash_memory_cost_kib": 8,
         "password_hash_parallelism": 1,
         "auth_token_secret": SecretStr(TEST_AUTH_SECRET),
+        "qr_token_secret": SecretStr(TEST_QR_SECRET),
     }
     values.update(overrides)
     return Settings(**values)
 
 
 @pytest.fixture
-def settings(database_url: str) -> Settings:
+def evidence_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("evidence")
+
+
+@pytest.fixture
+def settings(database_url: str, evidence_root: Path) -> Settings:
     # The legacy vision tests exercise the classifier boundary itself; the authenticated vision
     # policy (the default, and mandatory in production) is covered in test_auth.py.
     return build_settings(
-        database_url, maximum_upload_bytes=2048, vision_requires_authentication=False
+        database_url,
+        maximum_upload_bytes=2048,
+        vision_requires_authentication=False,
+        evidence_storage_root=evidence_root,
     )
 
 
 @pytest.fixture
-def api_settings(database_url: str) -> Settings:
+def api_settings(database_url: str, evidence_root: Path) -> Settings:
     """Production-posture settings for authenticated API tests."""
-    return build_settings(database_url)
+    return build_settings(database_url, evidence_storage_root=evidence_root)
 
 
 @pytest.fixture
