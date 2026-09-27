@@ -19,6 +19,20 @@ shasum -a 256 services/vision/checkpoints/best_model.pth
 
 The current manifest selects the EfficientNet-B0 v0.2.0 release and records its approved SHA-256. A release is ready only after the checkpoint architecture matches the manifest and its exact digest verifies. Missing, incompatible, or checksum-mismatched files keep readiness unavailable. Model files matching `services/vision/checkpoints/*.pth` are configured for Git LFS for future versions; no existing history is rewritten.
 
+## Persistence
+
+The API persists to PostgreSQL through SQLAlchemy 2 (async) and Alembic. `SCRAPTRACE_DATABASE_URL` is required, and startup stops with a message naming it when it is missing. Start a local database, migrate, and optionally seed demonstration data:
+
+```bash
+export SCRAPTRACE_LOCAL_POSTGRES_PASSWORD='<local-only value>'
+npm run api:db:up
+export SCRAPTRACE_DATABASE_URL="postgresql+asyncpg://scraptrace:${SCRAPTRACE_LOCAL_POSTGRES_PASSWORD}@127.0.0.1:55432/scraptrace"
+npm run api:db:migrate
+SCRAPTRACE_SEED_DEMO_PASSWORD='<at least 12 characters>' npm run api:db:seed
+```
+
+See [database and migrations](docs/database.md) for the schema, integrity rules, transactions, seeding and test-database strategy.
+
 ## Run
 
 Run `npm run api:dev` with defaults. Use `apps/api/.env.example` as the environment-variable reference and export any overrides in the shell before starting the process.
