@@ -1,9 +1,11 @@
-"""Command-line adapter for the shared ScrapTrace vision predictor."""
+"""
+Inference service for ScrapTrace e-waste image classification.
+Produces contract-compliant appraisal responses matching VisionAppraisalResponseSchema.
+"""
 
-from __future__ import annotations
-
-import json
 import sys
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 from PIL import Image
 
@@ -115,30 +117,8 @@ class VisionClassifier:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python predict.py <path_to_image>", file=sys.stderr)
-        return 2
+        sys.exit(1)
 
-    try:
-        with Image.open(args[0]) as source:
-            image = source.convert("RGB")
-    except (OSError, UnidentifiedImageError):
-        print(json.dumps(_unable("invalid_image"), indent=2))
-        return 0
-
-    predictor = VisionPredictor(device="cpu")
-    try:
-        print("Loading the verified ScrapTrace vision model.", file=sys.stderr)
-        predictor.load()
-        result = predictor.appraise(
-            image,
-            confidence_threshold=CONFIDENCE_THRESHOLD,
-            ambiguity_margin=0.0,
-        )
-    except ModelLoadError as exc:
-        print(f"Model unavailable: {exc}", file=sys.stderr)
-        result = _unable("service_unavailable")
+    classifier = VisionClassifier()
+    result = classifier.predict(sys.argv[1])
     print(json.dumps(result, indent=2))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
