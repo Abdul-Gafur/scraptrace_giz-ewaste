@@ -36,7 +36,7 @@ async def run_seed(settings: Settings, demo_password: str, reset_passwords: bool
     return (
         f"Seed complete: {report.created} reference rows created, {report.unchanged} already "
         f"present, {report.passwords_reset} passwords reset, {records} demonstration records "
-        "created."
+        "advanced."
     )
 
 

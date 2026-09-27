@@ -31,6 +31,7 @@ class AppServices:
     authentication: AuthenticationService
     qr_tokens: QrTokenService
     evidence_storage: EvidenceStorage
+    lookup_limiter: SlidingWindowRateLimiter
 
 
 def build_services(settings: Settings, clock: Clock | None = None) -> AppServices:
@@ -56,4 +57,7 @@ def build_services(settings: Settings, clock: Clock | None = None) -> AppService
         ),
         qr_tokens=QrTokenService(settings, resolved_clock),
         evidence_storage=LocalEvidenceStorage(settings.evidence_storage_root),
+        lookup_limiter=SlidingWindowRateLimiter(
+            settings.lookup_rate_limit_attempts, settings.lookup_rate_limit_window_seconds
+        ),
     )

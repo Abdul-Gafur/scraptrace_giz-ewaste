@@ -30,6 +30,10 @@ How `apps/web`'s HTTP service adapter (`src/services/http/http-services.ts`) map
 | `recoveryRecords.getEvidenceImage(evidenceId)` | `GET /v1/evidence/{id}/content` | Fetch with credentials and use `URL.createObjectURL(blob)`; the response is `no-store`. |
 | Category correction (capture screen) | `POST /v1/recovery-records/{id}/category-confirmations` + `If-Match` | Body = `CategoryConfirmation` (`VisionHumanCorrectionSchema`). |
 | Extra photographs | `POST /v1/recovery-records/{id}/evidence` multipart | `image` + `evidence_type`, `captured_at`, `capture_source`, `device_instance_id`, `connectivity`, `application_version`, optional `evidence_id`. |
+| `recoveryRecords.lookupForHandoff(text)` | `POST /v1/handoff-lookups` | Send `{qr_text}` for scanned text or `{transfer_code}` for a typed code. `200` outcomes `ready` / `not_ready` / `already_received` / `other_facility`; `404` → `not_found`; `422 UNSUPPORTED_CONTRACT_VERSION` → `unsupported_contract_version`. `record` is a `HandoffPreview`, not a full `RecoveryRecord`. Keep `lookup_token` for the handoff request. |
+| `handoffs.record(request)` | `POST /v1/handoffs` with the contract `HandoffRequest` | `201` created (`accepted` / `discrepancy`), `200` for `duplicate_scan`, `rejected` and replays. `idempotency.scope` must be `{actor_id: session actor, operation: "record_handoff", resource_id: record id}`. |
+| `handoffs.confirmReceipt(input)` | Upload `handoff_photo` and `weight_measurement` via `POST /v1/recovery-records/{id}/evidence` (recycler), then `POST /v1/handoffs` with their IDs | Do not send QR-scan or receipt evidence; the server generates both. `final_price.currency` must be the programme currency (`GET /v1/programmes/{id}`). Receiving locations come from `GET /v1/facilities/{facility_id}/receiving-locations` or `receiving_location_ids` in `/auth/me`. |
+| Reissue a QR (collector) | `POST /v1/recovery-records/{id}/qr-token-rotations` | Returns the new `QrPayload`; the old QR stops resolving. |
 
 ## Rules the frontend must respect
 

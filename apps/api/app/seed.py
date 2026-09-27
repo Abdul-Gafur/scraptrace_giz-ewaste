@@ -275,6 +275,10 @@ async def seed_reference_data(
 # keys make re-running the command a no-op.
 
 SEED_CAPTURED_AT = "2026-09-20T09:00:00.000Z"
+SEED_HANDOFF_AT = "2026-09-21T10:30:00.000Z"
+
+
+STAGE_ORDER = ("draft", "awaiting_handoff", "received")
 
 
 @dataclass(frozen=True)
@@ -285,8 +289,16 @@ class SeedRecordPlan:
     condition: str
     declared_weight_kg: float
     destination: uuid.UUID
-    stage: str  # "draft" | "awaiting_handoff"
+    stage: str  # one of STAGE_ORDER
     item_count: int | None = 1
+    measured_weight_kg: float | None = None
+
+    def reaches(self, stage: str) -> bool:
+        return STAGE_ORDER.index(self.stage) >= STAGE_ORDER.index(stage)
+
+    def evidence_id(self, suffix: str) -> uuid.UUID:
+        """Deterministic evidence IDs that keep the record's UUIDv7 prefix."""
+        return uuid.UUID(str(self.record_id)[:-12] + suffix.rjust(12, "0"))
 
 
 SEED_RECORD_PLANS: tuple[SeedRecordPlan, ...] = (
@@ -308,6 +320,27 @@ SEED_RECORD_PLANS: tuple[SeedRecordPlan, ...] = (
         COLLECTION_CENTRE_ID,
         "awaiting_handoff",
         item_count=3,
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c003-0003-7003-8003-000000000003"),
+        "received-refrigerator",
+        "refrigerators",
+        "damaged",
+        58.0,
+        RECYCLER_LOCATION_ID,
+        "received",
+        measured_weight_kg=60.4,
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c004-0004-7004-8004-000000000004"),
+        "discrepancy-microwave",
+        "microwaves",
+        "damaged",
+        18.0,
+        RECYCLER_LOCATION_ID,
+        "received",
+        item_count=2,
+        measured_weight_kg=31.0,
     ),
 )
 
@@ -385,34 +418,118 @@ def _seed_prediction_id(record_id: uuid.UUID) -> str:
     return text[:-12] + "0000000000ff"
 
 
-async def seed_demonstration_records(services: AppServices) -> int:
-    """Creates the planned records through the services. Returns how many were created."""
+async def _seed_actor(services: AppServices, username: str, role: str) -> Any:
     from apps.api.app.services.authentication import build_actor
+
+    async with services.database.session_scope() as session:
+        user = await IdentityRepository(session).get_user(SEED_USER_IDS[username])
+        if user is None:
+            raise RuntimeError("Load reference data before demonstration records.")
+        return await build_actor(session, user, role)
+
+
+async def _seed_handoff(
+    services: AppServices, plan: SeedRecordPlan, recycler: Any, context: RequestContext
+) -> None:
+    from apps.api.app.domain.integrity import sha256_canonical_json
+    from apps.api.app.repositories.records import RecoveryRecordRepository
+    from apps.api.app.services.evidence import EvidenceService, EvidenceUpload
+    from apps.api.app.services.handoff import HandoffService
+
+    evidence_ids = []
+    for suffix, evidence_type in (("a1", "handoff_photo"), ("a2", "weight_measurement")):
+        image = sanitize_image_bytes(
+            seed_photo(f"{plan.label}-{evidence_type}"), services.settings, "image"
+        )
+        async with services.database.session_scope() as session:
+            _, data = await EvidenceService(session, services, context).upload(
+                plan.record_id,
+                recycler,
+                EvidenceUpload(
+                    evidence_type=evidence_type,
+                    evidence_id=plan.evidence_id(suffix),
+                    captured_at=SEED_HANDOFF_AT,
+                    capture_source="approved_demo_fixture",
+                    device_instance_id=uuid.UUID("0199b020-0020-7020-8020-000000000021"),
+                    connectivity="online",
+                    application_version="0.1.0",
+                ),
+                image,
+            )
+        evidence_ids.append(data["evidence_id"])
+
+    async with services.database.session_scope() as session:
+        record = await RecoveryRecordRepository(session).get(plan.record_id)
+        assert record is not None
+        lookup_token = services.qr_tokens.lookup_token_for(record)
+        collector = {"actor_id": str(record.collector_id), "programme_id": str(record.programme_id)}
+    request: dict[str, Any] = {
+        "recovery_record_id": str(plan.record_id),
+        "lookup_token": lookup_token,
+        "collector_reference": collector,
+        "recycler_reference": recycler.reference(),
+        "receiving_location_id": str(plan.destination),
+        "handoff_time": SEED_HANDOFF_AT,
+        "confirmed_category": plan.category,
+        "confirmed_condition": plan.condition,
+        "measured_weight": {"value": plan.measured_weight_kg, "unit": "kg"},
+        "final_price": {
+            "amount": round((plan.measured_weight_kg or 1) * 4.5, 2),
+            "currency": "GHS",
+        },
+        "evidence_ids": evidence_ids,
+    }
+    request["idempotency"] = {
+        "idempotency_key": f"seed-handoff-{plan.record_id}",
+        "request_digest": sha256_canonical_json(request),
+        "scope": {
+            "actor_id": str(recycler.user_id),
+            "operation": "record_handoff",
+            "resource_id": str(plan.record_id),
+        },
+    }
+    async with services.database.session_scope() as session:
+        await HandoffService(session, services, context, services.lookup_limiter).record(
+            recycler, request
+        )
+
+
+async def seed_demonstration_records(services: AppServices) -> int:
+    """Drives each planned record to its target stage through the services. Records already at
+    or beyond a stage are left alone. Returns how many records advanced."""
     from apps.api.app.services.records import RecordService
 
     context = RequestContext(correlation_id="seed-demonstration-records")
-    async with services.database.session_scope() as session:
-        collector = await IdentityRepository(session).get_user(SEED_USER_IDS["collector.demo"])
-        if collector is None:
-            raise RuntimeError("Load reference data before demonstration records.")
-        actor = await build_actor(session, collector, "collector")
+    collector = await _seed_actor(services, "collector.demo", "collector")
+    recycler = await _seed_actor(services, "recycler.demo", "recycler")
 
-    created = 0
+    advanced = 0
     for plan in SEED_RECORD_PLANS:
         async with services.database.session_scope() as session:
-            if await session.get(RecoveryRecord, plan.record_id) is not None:
-                continue
-        image = sanitize_image_bytes(seed_photo(plan.label), services.settings, "original_image")
-        async with services.database.session_scope() as session:
-            await RecordService(session, services, context).create_draft(
-                actor,
-                seed_draft_metadata(plan, actor.user_id),
-                image,
-                image.original_digest,
-                f"seed-create-{plan.record_id}",
+            existing = await session.get(RecoveryRecord, plan.record_id)
+            state = existing.business_state if existing is not None else None
+        before = state
+        if state is None:
+            image = sanitize_image_bytes(
+                seed_photo(plan.label), services.settings, "original_image"
             )
-        if plan.stage != "draft":
             async with services.database.session_scope() as session:
-                await RecordService(session, services, context).submit(plan.record_id, actor, None)
-        created += 1
-    return created
+                await RecordService(session, services, context).create_draft(
+                    collector,
+                    seed_draft_metadata(plan, collector.user_id),
+                    image,
+                    image.original_digest,
+                    f"seed-create-{plan.record_id}",
+                )
+            state = "draft"
+        if plan.reaches("awaiting_handoff") and state == "draft":
+            async with services.database.session_scope() as session:
+                await RecordService(session, services, context).submit(
+                    plan.record_id, collector, None
+                )
+            state = "awaiting_handoff"
+        if plan.reaches("received") and state == "awaiting_handoff":
+            await _seed_handoff(services, plan, recycler, context)
+            state = "received"
+        advanced += int(state != before)
+    return advanced

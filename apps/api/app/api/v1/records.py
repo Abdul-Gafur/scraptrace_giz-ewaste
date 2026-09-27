@@ -333,6 +333,34 @@ async def submit_record(
     return command_response(request, result)
 
 
+@router.post(
+    "/{record_id}/qr-token-rotations",
+    status_code=201,
+    summary="Reissue the record's QR code",
+    description=(
+        "Revokes the current lookup token and returns a new `QrPayload` for a lost, shared or "
+        "expired QR. Only the owning collector, and only while the record awaits handoff. The "
+        "payload contains the contract version, record ID and an opaque token, with no "
+        "personal data. The QR image is rendered by the client."
+    ),
+    response_model=None,
+    responses={
+        201: json_response("New QR payload", success_envelope_schema(ref("qr_payload"))),
+        **error_responses(401, 403, 404, 409),
+    },
+)
+async def rotate_qr_token(
+    record_id: uuid.UUID,
+    request: Request,
+    actor: CurrentActor,
+    services: Services,
+    session: Session,
+    context: Context,
+) -> JSONResponse:
+    payload = await RecordService(session, services, context).rotate_qr_token(record_id, actor)
+    return JSONResponse(success_envelope(request, payload), status_code=201)
+
+
 @router.get(
     "/{record_id}/events",
     summary="Retrieve the record's lifecycle timeline",

@@ -713,6 +713,22 @@ class RecordService:
             await lifecycle.apply(record, "publish_for_handoff", actor_role="system")
             record.handoff_state = "awaiting"
             record.submitted_at = self.clock()
+            # The record is now eligible for handoff, so its lookup token becomes resolvable.
+            token = self.services.qr_tokens.current(record)
+            self.services.qr_tokens.activate(token)
+            self.services.audit.add(
+                self.session,
+                self.services.audit.event(
+                    action="qr-token.issued",
+                    outcome="succeeded",
+                    context=self.context,
+                    actor_role="system",
+                    target_type="recovery_record",
+                    target_id=record.id,
+                    programme_id=record.programme_id,
+                    details={"token_id": str(token.id)},
+                ),
+            )
 
             flags: list[str] = []
             original = (
@@ -762,6 +778,50 @@ class RecordService:
                 },
                 revision=loaded.revision,
             )
+
+    async def rotate_qr_token(self, record_id: uuid.UUID, actor: Actor) -> dict[str, Any]:
+        """Revokes the record's current QR token and issues a new one (lost or shared QR, or
+        an expired token). Only the owning collector may rotate, and only before handoff."""
+        await self.services.authorizer.require_role_permission(
+            actor, "recovery_record:correct_own", self.context, "recovery_record", record_id
+        )
+        async with self.session.begin():
+            record = await self.records.get(record_id, for_update=True)
+            if record is None:
+                raise not_found()
+            await self.services.authorizer.require(
+                actor,
+                "recovery_record:correct_own",
+                context_for(actor, RecordScope.of(record)),
+                self.context,
+                target_type="recovery_record",
+                target_id=record.id,
+            )
+            if record.business_state != "awaiting_handoff":
+                raise invalid_transition(
+                    "A QR code can be reissued only while the record awaits handoff.",
+                    reason="NOT_AWAITING_HANDOFF",
+                )
+            replacement = self.services.qr_tokens.rotate(record)
+            await self.session.flush()  # the revocation must precede the new active token
+            record.qr_tokens.append(replacement)
+            self.services.audit.add(
+                self.session,
+                self.services.audit.event(
+                    action="qr-token.rotated",
+                    outcome="succeeded",
+                    context=self.context,
+                    actor=actor,
+                    target_type="recovery_record",
+                    target_id=record.id,
+                    programme_id=record.programme_id,
+                    details={"token_id": str(replacement.id)},
+                ),
+            )
+            await self.session.flush()
+            payload = mappers.qr_payload(record.id, self.services.qr_tokens.derive(replacement))
+        self.services.contracts.check_response("qr_payload", payload)
+        return payload
 
 
 def _ai_observation(vision: dict[str, Any] | None) -> dict[str, Any] | None:

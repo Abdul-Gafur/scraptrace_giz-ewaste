@@ -38,6 +38,22 @@ Reusable FastAPI dependencies (`app/api/security.py`): `get_current_actor` (auth
 
 `POST /v1/vision/appraise` requires any authenticated role by default. `SCRAPTRACE_VISION_REQUIRES_AUTHENTICATION=false` restores the walking skeleton's open behaviour for local classifier work only, and production refuses that setting. Appraisal grants no record access and stores nothing. The health routes `/health/live`, `/health/ready` and `/health/database` are public by policy and return status only.
 
+## QR lookup tokens
+
+- **Payload:** the QR carries exactly `QrPayload` (`contract_version`, `record_id`, `lookup_token`). No name, telephone number, coordinates or other personal data (FR-REC-003). The token contains neither the record ID nor the human reference.
+- **No plaintext at rest:** each token row stores a SHA-256 digest and a random 16-byte nonce. The token is `base64url(HMAC-SHA256(SCRAPTRACE_QR_TOKEN_SECRET, "scraptrace:qr-lookup-token:v1:" + token_id + nonce))`, re-derived only when the owning collector's record is rendered. A database copy alone yields no usable token, and lookups match on the digest.
+- **Lifecycle:** a token is created with its draft (the contract requires `qr_payload` on every record) but cannot resolve until publication for handoff activates it. It then expires after `SCRAPTRACE_QR_TOKEN_TTL_DAYS`. The owner can rotate it, which revokes the old token; a partial unique index allows one unrevoked token per record. `used_at` is set at handoff.
+- **Possession is not authorisation:** lookup and handoff also require an authenticated recycler with `handoff:accept`/`handoff:record`, programme scope and facility scope.
+- **No oracle:** unknown, malformed, inactive, revoked, expired and mismatched tokens return the same `404` with the same message, and are audited as `qr-lookup.failed`. A recycler at another facility learns only `other_facility`. Lookups are rate limited per user (`SCRAPTRACE_LOOKUP_RATE_LIMIT_*`) and use `POST`, so tokens never appear in URLs or access logs.
+- **Transfer codes:** the typed human reference (FR-HND-001) resolves like a scan, subject to the same authentication, scope and rate limiting. The ten-character base32 reference (about 50 bits) makes guessing impractical within the rate limit.
+
+## Handoff integrity
+
+- The presented token must resolve to the request's record. The signed-in recycler must be the `recycler_reference`. The receiving location must be active, belong to the record's programme and be one of the recycler's locations. A record destined for another facility is refused (`403`).
+- Evidence references must be accepted `handoff_photo` and `weight_measurement` items the same recycler uploaded for that record; both types are required (FR-HND-004). The server adds QR-scan and receipt evidence itself.
+- Weight discrepancy beyond the programme threshold (after unit conversion), category disagreement and reused photographs raise named flags. The review case opens in the same transaction as the handoff, the transition and the audit event, so a failure leaves no partial state and removes generated evidence objects.
+- Idempotency: the key and digest are scoped to the signed-in actor, `record_handoff` and the record. Replays return the first response; a changed payload under the same key returns `409 IDEMPOTENCY_CONFLICT`. At most one handoff can exist per record (unique constraint and append-only trigger).
+
 ## Evidence
 
 - **Separate from vision:** `POST /v1/vision/appraise` still stores nothing. Evidence is a distinct, authorised upload.

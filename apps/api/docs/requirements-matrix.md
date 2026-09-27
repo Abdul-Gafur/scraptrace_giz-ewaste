@@ -18,3 +18,8 @@ Backend Phase 1 traceability from the [functional requirements](../../../docs/pr
 | FR-REC-007 image digest and exact-reuse flag | Submission raises `DUPLICATE_EVIDENCE_DIGEST` on a review case | `Evidence.content_digest`, `ReviewInformation` | 3 |
 | Evidence storage, provenance and controlled retrieval | `POST/GET /recovery-records/{id}/evidence`, `GET /evidence/{id}`, `GET /evidence/{id}/content` | `Evidence`, `Provenance` (gap 6–8) | 3 |
 | FR-OFF-005 idempotent creation; FR-OFF-006 version conflicts | `Idempotency-Key`, `If-Match`/`ETag`, `VERSION_CONFLICT` | `IdempotencyMetadata` | 3 |
+| FR-REC-003 QR with an opaque token only; FR-REC-004 present after reopening | Token issued inert with the draft, activated on publication, returned in `RecoveryRecord.qr_payload`; `POST /recovery-records/{id}/qr-token-rotations` | `QrPayload` (gap 17) | 4 |
+| FR-HND-001/002 retrieve intake by QR or short code; non-sensitive preview only | `POST /handoff-lookups` | `QrPayload`, `HandoffPreview` (gap 13–14) | 4 |
+| FR-HND-003/004/005 confirm category, condition, weight, price; photo and scale evidence; location, recycler, server and client time | `POST /handoffs` | `HandoffRequest` → `HandoffResponse`, `HandoffInformation` | 4 |
+| FR-HND-006 discrepancy flags, not blocking | Weight, category and duplicate-evidence flags open the review case atomically | `HandoffResponse.discrepancy`, `ReviewInformation` | 4 |
+| BR-007 / FR-OFF-005 one key, one logical mutation; duplicate scans | Scoped idempotency replay; `duplicate_scan` | `IdempotencyMetadata` | 4 |

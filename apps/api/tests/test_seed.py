@@ -32,12 +32,24 @@ def test_seed_is_repeatable(api_settings: Settings) -> None:
     second_message = asyncio.run(run_seed(api_settings, DEMO_PASSWORD, False))
     second = query(api_settings, _snapshot)
     assert first == second
-    assert f"{len(SEED_RECORD_PLANS)} demonstration records created" in first_message
+    assert f"{len(SEED_RECORD_PLANS)} demonstration records advanced" in first_message
     assert "0 reference rows created" in second_message
-    assert "0 demonstration records created" in second_message
+    assert "0 demonstration records advanced" in second_message
     assert first["records"] == sorted(
         (str(plan.record_id), plan.stage) for plan in SEED_RECORD_PLANS
     )
+
+
+def test_seeded_discrepancy_opens_a_review_case(api_settings: Settings) -> None:
+    from apps.api.app.db.models import ReviewCase
+
+    asyncio.run(run_seed(api_settings, DEMO_PASSWORD, False))
+
+    async def cases(session: sa.ext.asyncio.AsyncSession) -> list[tuple[str, list[str]]]:
+        result = await session.execute(sa.select(ReviewCase.status, ReviewCase.flag_codes))
+        return [(row.status, row.flag_codes) for row in result]
+
+    assert query(api_settings, cases) == [("open", ["WEIGHT_DISCREPANCY"])]
 
 
 def test_seed_refuses_production_and_weak_passwords(

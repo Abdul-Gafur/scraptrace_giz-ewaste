@@ -157,6 +157,91 @@ EVIDENCE_UPLOAD_FIELDS_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+_QR = REGISTRY.resolved("qr_payload")
+
+# Exactly one presentation form. The QR payload's version is checked by the service (not by
+# `const` here) so an unsupported version returns `UNSUPPORTED_CONTRACT_VERSION`.
+HANDOFF_LOOKUP_SCHEMA: dict[str, Any] = {
+    "title": "HandoffLookupRequest",
+    "type": "object",
+    "properties": {
+        "qr_payload": {
+            "type": "object",
+            "description": "The decoded `QrPayload` object.",
+            "properties": {
+                "contract_version": {"type": "string", "maxLength": 32},
+                "record_id": _QR["properties"]["record_id"],
+                "lookup_token": _QR["properties"]["lookup_token"],
+            },
+            "required": ["contract_version", "record_id", "lookup_token"],
+            "additionalProperties": False,
+        },
+        "qr_text": {
+            "type": "string",
+            "maxLength": 400,
+            "description": "QR symbol text: SCRAPTRACE:<contract version>:<record id>:<token>.",
+        },
+        "lookup_token": _QR["properties"]["lookup_token"],
+        "transfer_code": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "The human reference (ST-...) typed instead of scanning.",
+        },
+    },
+    "minProperties": 1,
+    "maxProperties": 1,
+    "additionalProperties": False,
+}
+
+HANDOFF_PREVIEW_SCHEMA: dict[str, Any] = {
+    "title": "HandoffPreview",
+    "type": "object",
+    "description": "The minimised view a recycler receives before accepting a handoff.",
+    "properties": {
+        "record_id": _record("record_id"),
+        "human_reference": _record("human_reference"),
+        "record_kind": _record("record_kind"),
+        "category": _record("category"),
+        "item_count": _record("item_count"),
+        "approximate_weight": _record("approximate_weight"),
+        "condition": _record("condition"),
+        "approximate_area": _record("approximate_area"),
+        "captured_at": _record("captured_at"),
+        "collector": _record("collector"),
+        "original_image_evidence_id": _record("original_image_evidence_id"),
+        "destination": _record("destination"),
+        "business_state": _record("business_state"),
+        "handoff_state": _record("handoff_state"),
+    },
+    "required": [
+        "record_id",
+        "human_reference",
+        "record_kind",
+        "category",
+        "condition",
+        "approximate_area",
+        "captured_at",
+        "collector",
+        "original_image_evidence_id",
+        "business_state",
+        "handoff_state",
+    ],
+    "additionalProperties": False,
+}
+
+HANDOFF_LOOKUP_RESPONSE_SCHEMA: dict[str, Any] = {
+    "title": "HandoffLookupResult",
+    "type": "object",
+    "properties": {
+        "outcome": {"enum": ["ready", "not_ready", "already_received", "other_facility"]},
+        "record": HANDOFF_PREVIEW_SCHEMA,
+        "received_at": _record("created_at"),
+        "lookup_token": _QR["properties"]["lookup_token"],
+    },
+    "required": ["outcome"],
+    "additionalProperties": False,
+}
+
 _VALIDATORS = {
     id(schema): Draft202012Validator(schema)
     for schema in (
@@ -164,8 +249,17 @@ _VALIDATORS = {
         DRAFT_UPDATE_SCHEMA,
         CATEGORY_CONFIRMATION_SCHEMA,
         EVIDENCE_UPLOAD_FIELDS_SCHEMA,
+        HANDOFF_LOOKUP_SCHEMA,
+        HANDOFF_LOOKUP_RESPONSE_SCHEMA,
     )
 }
+
+
+def check_transport_response(schema: dict[str, Any], payload: Any) -> None:
+    from apps.api.app.contracts.validation import ContractValidationError
+
+    if any(True for _ in _VALIDATORS[id(schema)].iter_errors(payload)):
+        raise ContractValidationError(f"Outgoing '{schema['title']}' failed validation.")
 
 
 def validate_transport(schema: dict[str, Any], payload: Any, prefix: str = "") -> None:
