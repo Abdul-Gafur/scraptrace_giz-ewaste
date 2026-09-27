@@ -1,10 +1,12 @@
 import {
   ActorIdSchema,
+  EvidenceSchema,
   EwasteCategorySchema,
   GeoCoordinatesSchema,
   ItemConditionSchema,
   PriceEstimateSchema,
   RecoveryRecordSchema,
+  RecoveryRecordEventSchema,
   SupportedLanguageSchema,
   UserRoleSchema,
   VisionResultSchema,
@@ -96,6 +98,17 @@ const captureForm = (input: CaptureInput | UpdateDraftInput): FormData => {
   if (input.image) form.append("image", input.image, "evidence-upload");
   return form;
 };
+
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("Evidence response could not be read."));
+    reader.onerror = () => reject(new Error("Evidence response could not be read."));
+    reader.readAsDataURL(blob);
+  });
 
 export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
   const client = new HttpClient(apiBaseUrl);
@@ -215,9 +228,30 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
           : result;
       },
       lookupForHandoff: notImplemented,
-      listEvents: notImplemented,
-      listEvidence: notImplemented,
-      getEvidenceImage: notImplemented,
+      listEvents: (recordId) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(recordId)}/events`,
+          z.array(RecoveryRecordEventSchema),
+          { method: "GET" },
+        ),
+      listEvidence: (recordId) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(recordId)}/evidence`,
+          z.array(EvidenceSchema),
+          { method: "GET" },
+        ),
+      async getEvidenceImage(evidenceId) {
+        try {
+          const blob = await client.requestBlob(
+            `/v1/evidence/${encodeURIComponent(evidenceId)}/content`,
+            { method: "GET", headers: { Accept: "image/*" } },
+          );
+          return blob.type.startsWith("image/") ? blobToDataUrl(blob) : null;
+        } catch (error) {
+          if (error instanceof ScrapTraceServiceError && error.status === 404) return null;
+          throw error;
+        }
+      },
     },
     vision: {
       async appraise(request) {

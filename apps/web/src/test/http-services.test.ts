@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EvidenceIdSchema } from "@scraptrace/contracts";
+import {
+  CONTRACT_SCHEMA_VERSION,
+  EVENT_SCHEMA_VERSION,
+  EvidenceIdSchema,
+} from "@scraptrace/contracts";
 
 import { HttpClient, ScrapTraceServiceError } from "@/services/http/http-client";
 import { createHttpServices } from "@/services/http/http-services";
@@ -258,5 +262,89 @@ describe("recovery-record HTTP adapter", () => {
       record.record_id,
     );
     expect(result).toMatchObject({ outcome: "submitted", record: { record_id: record.record_id } });
+  });
+
+  it("parses evidence and events and retrieves protected image content", async () => {
+    class TestFileReader {
+      result: string | ArrayBuffer | null = null;
+      onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+      onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
+
+      readAsDataURL() {
+        this.result = "data:image/jpeg;base64,aW1hZ2U=";
+        this.onload?.(new ProgressEvent("load") as ProgressEvent<FileReader>);
+      }
+    }
+    vi.stubGlobal("FileReader", TestFileReader);
+    const record = createRecoveryRecordFixture();
+    const evidence = {
+      evidence_schema_version: CONTRACT_SCHEMA_VERSION,
+      evidence_id: evidenceId,
+      recovery_record_id: record.record_id,
+      evidence_type: "original_item_photo",
+      storage_reference: {
+        storage_provider: "object-store",
+        object_key: `records/${record.record_id}/${evidenceId}`,
+      },
+      mime_type: "image/jpeg",
+      file_size_bytes: 5,
+      content_digest: `sha256:${"a".repeat(64)}`,
+      provenance: {
+        capture_source: "in_app_camera",
+        captured_by: record.collector,
+        device_instance_id: record.sync.device_instance_id,
+        captured_at: timestamp,
+        application_version: "1.0.0",
+        connectivity: "online",
+      },
+      validation_status: "accepted",
+    } as const;
+    const event = {
+      event_schema_version: EVENT_SCHEMA_VERSION,
+      event_id: "0199a888-8888-7888-8888-888888888888",
+      recovery_record_id: record.record_id,
+      event_type: "submit_record",
+      actor: record.collector,
+      actor_role: "collector",
+      occurred_at: timestamp,
+      previous_state: "draft",
+      resulting_state: "submitted",
+    } as const;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(input.toString()).pathname;
+      expect(init?.credentials).toBe("include");
+      if (path.endsWith("/events")) return Response.json([event]);
+      if (path.endsWith("/evidence")) return Response.json([evidence]);
+      expect(new Headers(init?.headers).get("Accept")).toBe("image/*");
+      return new Response("image", { headers: { "Content-Type": "image/jpeg" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const records = createHttpServices("https://api.example.test").recoveryRecords;
+
+    await expect(records.listEvents(record.record_id)).resolves.toEqual([event]);
+    await expect(records.listEvidence(record.record_id)).resolves.toEqual([evidence]);
+    await expect(records.getEvidenceImage(evidenceId)).resolves.toMatch(
+      /^data:image\/jpeg;base64,/,
+    );
+  });
+
+  it("returns no evidence image for a missing protected object", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+    await expect(
+      createHttpServices("https://api.example.test").recoveryRecords.getEvidenceImage(evidenceId),
+    ).resolves.toBeNull();
+  });
+
+  it("rejects contract-invalid evidence and event responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json([{ evidence_id: evidenceId }])),
+    );
+    const records = createHttpServices("https://api.example.test").recoveryRecords;
+    await expect(records.listEvidence(createRecoveryRecordFixture().record_id)).rejects.toThrow();
+    await expect(records.listEvents(createRecoveryRecordFixture().record_id)).rejects.toThrow();
   });
 });

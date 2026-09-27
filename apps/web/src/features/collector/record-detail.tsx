@@ -99,7 +99,12 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                         </div>
 
                         {record.vision_result ? (
-                          <div className="bg-surface rounded-md border px-4 py-2">
+                          <div className="bg-surface space-y-3 rounded-md border px-4 py-3">
+                            {record.vision_result.low_confidence ? (
+                              <Alert title={translate("lowConfidenceTitle")} tone="warning">
+                                {translate("lowConfidenceNotice")}
+                              </Alert>
+                            ) : null}
                             <DefinitionList>
                               <DefinitionRow term={translate("suggestedCategory")}>
                                 {labels.category(record.vision_result.suggested_category)}
@@ -107,8 +112,17 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                               <DefinitionRow term={translate("confidence")}>
                                 {formats.percent(record.vision_result.confidence)}
                               </DefinitionRow>
+                              <DefinitionRow term={translate("modelName")}>
+                                {record.vision_result.model_name}
+                              </DefinitionRow>
                               <DefinitionRow term={translate("modelVersion")}>
                                 {record.vision_result.model_version}
+                              </DefinitionRow>
+                              <DefinitionRow term={translate("inferredAt")}>
+                                {formats.dateTime(record.vision_result.inferred_at)}
+                              </DefinitionRow>
+                              <DefinitionRow term={translate("confirmedCategory")} tone="success">
+                                {labels.category(record.category_confirmation.confirmed_category)}
                               </DefinitionRow>
                               <DefinitionRow term={translate("confirmedBy")}>
                                 {labels.confirmation(record.category_confirmation.source)}
@@ -119,6 +133,9 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                                 </DefinitionRow>
                               ) : null}
                             </DefinitionList>
+                            <p className="text-muted-foreground text-xs leading-5">
+                              {translate("classifierLimitation")}
+                            </p>
                           </div>
                         ) : null}
 

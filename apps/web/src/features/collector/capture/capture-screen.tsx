@@ -381,11 +381,24 @@ function CaptureEditor({
           </label>
           <p className="text-muted-foreground text-xs leading-5">{translate("imageHint")}</p>
           {image ? (
-            <p className="text-muted-foreground text-xs">
-              {translate(image.reduced ? "imageReduced" : "imageNotReduced", {
-                size: formats.number(Math.round(image.originalBytes / 1024), 0),
-              })}
-            </p>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs">
+                {translate(image.reduced ? "imageReduced" : "imageNotReduced", {
+                  size: formats.number(Math.round(image.originalBytes / 1024), 0),
+                })}
+              </p>
+              <Button
+                onClick={() => {
+                  setImage(null);
+                  setAppraisal(appraisalFor(draft));
+                  setCategory(draft?.category ?? "");
+                  setDirty(true);
+                }}
+                variant="tertiary"
+              >
+                {translate("removeImage")}
+              </Button>
+            </div>
           ) : null}
           {imageError ? <FormError title={imageError} /> : null}
           {fieldErrors["image"] ? <FormError title={fieldErrors["image"]} /> : null}

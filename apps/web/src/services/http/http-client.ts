@@ -94,7 +94,7 @@ export interface HttpRequestOptions extends Omit<RequestInit, "body"> {
 export class HttpClient {
   constructor(private readonly baseUrl: string) {}
 
-  async request(path: string, init: HttpRequestOptions = {}): Promise<unknown> {
+  private async send(path: string, init: HttpRequestOptions = {}): Promise<Response> {
     const {
       requestId: explicitRequestId,
       idempotencyKey,
@@ -110,7 +110,7 @@ export class HttpClient {
       !(body instanceof URLSearchParams) &&
       typeof body !== "string";
     const headers = new Headers(requestInit.headers);
-    headers.set("Accept", "application/json");
+    if (!headers.has("Accept")) headers.set("Accept", "application/json");
     headers.set("X-Request-ID", correlationId);
     if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
     if (bodyIsJson) headers.set("Content-Type", "application/json");
@@ -127,14 +127,11 @@ export class HttpClient {
       response.headers.get("X-Request-ID") ??
       response.headers.get("X-Correlation-ID") ??
       correlationId;
-    const contentType = response.headers.get("content-type") ?? "";
-    const payload: unknown =
-      response.status === 204
-        ? undefined
-        : contentType.includes("application/json")
-          ? await response.json().catch(() => undefined)
-          : undefined;
     if (!response.ok) {
+      const contentType = response.headers.get("content-type") ?? "";
+      const payload: unknown = contentType.includes("application/json")
+        ? await response.json().catch(() => undefined)
+        : undefined;
       const parsed = ErrorEnvelopeSchema.safeParse(payload);
       const error = new ScrapTraceServiceError(
         parsed.success ? parsed.data : fallbackEnvelope(response.status, responseCorrelationId),
@@ -145,7 +142,21 @@ export class HttpClient {
       }
       throw error;
     }
+    return response;
+  }
+
+  async request(path: string, init: HttpRequestOptions = {}): Promise<unknown> {
+    const response = await this.send(path, init);
+    if (response.status === 204) return undefined;
+    const contentType = response.headers.get("content-type") ?? "";
+    const payload: unknown = contentType.includes("application/json")
+      ? await response.json().catch(() => undefined)
+      : undefined;
     return payload;
+  }
+
+  async requestBlob(path: string, init: HttpRequestOptions = {}): Promise<Blob> {
+    return (await this.send(path, init)).blob();
   }
 
   async requestParsed<Schema extends z.ZodType>(
