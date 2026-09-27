@@ -1,7 +1,14 @@
 import {
   ActorIdSchema,
+  EwasteCategorySchema,
+  GeoCoordinatesSchema,
+  ItemConditionSchema,
+  PriceEstimateSchema,
+  RecoveryRecordSchema,
   SupportedLanguageSchema,
   UserRoleSchema,
+  VisionResultSchema,
+  WeightSchema,
   VisionAppraisalRequestSchema,
   VisionAppraisalResponseSchema,
   serviceSuccessSchema,
@@ -9,8 +16,9 @@ import {
 import { z } from "zod";
 
 import type { FrontendServices } from "@/services/ports/service-ports";
+import type { CaptureInput, UpdateDraftInput } from "@/services/ports/service-ports";
 
-import { HttpClient } from "./http-client";
+import { HttpClient, ScrapTraceServiceError } from "./http-client";
 
 const notImplemented = async (): Promise<never> => {
   throw new Error("This HTTP service is not implemented in the backend walking skeleton.");
@@ -26,9 +34,79 @@ const SessionResponseSchema = serviceSuccessSchema(SessionTransportSchema);
 const SignedOutResponseSchema = serviceSuccessSchema(
   z.strictObject({ signed_out: z.literal(true) }),
 );
+const RecoveryRecordListSchema = z.array(RecoveryRecordSchema);
+const SubmitResponseSchema = z.discriminatedUnion("outcome", [
+  z.strictObject({
+    outcome: z.literal("submitted"),
+    record: RecoveryRecordSchema,
+    replayed: z.boolean(),
+  }),
+  z.strictObject({
+    outcome: z.literal("duplicate_image"),
+    record: RecoveryRecordSchema,
+    flag_codes: z.array(z.string().min(1).max(80)).min(1),
+  }),
+]);
+const CaptureMetadataSchema = z.strictObject({
+  category: EwasteCategorySchema,
+  language: SupportedLanguageSchema,
+  condition: ItemConditionSchema,
+  item_count: z.number().int().positive().optional(),
+  approximate_weight: WeightSchema.optional(),
+  area_label: z.string().min(1).max(160),
+  administrative_area: z.string().min(1).max(160).optional(),
+  capture_location: GeoCoordinatesSchema.optional(),
+  vision_result: VisionResultSchema.optional(),
+  estimated_price: PriceEstimateSchema.optional(),
+  confirmation_source: z.enum(["accepted_prediction", "manual_selection", "human_correction"]),
+  correction_reason: z.string().min(1).max(500).optional(),
+  offline: z.boolean(),
+  destination_location_id: z.string().uuid().optional(),
+  captured_at: z.iso.datetime().optional(),
+  base_revision: z.number().int().nonnegative().optional(),
+});
+
+const captureMetadata = (input: CaptureInput | UpdateDraftInput) =>
+  CaptureMetadataSchema.parse({
+    category: input.category,
+    language: input.language,
+    condition: input.condition,
+    ...(input.itemCount === undefined ? {} : { item_count: input.itemCount }),
+    ...(input.approximateWeight ? { approximate_weight: input.approximateWeight } : {}),
+    area_label: input.areaLabel,
+    ...(input.administrativeArea ? { administrative_area: input.administrativeArea } : {}),
+    ...(input.captureLocation ? { capture_location: input.captureLocation } : {}),
+    ...(input.visionResult ? { vision_result: input.visionResult } : {}),
+    ...(input.estimatedPrice ? { estimated_price: input.estimatedPrice } : {}),
+    confirmation_source: input.confirmationSource,
+    ...(input.correctionReason ? { correction_reason: input.correctionReason } : {}),
+    offline: input.offline,
+    ...(input.destinationLocationId
+      ? { destination_location_id: input.destinationLocationId }
+      : {}),
+    ...(input.capturedAt ? { captured_at: input.capturedAt } : {}),
+    ...("baseRevision" in input && input.baseRevision !== undefined
+      ? { base_revision: input.baseRevision }
+      : {}),
+  });
+
+const captureForm = (input: CaptureInput | UpdateDraftInput): FormData => {
+  const form = new FormData();
+  form.append("metadata", JSON.stringify(captureMetadata(input)));
+  if (input.image) form.append("image", input.image, "evidence-upload");
+  return form;
+};
 
 export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
   const client = new HttpClient(apiBaseUrl);
+  const createDraftKeys = new WeakMap<Blob, string>();
+  const createDraftKey = (image: Blob) => {
+    const existing = createDraftKeys.get(image);
+    if (existing) return existing;
+    const created = `create-draft:${crypto.randomUUID()}`;
+    createDraftKeys.set(image, created);
+    return created;
+  };
   const toSession = (session: z.infer<typeof SessionTransportSchema>) => ({
     actorId: session.actor_id,
     role: session.role,
@@ -68,12 +146,74 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
       },
     },
     recoveryRecords: {
-      listOwn: notImplemented,
-      listOperational: notImplemented,
-      getById: notImplemented,
-      saveDraft: notImplemented,
-      createDraft: notImplemented,
-      submit: notImplemented,
+      listOwn: () =>
+        client.requestParsed("/v1/recovery-records?scope=own", RecoveryRecordListSchema, {
+          method: "GET",
+        }),
+      listOperational: () =>
+        client.requestParsed("/v1/recovery-records?scope=operational", RecoveryRecordListSchema, {
+          method: "GET",
+        }),
+      async getById(recordId) {
+        try {
+          return await client.requestParsed(
+            `/v1/recovery-records/${encodeURIComponent(recordId)}`,
+            RecoveryRecordSchema,
+            { method: "GET" },
+          );
+        } catch (error) {
+          if (error instanceof ScrapTraceServiceError && error.status === 404) return null;
+          throw error;
+        }
+      },
+      async saveDraft(record) {
+        const parsed = RecoveryRecordSchema.parse(record);
+        return client.requestParsed(
+          `/v1/recovery-records/${parsed.record_id}/draft`,
+          RecoveryRecordSchema,
+          {
+            method: "PUT",
+            body: parsed,
+            headers: { "If-Match": String(parsed.revision) },
+          },
+        );
+      },
+      createDraft: (input) =>
+        client.requestParsed("/v1/recovery-records", RecoveryRecordSchema, {
+          method: "POST",
+          body: captureForm(input),
+          idempotencyKey: createDraftKey(input.image),
+        }),
+      updateDraft: (recordId, input) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(recordId)}/draft`,
+          RecoveryRecordSchema,
+          {
+            method: "PATCH",
+            body: captureForm(input),
+            ...(input.baseRevision === undefined
+              ? {}
+              : { headers: { "If-Match": String(input.baseRevision) } }),
+          },
+        ),
+      async submit(recordId) {
+        const result = await client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(recordId)}/submissions`,
+          SubmitResponseSchema,
+          {
+            method: "POST",
+            body: {},
+            idempotencyKey: `submit-record:${recordId}`,
+          },
+        );
+        return result.outcome === "duplicate_image"
+          ? {
+              outcome: result.outcome,
+              record: result.record,
+              flagCodes: result.flag_codes,
+            }
+          : result;
+      },
       lookupForHandoff: notImplemented,
       listEvents: notImplemented,
       listEvidence: notImplemented,

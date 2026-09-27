@@ -26,6 +26,12 @@ export function useSafeErrorMessage() {
       }
       return error.envelope.error.message;
     }
+    if (
+      error instanceof TypeError ||
+      (typeof navigator !== "undefined" && navigator.onLine === false)
+    ) {
+      return translate("networkUnavailable");
+    }
     return translate("unexpected");
   };
 }
@@ -52,13 +58,13 @@ export function AsyncPanel<Data>({
   emptyDescription,
   skeletonRows = 3,
 }: AsyncPanelProps<Data>) {
-  const translate = useTranslations("common");
+  const translateCommon = useTranslations("common");
   const safeMessage = useSafeErrorMessage();
 
   if (query.isPending) {
     return (
       <div aria-busy="true" className="space-y-2" role="status">
-        <span className="sr-only">{translate("loading")}</span>
+        <span className="sr-only">{translateCommon("loading")}</span>
         {Array.from({ length: skeletonRows }, (_, index) => (
           <Skeleton className="h-16 w-full" key={index} />
         ))}
@@ -70,7 +76,7 @@ export function AsyncPanel<Data>({
       <PermissionDeniedState description={safeMessage(query.error)} />
     ) : (
       <ErrorState
-        actionLabel={translate("retry")}
+        actionLabel={translateCommon("retry")}
         description={safeMessage(query.error)}
         onAction={() => void query.refetch()}
       />

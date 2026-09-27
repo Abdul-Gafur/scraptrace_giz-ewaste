@@ -11,6 +11,7 @@ import type {
   RecordHandoffInput,
   RecordProcessingInput,
   ReviewDecisionInput,
+  UpdateDraftInput,
 } from "@/services/ports/service-ports";
 
 /**
@@ -100,6 +101,16 @@ export function useCreateDraft() {
   const invalidate = useInvalidateRecords();
   return useMutation({
     mutationFn: (input: CaptureInput) => services.recoveryRecords.createDraft(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateDraft() {
+  const services = useServices();
+  const invalidate = useInvalidateRecords();
+  return useMutation({
+    mutationFn: ({ recordId, input }: { recordId: string; input: UpdateDraftInput }) =>
+      services.recoveryRecords.updateDraft(recordId, input),
     onSuccess: invalidate,
   });
 }

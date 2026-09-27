@@ -78,6 +78,7 @@ export interface CaptureInput {
   readonly administrativeArea?: string;
   readonly captureLocation?: GeoCoordinates;
   readonly visionResult?: VisionResult;
+  readonly estimatedPrice?: RecoveryRecord["estimated_price"];
   readonly confirmationSource: "accepted_prediction" | "manual_selection" | "human_correction";
   readonly correctionReason?: string;
   /** The accepted photograph. Its digest becomes the original-item-photo evidence digest. */
@@ -88,6 +89,12 @@ export interface CaptureInput {
   /** Capture time, when the photograph was taken before the record was saved (FR-OFF-001). */
   readonly capturedAt?: string;
 }
+
+export type UpdateDraftInput = Omit<CaptureInput, "image"> & {
+  /** Omit to retain the already persisted original evidence. */
+  readonly image?: Blob;
+  readonly baseRevision?: number;
+};
 
 export type SubmitOutcome =
   | { readonly outcome: "submitted"; readonly record: RecoveryRecord; readonly replayed: boolean }
@@ -118,6 +125,7 @@ export interface RecoveryRecordService {
   getById(recordId: string): Promise<RecoveryRecord | null>;
   saveDraft(record: unknown): Promise<RecoveryRecord>;
   createDraft(input: CaptureInput): Promise<RecoveryRecord>;
+  updateDraft(recordId: string, input: UpdateDraftInput): Promise<RecoveryRecord>;
   submit(recordId: string): Promise<SubmitOutcome>;
   lookupForHandoff(scannedTextOrCode: string): Promise<HandoffLookupResult>;
   listEvents(recordId: string): Promise<readonly RecoveryRecordEvent[]>;

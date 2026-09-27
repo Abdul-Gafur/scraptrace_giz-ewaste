@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   DefinitionList,
@@ -21,6 +22,7 @@ import { RecordTimeline } from "@/features/shared/record-timeline";
 import { RecordQrCode } from "@/features/shared/qr-code";
 import { useRecord, useRecordEvents, useRecordEvidence } from "@/hooks/use-records";
 import { findLocationName } from "@/services/local/location-directory";
+import { Link } from "@/i18n/navigation";
 
 /**
  * One record as its collector sees it (FR-REC-004, FR-DSH-001, FR-DSH-002).
@@ -53,6 +55,10 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
 
               <FlagPanel flagCodes={record.review.flag_codes} />
 
+              <Alert title={translate("nextStepTitle")} tone="info">
+                {translate(`nextStep.${record.business_state}`)}
+              </Alert>
+
               {showQr ? (
                 <Card>
                   <CardHeader>
@@ -69,7 +75,15 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
 
               {record.business_state === "draft" ? (
                 <Alert title={translate("draftTitle")} tone="info">
-                  {translate("draftNotice")}
+                  <div className="space-y-3">
+                    <p>{translate("draftNotice")}</p>
+                    <Link
+                      className={buttonVariants({ variant: "secondary" })}
+                      href={`/collector/records/${record.record_id}/edit`}
+                    >
+                      {translate("resumeDraft")}
+                    </Link>
+                  </div>
                 </Alert>
               ) : null}
 

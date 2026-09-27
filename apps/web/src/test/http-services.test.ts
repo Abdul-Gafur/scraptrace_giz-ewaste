@@ -3,6 +3,7 @@ import { EvidenceIdSchema } from "@scraptrace/contracts";
 
 import { HttpClient, ScrapTraceServiceError } from "@/services/http/http-client";
 import { createHttpServices } from "@/services/http/http-services";
+import { createRecoveryRecordFixture } from "@/services/mocks/deterministic-fixtures";
 
 const evidenceId = EvidenceIdSchema.parse("0199a111-1111-7111-8111-111111111111");
 const timestamp = "2026-09-26T12:30:00.000Z";
@@ -202,5 +203,60 @@ describe("HTTP foundation", () => {
         signal: controller.signal,
       }),
     ).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
+describe("recovery-record HTTP adapter", () => {
+  it("parses owned records and creates a multipart draft", async () => {
+    const record = createRecoveryRecordFixture();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(input.toString());
+      if (init?.method === "GET") {
+        expect(url.searchParams.get("scope")).toBe("own");
+        return Response.json([record]);
+      }
+      expect(init?.method).toBe("POST");
+      expect(init?.body).toBeInstanceOf(FormData);
+      expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toMatch(/^create-draft:/);
+      const form = init?.body as FormData;
+      expect(JSON.parse(String(form.get("metadata")))).toMatchObject({
+        category: "televisions",
+        condition: "damaged",
+      });
+      expect((form.get("image") as File).name).toBe("evidence-upload");
+      return Response.json(record);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const records = createHttpServices("https://api.example.test").recoveryRecords;
+
+    await expect(records.listOwn()).resolves.toEqual([record]);
+    await expect(
+      records.createDraft({
+        category: "televisions",
+        language: "en",
+        condition: "damaged",
+        itemCount: 1,
+        areaLabel: "Greater Accra",
+        confirmationSource: "manual_selection",
+        image: new File(["image"], "private-device-name.jpg", { type: "image/jpeg" }),
+        offline: false,
+      }),
+    ).resolves.toEqual(record);
+  });
+
+  it("submits one canonical record with an idempotency key", async () => {
+    const record = createRecoveryRecordFixture();
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+        `submit-record:${record.record_id}`,
+      );
+      return Response.json({ outcome: "submitted", record, replayed: false });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await createHttpServices("https://api.example.test").recoveryRecords.submit(
+      record.record_id,
+    );
+    expect(result).toMatchObject({ outcome: "submitted", record: { record_id: record.record_id } });
   });
 });
