@@ -74,7 +74,9 @@ npm run contracts:check
 
 ## Current status
 
-The repository contains the engineering documentation foundation, shared contracts, and a production-buildable Next.js frontend foundation. The frontend provides four locales, RTL support, responsive role shells, centralized route policy, contract-valid development mocks, semantic design tokens, and automated accessibility and browser tests. Complete feature screens, real authentication and APIs, persistence, models, datasets, integrations, environments, and deployment automation remain unimplemented. See the [frontend README](apps/web/README.md) for current boundaries.
+The repository contains the engineering documentation foundation, shared contracts, a trained computer-vision artefact, and a production-buildable Next.js frontend in which all six roles work end to end. One recovery record can be captured and submitted by a collector, resolved from its QR code and received by a recycler, processed, flagged, decided by a programme reviewer, and counted in the programme manager's report and CSV export. Safety content is authored, approved and published through its own workflow, and model metadata, stored corrections and the configuration the application applies are administered on their own screens.
+
+Application state lives in a browser-backed repository behind the shared service ports, so the demonstration needs no server. Production authentication, a production API, IndexedDB, a service worker, background synchronization, model retraining and deployment automation remain unimplemented. See the [frontend README](apps/web/README.md) for current boundaries.
 
 ## Important boundaries
 

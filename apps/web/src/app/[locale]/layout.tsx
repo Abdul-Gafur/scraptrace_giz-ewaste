@@ -63,11 +63,14 @@ export default async function LocaleLayout({
     >
       <body>
         <NextIntlClientProvider>
+          {/* The skip link sits outside the providers so it is reachable even while a provider is
+              still preparing, which is exactly when a keyboard user presses Tab first. */}
+          <SkipLink>{translate("skipToContent")}</SkipLink>
           <AppProviders
             serviceMode={useDevelopmentMocks ? "mock" : "http"}
+            apiBaseUrl={publicEnvironment.NEXT_PUBLIC_API_BASE_URL}
             showQueryDevtools={publicEnvironment.NEXT_PUBLIC_ENABLE_QUERY_DEVTOOLS === "true"}
           >
-            <SkipLink>{translate("skipToContent")}</SkipLink>
             {children}
           </AppProviders>
         </NextIntlClientProvider>

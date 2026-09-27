@@ -9,15 +9,17 @@ import { ServiceProvider } from "@/services/service-provider";
 export function AppProviders({
   children,
   serviceMode,
+  apiBaseUrl,
   showQueryDevtools,
 }: {
   children: ReactNode;
   serviceMode: "mock" | "http";
+  apiBaseUrl?: string | undefined;
   showQueryDevtools: boolean;
 }) {
   return (
     <QueryProvider showDevtools={showQueryDevtools}>
-      <ServiceProvider mode={serviceMode}>
+      <ServiceProvider mode={serviceMode} apiBaseUrl={apiBaseUrl}>
         <ToastProvider>{children}</ToastProvider>
       </ServiceProvider>
     </QueryProvider>

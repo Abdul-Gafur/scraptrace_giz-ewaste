@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scraptrace-api"
+version = "0.1.0"
+description = "ScrapTrace FastAPI walking skeleton and vision integration"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "anyio==4.9.0",
+  "fastapi==0.115.12",
+  "jsonschema==4.24.0",
+  "pillow==11.3.0",
+  "pydantic==2.11.7",
+  "python-multipart==0.0.20",
+  "timm==1.0.16",
+  "torch==2.7.1",
+  "torchvision==0.22.1",
+  "uvicorn[standard]==0.34.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx==0.28.1",
+  "mypy==1.16.1",
+  "pytest==8.4.1",
+  "pytest-asyncio==1.0.0",
+  "ruff==0.12.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "../../services/vision/tests"]
+pythonpath = ["../.."]
+addopts = "-ra"
+
+[tool.setuptools]
+packages = []
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["../../services/vision/download_data.py", "../../services/vision/extract_crops.py", "../../services/vision/train.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+packages = ["apps.api.app", "services.vision.manifest", "services.vision.predictor"]
+exclude = ["services/vision/(download_data|extract_crops|train|dataset|model)\\.py"]
+
+[[tool.mypy.overrides]]
+module = ["PIL.*", "jsonschema.*", "torch.*", "torchvision.*", "timm.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["services.vision.dataset", "services.vision.model"]
+follow_imports = "skip"
+ignore_errors = true

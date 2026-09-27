@@ -9,7 +9,9 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   workers: 1,
-  timeout: 60_000,
+  // A cross-role scenario visits several routes in one test, and the development server compiles
+  // each route on its first request, so the budget covers compilation as well as interaction.
+  timeout: 120_000,
   forbidOnly: Boolean(process.env["CI"]),
   retries: process.env["CI"] ? 2 : 0,
   reporter: "html",

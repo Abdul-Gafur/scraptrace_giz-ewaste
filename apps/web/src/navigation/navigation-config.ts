@@ -200,6 +200,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "received",
     roles: recycler,
     permission: permission["recovery_record:view_operational"],
+    match: "prefix",
     dedicatedPage: true,
   }),
   item({
@@ -209,6 +210,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "processing",
     roles: recycler,
     permission: permission["processing:record"],
+    dedicatedPage: true,
   }),
   item({
     id: "recycler-account",
@@ -217,6 +219,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "account",
     roles: recycler,
     permission: permission["recovery_record:view_operational"],
+    dedicatedPage: true,
   }),
 
   // Programme reviewer (Figma ProgrammeReviewerShell)
@@ -228,6 +231,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     roles: reviewer,
     permission: permission["review:evidence"],
     alsoActiveFor: ["/review"],
+    match: "prefix",
     dedicatedPage: true,
   }),
   item({
@@ -237,6 +241,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "assigned",
     roles: reviewer,
     permission: permission["review:evidence"],
+    dedicatedPage: true,
   }),
   item({
     id: "review-decisions",
@@ -245,6 +250,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "decisions",
     roles: reviewer,
     permission: permission["review:evidence"],
+    dedicatedPage: true,
   }),
   item({
     id: "review-history",
@@ -253,6 +259,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "history",
     roles: reviewer,
     permission: permission["review:evidence"],
+    dedicatedPage: true,
   }),
 
   // Programme manager (Figma ProgrammeManagerShell)
@@ -272,6 +279,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "ledger",
     roles: manager,
     permission: permission["programme_report:view"],
+    dedicatedPage: true,
   }),
   item({
     id: "management-locations",
@@ -280,6 +288,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "location",
     roles: manager,
     permission: permission["programme_report:view"],
+    dedicatedPage: true,
   }),
   item({
     id: "management-prices",
@@ -289,6 +298,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     roles: manager,
     permission: permission["programme_report:view"],
     mobile: false,
+    dedicatedPage: true,
   }),
   item({
     id: "management-reports",
@@ -306,6 +316,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "settings",
     roles: manager,
     permission: permission["programme_report:view"],
+    dedicatedPage: true,
   }),
 
   // Safety-content administrator (Figma SafetyContentAdminShell)
@@ -325,6 +336,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "translations",
     roles: safety,
     permission: permission["safety_content:manage"],
+    dedicatedPage: true,
   }),
   item({
     id: "safety-approvals",
@@ -333,6 +345,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "approvals",
     roles: safety,
     permission: permission["safety_content:manage"],
+    dedicatedPage: true,
   }),
   item({
     id: "safety-published",
@@ -341,6 +354,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "published",
     roles: safety,
     permission: permission["safety_content:manage"],
+    dedicatedPage: true,
   }),
 
   // Data and ML reviewer (Figma DataMlReviewerShell)
@@ -360,6 +374,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "labels",
     roles: ml,
     permission: permission["model_correction:review"],
+    dedicatedPage: true,
   }),
   item({
     id: "ml-model",
@@ -368,6 +383,16 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "model",
     roles: ml,
     permission: permission["model_performance:view"],
+    dedicatedPage: true,
+  }),
+  item({
+    id: "ml-configuration",
+    labelKey: "modelConfiguration",
+    href: "/administration/ml/configuration",
+    icon: "settings",
+    roles: ml,
+    permission: permission["model_correction:review"],
+    dedicatedPage: true,
   }),
   item({
     id: "ml-exports",
@@ -376,6 +401,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     icon: "exports",
     roles: ml,
     permission: permission["model_correction:review"],
+    dedicatedPage: true,
   }),
 ];
 
@@ -413,9 +439,4 @@ export function findActiveNavItem(
   return items
     .filter((candidate) => isNavItemActive(candidate, pathname))
     .sort((first, second) => second.href.length - first.href.length)[0];
-}
-
-/** Placeholder section routes for a role: items without a dedicated page file. */
-export function getSectionItems(userRole: UserRole): readonly NavItem[] {
-  return getNavigationForRole(userRole).filter((candidate) => !candidate.dedicatedPage);
 }

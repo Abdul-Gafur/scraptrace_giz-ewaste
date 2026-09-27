@@ -2,6 +2,8 @@
 
 The **Vision Service** manages dataset ingestion, exploratory analysis, model training, evaluation, and contract-compliant inference for electronic waste image classification.
 
+The released model classifies one image as a whole. It does not detect, count, or localize multiple objects and does not produce bounding boxes. Low-confidence or ambiguous results must be confirmed manually.
+
 ## Supported Taxonomy
 
 The service maps raw image annotations to the 7 authoritative categories defined in `@scraptrace/contracts`:
@@ -16,15 +18,15 @@ The service maps raw image annotations to the 7 authoritative categories defined
 
 ## Environment Setup
 
-The Python environment is managed using `uv` with Python 3.12:
+The Python environment is managed using `uv` with Python 3.10.11 (declared in the repository `.python-version`):
 
 ```bash
 # Create and activate virtual environment
-uv venv --python 3.12 .venv
+uv venv --python 3.10.11 .venv
 source .venv/bin/activate
 
 # Install vision dependencies
-uv pip install -r services/vision/requirements.txt
+uv pip install --python .venv/bin/python -r services/vision/requirements.txt
 ```
 
 ## Dataset Workflow
@@ -35,20 +37,21 @@ Extracts bounding-box crops from the GIZ COCO dataset (~1,232 samples) and forma
 
 ```bash
 source .venv/bin/activate
-python services/vision/extract_crops.py
+python -m services.vision.extract_crops
 ```
 
 ### 2. Train Vision Classifier
 
-Fine-tunes a lightweight MobileNetV3 backbone with data augmentations (lighting, angles, noise) and cosine learning rate scheduling:
+Fine-tunes the manifest-selected lightweight backbone with data augmentations (lighting, angles, noise) and cosine learning rate scheduling. The current v0.2.0 release uses EfficientNet-B0:
 
 ```bash
 source .venv/bin/activate
-python services/vision/train.py
+python -m services.vision.train
 ```
 
 - Hardware Acceleration: Automatically leverages Apple Silicon **Metal Performance Shaders (MPS)** or NVIDIA **CUDA**.
 - Checkpoints: Best model weights are persisted to `services/vision/checkpoints/best_model.pth`.
+- Release manifest: `services/vision/checkpoints/model_manifest.json` defines the canonical class order, preprocessing, version, evaluation, and checkpoint digest.
 - Metrics: Loss, accuracy, macro F1, and per-class reports are recorded in `services/vision/artifacts/training_metrics.json`.
 
 ### 3. Run Inference & Contract-Compliant Appraisal
@@ -59,6 +62,8 @@ Run appraisal on any image to produce a schema-valid response:
 source .venv/bin/activate
 python services/vision/predict.py /path/to/e_waste_image.jpg
 ```
+
+Inference refuses to load a missing, corrupt, incompatible, or checksum-mismatched checkpoint. Before running a released model, set `checkpoint_sha256` in the manifest to the output of `shasum -a 256 services/vision/checkpoints/best_model.pth`. Diagnostics are written to `stderr`; `stdout` remains JSON.
 
 Output example:
 
@@ -76,8 +81,8 @@ Output example:
     { "category": "mixed_scrap", "score": 0.02 }
   ],
   "confidence": 0.88,
-  "model_name": "scraptrace-vision-mobilenetv3",
-  "model_version": "0.1.0",
+  "model_name": "scraptrace-vision-efficientnet-b0",
+  "model_version": "0.2.0",
   "inferred_at": "2026-09-26T12:30:00Z"
 }
 ```
@@ -89,8 +94,8 @@ If top confidence is below the safety threshold (`< 0.40`), it gracefully output
   "outcome": "unable_to_classify",
   "reason": "low_confidence",
   "scores": [...],
-  "model_name": "scraptrace-vision-mobilenetv3",
-  "model_version": "0.1.0",
+  "model_name": "scraptrace-vision-efficientnet-b0",
+  "model_version": "0.2.0",
   "inferred_at": "2026-09-26T12:30:00Z"
 }
 ```

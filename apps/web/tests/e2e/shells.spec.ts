@@ -113,12 +113,52 @@ test.describe("application shells (English)", () => {
     await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
   });
 
-  test("placeholder sections resolve and unknown sections 404", async ({ page }) => {
-    await page.goto("/en/review/history");
-    await expect(page.getByRole("heading", { level: 1, name: "System History" })).toBeVisible();
-    await expect(page.getByText("review:evidence")).toBeVisible();
-    const response = await page.goto("/en/review/does-not-exist");
-    expect(response?.status()).toBe(404);
+  test("every role destination resolves and an unknown route 404s", async ({ page }) => {
+    const destinations = [
+      "/en/collector",
+      "/en/collector/capture",
+      "/en/collector/records",
+      "/en/collector/locations",
+      "/en/collector/profile",
+      "/en/recycler/intake",
+      "/en/recycler/records",
+      "/en/recycler/processing",
+      "/en/recycler/account",
+      "/en/review/queue",
+      "/en/review/assigned",
+      "/en/review/decisions",
+      "/en/review/history",
+      "/en/management",
+      "/en/management/ledger",
+      "/en/management/locations",
+      "/en/management/prices",
+      "/en/management/reports",
+      "/en/management/settings",
+      "/en/administration/safety",
+      "/en/administration/safety/translations",
+      "/en/administration/safety/approvals",
+      "/en/administration/safety/published",
+      "/en/administration/ml",
+      "/en/administration/ml/labels",
+      "/en/administration/ml/model",
+      "/en/administration/ml/configuration",
+      "/en/administration/ml/exports",
+    ];
+    // A key the bundles do not carry surfaces as a console error, so the sweep watches for it.
+    const problems = watchConsole(page);
+    for (const path of destinations) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(200);
+      // Wait until the loading gate has handed over, so the heading below is the screen's own.
+      await expect(page.getByRole("status", { name: "Loading" }), path).toHaveCount(0);
+      await expect(page.getByRole("heading", { level: 1 }).first(), path).toBeVisible();
+      // No destination may still be describing itself as unbuilt.
+      await expect(page.getByText(/later milestone/i), path).toHaveCount(0);
+    }
+    expect(problems.filter((problem) => problem.includes("MISSING_MESSAGE"))).toEqual([]);
+    expect(problems).toEqual([]);
+    const missing = await page.goto("/en/review/does-not-exist");
+    expect(missing?.status()).toBe(404);
   });
 
   test("development role preview selects a role and opens its workspace", async ({ page }) => {
@@ -164,6 +204,10 @@ test.describe("internationalization and RTL", () => {
     await page.goto("/ar/management");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    // Wait for the settled dashboard so the checks below measure it rather than the loading gate.
+    await expect(page.getByRole("heading", { name: "النتائج المتحقَّقة" })).toBeVisible({
+      timeout: 20_000,
+    });
     if (testInfo.project.name === "chromium") {
       const sidebar = await page.getByRole("navigation", { name: "التنقل الرئيسي" }).boundingBox();
       const main = await page.getByRole("main").boundingBox();

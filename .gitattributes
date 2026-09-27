@@ -1,0 +1,2 @@
+# Store future released model binaries in Git LFS. Existing history is not rewritten.
+services/vision/checkpoints/*.pth filter=lfs diff=lfs merge=lfs -text

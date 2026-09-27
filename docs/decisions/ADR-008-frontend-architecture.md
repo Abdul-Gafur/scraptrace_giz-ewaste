@@ -85,6 +85,7 @@ The service layer introduces interfaces early because mock-to-HTTP replacement i
 - Locale, direction, shell, feedback, and accessibility behavior are available to feature milestones.
 - Mock session and service providers must never be enabled as production authentication or authority.
 - A future offline milestone can implement existing storage and queue ports without moving feature pages.
+- Development services are bound to one acting actor, so each service call evaluates the contract permission rules itself. Route policy and navigation visibility remain usability aids only.
 - HTTP adapters must validate untrusted responses and map the standard safe error envelope.
 - Dependency-graph automation should be added when feature growth justifies it.
 
@@ -97,10 +98,12 @@ Only `NEXT_PUBLIC_*` configuration reaches client code. Security headers restric
 - [x] Establish npm workspaces and the root lockfile.
 - [x] Implement locale routing, tokens, shells, service ports, deterministic mocks, and tests.
 - [x] Validate strict types, lint, unit tests, browser accessibility, contracts, and build.
-- [ ] Implement the collector journey against the established service ports.
+- [x] Implement the collector journey against the established service ports.
+- [x] Implement the recycler, reviewer, manager, safety-content and model-administration workflows against the same ports.
 - [ ] Select production authentication and HTTP authorization boundaries.
 - [x] Validate the approved Figma export and update semantic tokens (see `docs/frontend/figma-implementation-map.md`).
-- [ ] Decide service-worker and local persistence technology in the offline milestone.
+- [x] Choose a local persistence mechanism for the demonstration: a single repository behind the existing ports, persisted through `localStorage` with an in-memory fallback. IndexedDB, a service worker and background synchronization remain for the offline milestone.
+- [ ] Replace the browser-backed repository with the HTTP adapters once the API implements the same contracts.
 
 ## Related documents
 

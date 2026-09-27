@@ -22,7 +22,7 @@ from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from tqdm import tqdm
 
-from config import (
+from services.vision.config import (
     CONTRACT_CATEGORIES,
     CHECKPOINTS_DIR,
     ARTIFACTS_DIR,
@@ -34,8 +34,8 @@ from config import (
     WEIGHT_DECAY,
     SEED,
 )
-from dataset import EWasteLocalDataset, load_local_samples
-from model import build_model
+from services.vision.dataset import EWasteLocalDataset, load_local_samples
+from services.vision.model import build_model
 
 
 def get_device():
@@ -100,7 +100,7 @@ def evaluate(model, dataloader, criterion, device):
 
 
 def run_training(
-    model_name: str = "efficientnet_b0",
+    model_name: str = DEFAULT_MODEL_NAME,
     epochs: int = 15,
     batch_size: int = BATCH_SIZE,
     lr: float = 3e-4,
@@ -268,5 +268,5 @@ def run_training(
 
 
 if __name__ == "__main__":
-    model_arg = sys.argv[1] if len(sys.argv) > 1 else "efficientnet_b0"
+    model_arg = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_MODEL_NAME
     run_training(model_name=model_arg)

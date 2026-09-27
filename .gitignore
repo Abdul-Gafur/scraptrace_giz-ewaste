@@ -15,12 +15,15 @@ test-results/
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 data/raw/
 data/processed/
 *.pt
 *.safetensors
 services/vision/checkpoints/*
 !services/vision/checkpoints/best_model.pth
+!services/vision/checkpoints/model_manifest.json
 services/vision/artifacts/*
 !services/vision/artifacts/*.json
-

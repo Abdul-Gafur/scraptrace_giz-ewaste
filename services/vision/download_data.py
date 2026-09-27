@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from tqdm import tqdm
 
-from config import (
+from services.vision.config import (
     RAW_DATA_DIR,
     PROCESSED_DATA_DIR,
     CONTRACT_CATEGORIES,

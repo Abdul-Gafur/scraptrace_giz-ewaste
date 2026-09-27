@@ -4,7 +4,7 @@ import {
   UserRoleSchema,
   type UserRole,
 } from "@scraptrace/contracts";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -12,7 +12,6 @@ import {
   ROLE_WORKSPACES,
   findActiveNavItem,
   getNavigationForRole,
-  getSectionItems,
   isNavItemActive,
 } from "@/navigation/navigation-config";
 
@@ -83,12 +82,20 @@ describe("navigation configuration", () => {
     expect(home && isNavItemActive(home, "/collector/")).toBe(true);
   });
 
-  it("lists placeholder sections only for items without a dedicated page", () => {
-    expect(getSectionItems("programme_reviewer").map((item) => item.href)).toEqual([
-      "/review/assigned",
-      "/review/decisions",
-      "/review/history",
-    ]);
+  it("has a route file for every navigation destination", () => {
+    const appDirectory = path.resolve(import.meta.dirname, "..", "app", "[locale]");
+    for (const item of NAVIGATION_ITEMS) {
+      const segments = item.href.split("/").filter(Boolean);
+      // Route groups are transparent in the URL, so each candidate group prefix is tried.
+      const candidates = ["(platform)", "(auth)", "(public)", ""].map((group) =>
+        path.join(appDirectory, group, ...segments, "page.tsx"),
+      );
+      // The href is included in the compared value so a failure names the missing route.
+      expect({
+        href: item.href,
+        hasRoute: candidates.some((candidate) => existsSync(candidate)),
+      }).toEqual({ href: item.href, hasRoute: true });
+    }
   });
 
   it("has a translation for every navigation label in all four languages", () => {

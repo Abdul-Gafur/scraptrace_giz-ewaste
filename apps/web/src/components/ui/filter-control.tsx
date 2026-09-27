@@ -15,18 +15,22 @@ interface FilterControlProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   options: readonly FilterOption[];
 }
 
-/** Compact labelled filter built on the native select. */
+/**
+ * Compact labelled filter built on the native select.
+ *
+ * The name is set with `aria-label` so the control's accessible name is exactly the label, rather
+ * than the label followed by every option's text, which is what a wrapping label would produce.
+ */
 export function FilterControl({ label, options, className, ...props }: FilterControlProps) {
   return (
-    <label className={cn("block min-w-36", className)}>
-      <span className="sr-only">{label}</span>
-      <Select {...props}>
+    <div className={cn("block min-w-36", className)}>
+      <Select aria-label={label} {...props}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </Select>
-    </label>
+    </div>
   );
 }

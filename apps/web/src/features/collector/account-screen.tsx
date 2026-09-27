@@ -1,10 +1,15 @@
+"use client";
+
 import { UserRoleSchema } from "@scraptrace/contracts";
 import { useLocale, useTranslations } from "next-intl";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Switch } from "@/components/ui/choice-controls";
 import { DefinitionList, DefinitionRow, PageHeading, SectionLabel } from "@/components/ui/content";
+import { AsyncPanel } from "@/features/shared/async-panel";
+import { useValueFormats } from "@/features/shared/formats";
+import { useLocalDataSummary } from "@/hooks/use-local-data";
 import { Link } from "@/i18n/navigation";
+import { DEMO_ACTORS } from "@/auth/actors";
 
 const NATIVE_NAMES: Record<string, string> = {
   en: "English",
@@ -13,12 +18,15 @@ const NATIVE_NAMES: Record<string, string> = {
   pt: "Português",
 };
 
-/** Figma: account-privacy. */
+/** Collector account, language and device-data controls (Figma: account-privacy). */
 export function AccountScreen() {
   const translate = useTranslations("screens.account");
   const translatePages = useTranslations("pages");
   const translateRoles = useTranslations("roles");
+  const formats = useValueFormats();
   const locale = useLocale();
+  const summaryQuery = useLocalDataSummary();
+
   return (
     <div className="max-w-2xl space-y-5">
       <PageHeading visuallyHiddenBelowDesktop>{translatePages("profileTitle")}</PageHeading>
@@ -32,9 +40,12 @@ export function AccountScreen() {
             <DefinitionRow term={translate("accountRole")} tone="success">
               {translateRoles(UserRoleSchema.enum.collector)}
             </DefinitionRow>
-            <DefinitionRow term={translate("nodeId")}>ST-CN-88029</DefinitionRow>
+            <DefinitionRow term={translate("nodeId")}>
+              <span className="font-mono text-xs">{DEMO_ACTORS.collector.actorId}</span>
+            </DefinitionRow>
           </DefinitionList>
         </div>
+        <p className="text-muted-foreground text-xs leading-5">{translate("identifierNotice")}</p>
       </section>
 
       <section aria-labelledby="preferences" className="space-y-2">
@@ -52,19 +63,30 @@ export function AccountScreen() {
         </div>
       </section>
 
-      <section aria-labelledby="privacy" className="space-y-2">
-        <SectionLabel>
-          <span id="privacy">{translate("privacyControls")}</span>
-        </SectionLabel>
-        <div className="bg-surface rounded-md border px-4">
-          <Switch label={translate("training")} />
-        </div>
-      </section>
-
       <section aria-labelledby="local-data" className="space-y-2">
         <SectionLabel tone="danger">
           <span id="local-data">{translate("localData")}</span>
         </SectionLabel>
+        <AsyncPanel query={summaryQuery} skeletonRows={1}>
+          {(summary) => (
+            <div className="bg-surface rounded-md border px-4 py-2">
+              <DefinitionList>
+                <DefinitionRow term={translate("storedRecords")}>
+                  {formats.number(summary.records, 0)}
+                </DefinitionRow>
+                <DefinitionRow term={translate("storedDrafts")}>
+                  {formats.number(summary.drafts, 0)}
+                </DefinitionRow>
+                <DefinitionRow
+                  term={translate("storageDurability")}
+                  tone={summary.durable ? "success" : "warning"}
+                >
+                  {translate(summary.durable ? "durable" : "notDurable")}
+                </DefinitionRow>
+              </DefinitionList>
+            </div>
+          )}
+        </AsyncPanel>
         <Link
           className={buttonVariants({ variant: "destructiveOutline", block: true, size: "large" })}
           href="/collector/profile/clear-cache"

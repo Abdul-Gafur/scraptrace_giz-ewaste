@@ -34,7 +34,13 @@ export function DataTable<Row>({
   const primary = columns.find((column) => column.primary) ?? columns[0];
   return (
     <div className={className}>
-      <div className="bg-surface hidden overflow-x-auto rounded-md border md:block">
+      {/* The scroll container is focusable and named, so a keyboard user can reach a wide table. */}
+      <div
+        aria-label={caption}
+        className="bg-surface hidden overflow-x-auto rounded-md border md:block"
+        role="region"
+        tabIndex={0}
+      >
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead className="bg-background">

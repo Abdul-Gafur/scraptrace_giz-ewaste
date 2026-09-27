@@ -6,16 +6,19 @@ and synthetic mixup for underrepresented classes (e.g. mixed_scrap).
 
 import random
 from pathlib import Path
+
 from PIL import Image
 
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from config import (
-    IMAGE_SIZE,
+from services.vision.config import (
     CATEGORY_TO_IDX,
     CONTRACT_CATEGORIES,
+    IMAGE_MEAN,
+    IMAGE_SIZE,
+    IMAGE_STD,
     PROCESSED_DATA_DIR,
 )
 
@@ -26,29 +29,35 @@ def get_transforms(is_train: bool = True):
     Scrapyard images have variations in lighting, dirt/weather, angles, and smartphone sensors.
     """
     if is_train:
-        return transforms.Compose([
-            transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.75, 1.0)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomVerticalFlip(p=0.2),
-            transforms.RandomRotation(degrees=20),
-            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.08),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-            # Random Erasing (Cutout) to simulate partial occlusions, wires, and dirt
-            transforms.RandomErasing(p=0.25, scale=(0.02, 0.25), value="random"),
-        ])
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.75, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.2),
+                transforms.RandomRotation(degrees=20),
+                transforms.ColorJitter(
+                    brightness=0.3, contrast=0.3, saturation=0.3, hue=0.08
+                ),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=IMAGE_MEAN,
+                    std=IMAGE_STD,
+                ),
+                # Random Erasing (Cutout) to simulate partial occlusions, wires, and dirt
+                transforms.RandomErasing(p=0.25, scale=(0.02, 0.25), value="random"),
+            ]
+        )
     else:
-        return transforms.Compose([
-            transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-        ])
+        return transforms.Compose(
+            [
+                transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=IMAGE_MEAN,
+                    std=IMAGE_STD,
+                ),
+            ]
+        )
 
 
 class EWasteLocalDataset(Dataset):
@@ -56,7 +65,10 @@ class EWasteLocalDataset(Dataset):
     Loads pre-cropped 224x224 images from data/processed/<category>/*.jpg.
     For training: supports oversampling minority classes and synthetic CutMix.
     """
-    def __init__(self, samples: list, is_train: bool = True, oversample_minority: bool = False):
+
+    def __init__(
+        self, samples: list, is_train: bool = True, oversample_minority: bool = False
+    ):
         """
         Args:
             samples: list of (image_path, label_idx) tuples

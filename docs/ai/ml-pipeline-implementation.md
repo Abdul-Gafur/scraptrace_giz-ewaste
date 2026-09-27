@@ -6,17 +6,17 @@ The **ScrapTrace Vision ML Pipeline** classifies electronic waste items captured
 
 ### Key Technical Specifications
 
-| Parameter | Specification |
-|---|---|
-| **Task** | Multi-class image classification (7 categories) |
-| **Model Architecture** | MobileNetV3-Large (`mobilenetv3_large_100`) |
-| **Pretrained Weights** | ImageNet-1K feature backbone |
-| **Input Resolution** | $224 \times 224 \times 3$ RGB |
-| **Model Parameters** | ~4.2 Million |
-| **Checkpoint Size** | 16 MB (`best_model.pth`) |
-| **Primary Acceleration** | Apple Silicon Metal Performance Shaders (MPS) / NVIDIA CUDA / CPU fallback |
-| **Training Runtime** | ~2.3 minutes (15 epochs on Apple M-series MPS) |
-| **Output Contract** | Strict compliance with `VisionAppraisalResponseSchema` (`@scraptrace/contracts`) |
+| Parameter                | Specification                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **Task**                 | Multi-class image classification (7 categories)                                  |
+| **Model Architecture**   | EfficientNet-B0 (`efficientnet_b0`)                                              |
+| **Pretrained Weights**   | ImageNet-1K feature backbone                                                     |
+| **Input Resolution**     | $224 \times 224 \times 3$ RGB                                                    |
+| **Model Parameters**     | ~4.0 Million                                                                     |
+| **Checkpoint Size**      | 16 MB (`best_model.pth`)                                                         |
+| **Primary Acceleration** | Apple Silicon Metal Performance Shaders (MPS) / NVIDIA CUDA / CPU fallback       |
+| **Training Runtime**     | ~2.3 minutes (15 epochs on Apple M-series MPS)                                   |
+| **Output Contract**      | Strict compliance with `VisionAppraisalResponseSchema` (`@scraptrace/contracts`) |
 
 ---
 
@@ -24,26 +24,29 @@ The **ScrapTrace Vision ML Pipeline** classifies electronic waste items captured
 
 The pipeline maps the raw GIZ e-waste dataset labels and COCO annotations to the 7 authoritative categories defined in `packages/contracts/src/recovery-record/recovery-record.schema.ts`:
 
-| # | Contract Category | GIZ / COCO Source Labels | Class ID |
-|---|---|---|---|
-| 1 | `refrigerators` | `Fridges`, `fridge`, `refrigerator` | 0 |
-| 2 | `laptops_and_desktop_computers` | `Computers`, `Laptops`, `laptops/pcs`, `pcs` | 1 |
-| 3 | `televisions` | `TV`, `tv`, `television`, `tvs` | 2 |
-| 4 | `microwaves` | `Microwave`, `microwaves` | 3 |
-| 5 | `air_conditioners` | `ACs`, `ac`, `air conditioner`, `air_conditioner` | 4 |
-| 6 | `compressors` | `Compressors`, `compressor` | 5 |
-| 7 | `mixed_scrap` | `unsure`, `mixed scrap`, `mixed_scraps` | 6 |
+| #   | Contract Category               | GIZ / COCO Source Labels                          | Class ID |
+| --- | ------------------------------- | ------------------------------------------------- | -------- |
+| 1   | `refrigerators`                 | `Fridges`, `fridge`, `refrigerator`               | 0        |
+| 2   | `laptops_and_desktop_computers` | `Computers`, `Laptops`, `laptops/pcs`, `pcs`      | 1        |
+| 3   | `televisions`                   | `TV`, `tv`, `television`, `tvs`                   | 2        |
+| 4   | `microwaves`                    | `Microwave`, `microwaves`                         | 3        |
+| 5   | `air_conditioners`              | `ACs`, `ac`, `air conditioner`, `air_conditioner` | 4        |
+| 6   | `compressors`                   | `Compressors`, `compressor`                       | 5        |
+| 7   | `mixed_scrap`                   | `unsure`, `mixed scrap`, `mixed_scraps`           | 6        |
 
 ---
 
 ## 3. Data Pipeline & Extraction
 
 ### Source Data
-* **Repository**: Hugging Face `GIZ/e-waste-dataset-COCO-labels` + `GIZ/E-Waste-Database`
-* **Annotations**: 1,790 labeled bounding boxes across 752 images in `COCO with Pictures/result.json`
+
+- **Repository**: Hugging Face `GIZ/e-waste-dataset-COCO-labels` + `GIZ/E-Waste-Database`
+- **Annotations**: 1,790 labeled bounding boxes across 752 images in `COCO with Pictures/result.json`
 
 ### Memory-Efficient Crop Pipeline (`services/vision/extract_crops.py`)
+
 Rather than downloading the full ~20 GB raw database:
+
 1. `extract_crops.py` parses `result.json` to identify bounding box coordinates $[x, y, w, h]$.
 2. Adds a **10% contextual padding** around each bounding box.
 3. Resizes crops to $224 \times 224$ via high-quality Lanczos resampling.
@@ -52,6 +55,7 @@ Rather than downloading the full ~20 GB raw database:
 6. **Total footprint**: **1,232 images** taking only **23 MB** on disk.
 
 ### Dataset Distribution
+
 ```text
   laptops_and_desktop_computers : 288 samples
   compressors                   : 218 samples
@@ -87,48 +91,52 @@ train_transforms = transforms.Compose([
 ## 5. Training Strategy & Optimization (`services/vision/train.py`)
 
 ### Stratified Splitting
-* **Train**: 75% (924 samples)
-* **Validation**: 15% (184 samples)
-* **Test**: 10% (124 samples)
-* Stratified splitting guarantees that minority classes (`mixed_scrap`) maintain representation across all three sets.
+
+- **Train**: 75% (924 samples)
+- **Validation**: 15% (184 samples)
+- **Test**: 10% (124 samples)
+- Stratified splitting guarantees that minority classes (`mixed_scrap`) maintain representation across all three sets.
 
 ### Class Imbalance Compensation
+
 Inverse class-frequency loss weighting prevents majority classes (laptops, compressors) from dominating the gradients over sparse classes:
 $$w_c = \frac{N}{\sum_{k} \frac{1}{N_k}} \cdot \frac{1}{N_c}$$
 
 ### Hyperparameters
-* **Optimizer**: AdamW ($\beta_1=0.9, \beta_2=0.999$, weight decay $= 10^{-4}$)
-* **Learning Rate**: $10^{-4}$ with `CosineAnnealingLR` schedule across 15 epochs
-* **Batch Size**: 32
-* **Loss Function**: Weighted Cross-Entropy Loss
-* **Checkpointing**: Persisted when validation macro-F1 achieves a new maximum.
+
+- **Optimizer**: AdamW ($\beta_1=0.9, \beta_2=0.999$, weight decay $= 10^{-4}$)
+- **Learning Rate**: $10^{-4}$ with `CosineAnnealingLR` schedule across 15 epochs
+- **Batch Size**: 32
+- **Loss Function**: Weighted Cross-Entropy Loss
+- **Checkpointing**: Persisted when validation macro-F1 achieves a new maximum.
 
 ---
 
 ## 6. Evaluation Results against SRS Criteria
 
 The project's Software Requirements Specification (SRS) requires:
-> *"Held-out evaluation reports macro-F1 of at least 0.70 and every one of the seven category recalls is at least 0.50."*
+
+> _"Held-out evaluation reports macro-F1 of at least 0.70 and every one of the seven category recalls is at least 0.50."_
 
 ### Test Set Performance (Best Checkpoint — Epoch 13)
 
-| Metric | Target Floor | Achieved Result | Status |
-|---|---|---|---|
-| **Macro F1 Score** | $\ge 0.70$ | **0.8135** | ✅ **Passed (+11.3% above floor)** |
-| **Overall Accuracy** | — | **87.10%** | ✅ **Passed** |
-| **Weighted F1 Score** | — | **0.8696** | ✅ **Passed** |
+| Metric                | Target Floor | Achieved Result | Status                            |
+| --------------------- | ------------ | --------------- | --------------------------------- |
+| **Macro F1 Score**    | $\ge 0.70$   | **0.7806**      | ✅ **Passed (+8.1% above floor)** |
+| **Overall Accuracy**  | —            | **83.87%**      | ✅ **Passed**                     |
+| **Weighted F1 Score** | —            | **0.8589**      | ✅ **Passed**                     |
 
 ### Per-Category Performance
 
-| Category | Precision | Recall (Floor $\ge 0.50$) | F1-Score | Test Support |
-|---|---|---|---|---|
-| **Compressors** | 0.8800 | **1.0000** | **0.9362** | 22 |
-| **Laptops & Desktops** | 0.9310 | **0.9310** | **0.9310** | 29 |
-| **Refrigerators** | 0.9412 | **0.8421** | **0.8889** | 19 |
-| **Televisions** | 0.7619 | **0.9412** | **0.8421** | 17 |
-| **Air Conditioners** | 0.9375 | **0.7143** | **0.8108** | 21 |
-| **Microwaves** | 0.7857 | **0.7857** | **0.7857** | 14 |
-| **Mixed Scrap** | 0.5000 | **0.5000** | **0.5000** | 2 |
+| Category               | Precision | Recall (Floor $\ge 0.50$) | F1-Score   | Test Support |
+| ---------------------- | --------- | ------------------------- | ---------- | ------------ |
+| **Compressors**        | 0.9545    | **0.9545**                | **0.9545** | 22           |
+| **Laptops & Desktops** | 1.0000    | **0.8276**                | **0.9057** | 29           |
+| **Refrigerators**      | 0.9375    | **0.7895**                | **0.8571** | 19           |
+| **Televisions**        | 0.8000    | **0.9412**                | **0.8649** | 17           |
+| **Air Conditioners**   | 1.0000    | **0.6667**                | **0.8000** | 21           |
+| **Microwaves**         | 0.7059    | **0.8571**                | **0.7742** | 14           |
+| **Mixed Scrap**        | 0.1818    | **1.0000**                | **0.3077** | 2            |
 
 All 7 categories meet or exceed the SRS 0.50 recall floor.
 
@@ -137,7 +145,9 @@ All 7 categories meet or exceed the SRS 0.50 recall floor.
 ## 7. Contract Compliance & Inference (`services/vision/predict.py`)
 
 ### Schema Conformance
+
 The inference module strictly satisfies `VisionAppraisalResponseSchema` from `@scraptrace/contracts`:
+
 1. **Timestamp Format**: Strict ISO 8601 UTC timestamp ending in `Z` with 3-digit milliseconds (`YYYY-MM-DDTHH:MM:SS.mmmZ`).
 2. **Confidence Consistency**: `confidence` is bound to the exact floating-point value of the winning category in `scores` (satisfies `addPredictionConsistencyIssues` machine-epsilon test).
 3. **Low-Confidence Safeguard**: Predictions below `CONFIDENCE_THRESHOLD = 0.40` automatically output:
@@ -146,8 +156,8 @@ The inference module strictly satisfies `VisionAppraisalResponseSchema` from `@s
      "outcome": "unable_to_classify",
      "reason": "low_confidence",
      "scores": [...],
-     "model_name": "scraptrace-vision-mobilenetv3",
-     "model_version": "0.1.0",
+     "model_name": "scraptrace-vision-efficientnet-b0",
+     "model_version": "0.2.0",
      "inferred_at": "2026-09-26T13:39:08.533Z"
    }
    ```
@@ -160,6 +170,7 @@ The inference module strictly satisfies `VisionAppraisalResponseSchema` from `@s
 ### Integration Blueprint A: HTTP REST Endpoint (Server Inference)
 
 Expose `predict.py` via FastAPI inside `services/vision/server.py`:
+
 ```python
 from fastapi import FastAPI, UploadFile, File
 from predict import VisionClassifier
@@ -176,6 +187,7 @@ async def appraise_image(file: UploadFile = File(...)):
 ```
 
 In the Next.js web application (`apps/web/src/services/http/http-services.ts`):
+
 ```typescript
 import { VisionAppraisalResponseSchema } from "@scraptrace/contracts";
 
@@ -185,7 +197,10 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => ({
     async appraise(request) {
       const formData = new FormData();
       formData.append("evidence_id", request.evidence_id);
-      const res = await fetch(`${apiBaseUrl}/v1/vision/appraise`, { method: "POST", body: formData });
+      const res = await fetch(`${apiBaseUrl}/v1/vision/appraise`, {
+        method: "POST",
+        body: formData,
+      });
       return VisionAppraisalResponseSchema.parse(await res.json());
     },
   },
@@ -195,15 +210,18 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => ({
 ### Integration Blueprint B: Offline Edge Inference via ONNX (Browser PWA)
 
 For field operations with no cellular connectivity:
+
 1. Export `best_model.pth` to ONNX:
+
    ```python
    import torch
    from model import load_checkpoint
 
    model = load_checkpoint("services/vision/checkpoints/best_model.pth")
    dummy = torch.randn(1, 3, 224, 224)
-   torch.onnx.export(model, dummy, "apps/web/public/models/scraptrace_mobilenetv3.onnx")
+   torch.onnx.export(model, dummy, "apps/web/public/models/scraptrace_efficientnet_b0.onnx")
    ```
+
 2. Run inference in-browser via `onnxruntime-web` directly on camera captures with WebAssembly / WebGPU acceleration.
 
 ---
@@ -214,7 +232,7 @@ For field operations with no cellular connectivity:
 # 1. Download & extract 224x224 crops (23 MB)
 npm run vision:download
 
-# 2. Train MobileNetV3 classifier (uses Apple Silicon MPS or CUDA)
+# 2. Train the manifest-selected classifier (uses Apple Silicon MPS or CUDA)
 npm run vision:train
 
 # 3. Test appraisal inference on an image
@@ -225,5 +243,5 @@ npm run vision:predict path/to/sample.jpg
 
 ## 10. Known Limitations & Roadmap
 
-* **`mixed_scrap` Representation**: The 16 challenge crops are limited. Future versions (v0.2.0) should employ synthetic image compositing (CutMix / Mosaic) or collect extra ground-truth photos of unsorted scrap heaps.
-* **Price Heuristics**: The contract supports an optional `estimate` property. A scrap metal price matrix (Ghana Cedis per kg based on condition and category) can be plugged directly into the response payload.
+- **`mixed_scrap` Representation**: The 16 challenge crops are limited, and v0.2.0 achieved only 0.1818 precision on the two-example test subset. Future releases should collect more ground-truth photos of unsorted scrap heaps and evaluate whether controlled synthetic augmentation is appropriate.
+- **Price Heuristics**: The contract supports an optional `estimate` property. A scrap metal price matrix (Ghana Cedis per kg based on condition and category) can be plugged directly into the response payload.

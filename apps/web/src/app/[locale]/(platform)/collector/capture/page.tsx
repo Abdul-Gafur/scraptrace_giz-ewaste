@@ -1,5 +1,5 @@
+import { CaptureForm } from "@/features/collector/capture/capture-screen";
 import { createPageMetadata } from "@/i18n/metadata";
-import { CaptureForm } from "@/features/collector/capture-form";
 
 export const generateMetadata = () => createPageMetadata("captureTitle");
 

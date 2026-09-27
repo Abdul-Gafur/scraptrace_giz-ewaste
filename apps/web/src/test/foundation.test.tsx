@@ -49,6 +49,7 @@ describe("frontend foundation", () => {
 
   it("imports a contract schema and validates the mock vision response", async () => {
     const response = await createMockServices({ delayMilliseconds: 0 }).vision.appraise({
+      image: new Blob(["fixture"], { type: "image/jpeg" }),
       evidence_id: EvidenceIdSchema.parse(FIXTURE_IDS.evidence),
     });
     expect(VisionAppraisalResponseSchema.safeParse(response).success).toBe(true);

@@ -12,7 +12,7 @@ from PIL import Image
 from tqdm import tqdm
 from huggingface_hub import hf_hub_download, HfApi
 
-from config import (
+from services.vision.config import (
     PROCESSED_DATA_DIR,
     IMAGE_SIZE,
     HF_LABEL_MAPPING,
