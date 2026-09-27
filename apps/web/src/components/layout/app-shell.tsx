@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { DevelopmentSessionProvider } from "@/auth/session";
+import { WorkspaceGuard } from "@/auth/workspace-guard";
 import { ServiceScope } from "@/services/service-provider";
 import { ConnectionIndicator, OfflineNotice } from "@/components/feedback/connectivity";
 import { BrandMark } from "@/components/navigation/brand-mark";
@@ -49,54 +50,56 @@ export function AppShell({ role, kind, children }: AppShellProps) {
   const workspaceLabel = translateWorkspaces(workspace.workspaceKey);
 
   return (
-    <DevelopmentSessionProvider role={role}>
-      <ServiceScope role={role}>
-        <div className="min-h-screen pb-20 lg:pb-0" data-shell={kind}>
-          <OfflineNotice />
-          <MobileHeader fallbackTitle={workspaceLabel} items={items} role={role} />
-          <header className="h-header bg-surface sticky top-0 z-30 hidden items-center gap-4 border-b px-6 lg:flex">
-            <Link aria-label={translate("brand")} href={workspace.home}>
-              <BrandMark label={translate("brand")} />
-            </Link>
-            <Divider orientation="vertical" />
-            <Badge>{translateRoles(role)}</Badge>
-            <div className="ms-auto flex items-center gap-2">
-              <ConnectionIndicator />
-              <LanguageSwitcher />
+    <WorkspaceGuard role={role}>
+      <DevelopmentSessionProvider role={role}>
+        <ServiceScope role={role}>
+          <div className="min-h-screen pb-20 lg:pb-0" data-shell={kind}>
+            <OfflineNotice />
+            <MobileHeader fallbackTitle={workspaceLabel} items={items} role={role} />
+            <header className="h-header bg-surface sticky top-0 z-30 hidden items-center gap-4 border-b px-6 lg:flex">
+              <Link aria-label={translate("brand")} href={workspace.home}>
+                <BrandMark label={translate("brand")} />
+              </Link>
               <Divider orientation="vertical" />
-              <UserMenu role={role} />
-            </div>
-          </header>
-          <div className="lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]">
-            <aside className="bg-surface hidden border-e lg:block lg:min-h-[calc(100dvh-var(--header-height))]">
-              <SidebarNav
-                className="top-header sticky p-4"
-                items={sidebarItems}
-                label={translateShell("primaryNavigation")}
-              />
-            </aside>
-            <div className="min-w-0 px-4 py-5 sm:px-6 lg:py-8">
-              <div className="mb-2 hidden lg:block">
-                <ShellBreadcrumb
-                  items={items}
-                  workspaceHref={workspace.home}
-                  workspaceLabel={workspaceLabel}
-                />
+              <Badge>{translateRoles(role)}</Badge>
+              <div className="ms-auto flex items-center gap-2">
+                <ConnectionIndicator />
+                <LanguageSwitcher />
+                <Divider orientation="vertical" />
+                <UserMenu role={role} />
               </div>
-              <main
-                className={cn(
-                  kind === "collector-workspace" && "mx-auto max-w-2xl lg:mx-0 lg:max-w-none",
-                )}
-                id="main-content"
-                tabIndex={-1}
-              >
-                {children}
-              </main>
+            </header>
+            <div className="lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]">
+              <aside className="bg-surface hidden border-e lg:block lg:min-h-[calc(100dvh-var(--header-height))]">
+                <SidebarNav
+                  className="top-header sticky p-4"
+                  items={sidebarItems}
+                  label={translateShell("primaryNavigation")}
+                />
+              </aside>
+              <div className="min-w-0 px-4 py-5 sm:px-6 lg:py-8">
+                <div className="mb-2 hidden lg:block">
+                  <ShellBreadcrumb
+                    items={items}
+                    workspaceHref={workspace.home}
+                    workspaceLabel={workspaceLabel}
+                  />
+                </div>
+                <main
+                  className={cn(
+                    kind === "collector-workspace" && "mx-auto max-w-2xl lg:mx-0 lg:max-w-none",
+                  )}
+                  id="main-content"
+                  tabIndex={-1}
+                >
+                  {children}
+                </main>
+              </div>
             </div>
+            <BottomNav items={items} label={translateShell("mobileNavigation")} />
           </div>
-          <BottomNav items={items} label={translateShell("mobileNavigation")} />
-        </div>
-      </ServiceScope>
-    </DevelopmentSessionProvider>
+        </ServiceScope>
+      </DevelopmentSessionProvider>
+    </WorkspaceGuard>
   );
 }

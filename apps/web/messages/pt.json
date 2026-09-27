@@ -111,8 +111,8 @@
     "safetyDescription": "Cartões de segurança aprovados, as suas fontes e a versão que chega a um coletor.",
     "mlTitle": "Validação de anotações de visão computacional",
     "mlDescription": "Metadados do modelo, correções guardadas e a configuração que a aplicação aplica.",
-    "signInTitle": "Acesso de demonstração",
-    "signInDescription": "Escolha um perfil de função para pré-visualizar o respetivo espaço.",
+    "signInTitle": "Iniciar sessão no ScrapTrace",
+    "signInDescription": "Use a sua conta ou escolha uma função de desenvolvimento quando o acesso de demonstração estiver ativo.",
     "notFoundTitle": "Página não encontrada",
     "notFoundDescription": "A página pedida não está disponível ou mudou.",
     "errorTitle": "Ocorreu um erro",
@@ -133,6 +133,13 @@
     "referenceShort": "Use pelo menos quatro caracteres.",
     "submit": "Continuar",
     "success": "O formulário de demonstração é válido."
+  },
+  "authentication": {
+    "emailLabel": "Endereço de e-mail",
+    "emailInvalid": "Introduza um endereço de e-mail válido.",
+    "passwordLabel": "Palavra-passe",
+    "passwordRequired": "Introduza a sua palavra-passe.",
+    "submit": "Iniciar sessão"
   },
   "states": {
     "emptyTitle": "Ainda não há conteúdo",

@@ -4,6 +4,7 @@ import { Alert } from "@/components/ui/alert";
 import { PageHeading } from "@/components/ui/content";
 import { useDevelopmentMocks } from "@/config/env";
 import { RolePreview } from "@/features/authentication/role-preview";
+import { SignInForm } from "@/features/authentication/sign-in-form";
 import { createPageMetadata } from "@/i18n/metadata";
 
 export const generateMetadata = () => createPageMetadata("signInTitle");
@@ -28,9 +29,7 @@ export default async function SignInPage() {
           </Alert>
         </>
       ) : (
-        <Alert title={translatePreview("unavailableTitle")} tone="info">
-          {translatePreview("unavailableDescription")}
-        </Alert>
+        <SignInForm />
       )}
     </div>
   );

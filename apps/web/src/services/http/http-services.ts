@@ -1,4 +1,12 @@
-import { VisionAppraisalRequestSchema, VisionAppraisalResponseSchema } from "@scraptrace/contracts";
+import {
+  ActorIdSchema,
+  SupportedLanguageSchema,
+  UserRoleSchema,
+  VisionAppraisalRequestSchema,
+  VisionAppraisalResponseSchema,
+  serviceSuccessSchema,
+} from "@scraptrace/contracts";
+import { z } from "zod";
 
 import type { FrontendServices } from "@/services/ports/service-ports";
 
@@ -8,10 +16,57 @@ const notImplemented = async (): Promise<never> => {
   throw new Error("This HTTP service is not implemented in the backend walking skeleton.");
 };
 
+const SessionTransportSchema = z.strictObject({
+  actor_id: ActorIdSchema,
+  role: UserRoleSchema,
+  preferred_language: SupportedLanguageSchema,
+  display_label: z.string().min(1).max(160),
+});
+const SessionResponseSchema = serviceSuccessSchema(SessionTransportSchema);
+const SignedOutResponseSchema = serviceSuccessSchema(
+  z.strictObject({ signed_out: z.literal(true) }),
+);
+
 export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
   const client = new HttpClient(apiBaseUrl);
+  const toSession = (session: z.infer<typeof SessionTransportSchema>) => ({
+    actorId: session.actor_id,
+    role: session.role,
+    preferredLanguage: session.preferred_language,
+    displayLabel: session.display_label,
+    developmentOnly: false,
+  });
   return {
-    authentication: { getSession: notImplemented, signOut: notImplemented },
+    authentication: {
+      async getSession() {
+        try {
+          const response = await client.requestParsed("/v1/auth/session", SessionResponseSchema, {
+            method: "GET",
+            suppressSessionExpiry: true,
+          });
+          return toSession(response.data);
+        } catch (error) {
+          if (error instanceof Error && "status" in error && error.status === 401) return null;
+          throw error;
+        }
+      },
+      async signIn(input) {
+        const credentials = z
+          .strictObject({ email: z.email(), password: z.string().min(1) })
+          .parse({ email: input.email, password: input.password });
+        const response = await client.requestParsed("/v1/auth/sign-in", SessionResponseSchema, {
+          method: "POST",
+          body: credentials,
+          suppressSessionExpiry: true,
+        });
+        return toSession(response.data);
+      },
+      async signOut() {
+        await client.requestParsed("/v1/auth/sign-out", SignedOutResponseSchema, {
+          method: "POST",
+        });
+      },
+    },
     recoveryRecords: {
       listOwn: notImplemented,
       listOperational: notImplemented,

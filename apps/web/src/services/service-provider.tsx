@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { PageLoading } from "@/components/feedback/page-loading";
+import { AuthenticationProvider } from "@/auth/auth-session";
 
 import { createHttpServices } from "./http/http-services";
 import { createLocalServices, getSharedRepository } from "./local/local-services";
@@ -78,7 +79,11 @@ export function ServiceProvider({ children, mode, apiBaseUrl }: ServiceProviderP
   if (!ready) return <PageLoading label={translate("loading")} />;
   return (
     <ServiceConfigurationContext.Provider value={configuration}>
-      <ServiceContext.Provider value={services}>{children}</ServiceContext.Provider>
+      <ServiceContext.Provider value={services}>
+        <AuthenticationProvider authentication={services.authentication}>
+          {children}
+        </AuthenticationProvider>
+      </ServiceContext.Provider>
     </ServiceConfigurationContext.Provider>
   );
 }
@@ -102,4 +107,14 @@ export function useServices(): FrontendServices {
   const services = useContext(ServiceContext);
   if (!services) throw new Error("ServiceProvider is missing.");
   return services;
+}
+
+export function useServiceConfiguration(): ServiceConfiguration {
+  const configuration = useContext(ServiceConfigurationContext);
+  if (!configuration) throw new Error("ServiceProvider is missing.");
+  return configuration;
+}
+
+export function useServiceConfigurationOptional(): ServiceConfiguration | null {
+  return useContext(ServiceConfigurationContext);
 }

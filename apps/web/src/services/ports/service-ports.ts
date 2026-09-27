@@ -53,8 +53,16 @@ export interface Session {
   readonly developmentOnly: boolean;
 }
 
+export interface SignInInput {
+  readonly email?: string;
+  readonly password?: string;
+  /** Available only from the explicitly selected non-production mock adapter. */
+  readonly demoRole?: UserRole;
+}
+
 export interface AuthenticationService {
   getSession(): Promise<Session | null>;
+  signIn(input: SignInInput): Promise<Session>;
   signOut(): Promise<void>;
 }
 

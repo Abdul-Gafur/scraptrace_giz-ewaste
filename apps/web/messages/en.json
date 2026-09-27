@@ -111,8 +111,8 @@
     "safetyDescription": "Approved safety cards, their sources, and which version reaches a collector.",
     "mlTitle": "Computer Vision Annotation Validation",
     "mlDescription": "Model metadata, stored corrections and the configuration the application applies.",
-    "signInTitle": "Demonstration access",
-    "signInDescription": "Choose a role profile to preview its workspace.",
+    "signInTitle": "Sign in to ScrapTrace",
+    "signInDescription": "Use your account, or choose a development role when demo access is enabled.",
     "notFoundTitle": "Page not found",
     "notFoundDescription": "The requested page is unavailable or has moved.",
     "errorTitle": "Something went wrong",
@@ -133,6 +133,13 @@
     "referenceShort": "Use at least four characters.",
     "submit": "Continue",
     "success": "The demonstration form is valid."
+  },
+  "authentication": {
+    "emailLabel": "Email address",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordLabel": "Password",
+    "passwordRequired": "Enter your password.",
+    "submit": "Sign in"
   },
   "states": {
     "emptyTitle": "Nothing here yet",

@@ -111,8 +111,8 @@
     "safetyDescription": "Fiches de sécurité approuvées, leurs sources et la version qui parvient au collecteur.",
     "mlTitle": "Validation des annotations de vision par ordinateur",
     "mlDescription": "Métadonnées du modèle, corrections conservées et configuration appliquée par l'application.",
-    "signInTitle": "Accès de démonstration",
-    "signInDescription": "Choisissez un profil de rôle pour prévisualiser son espace.",
+    "signInTitle": "Se connecter à ScrapTrace",
+    "signInDescription": "Utilisez votre compte ou choisissez un rôle de développement lorsque l’accès de démonstration est activé.",
     "notFoundTitle": "Page introuvable",
     "notFoundDescription": "La page demandée est indisponible ou déplacée.",
     "errorTitle": "Une erreur est survenue",
@@ -133,6 +133,13 @@
     "referenceShort": "Utilisez au moins quatre caractères.",
     "submit": "Continuer",
     "success": "Le formulaire de démonstration est valide."
+  },
+  "authentication": {
+    "emailLabel": "Adresse e-mail",
+    "emailInvalid": "Saisissez une adresse e-mail valide.",
+    "passwordLabel": "Mot de passe",
+    "passwordRequired": "Saisissez votre mot de passe.",
+    "submit": "Se connecter"
   },
   "states": {
     "emptyTitle": "Rien pour le moment",

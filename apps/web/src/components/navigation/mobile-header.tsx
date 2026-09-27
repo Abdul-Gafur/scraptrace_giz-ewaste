@@ -5,9 +5,10 @@ import { Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { useAuthenticationOptional } from "@/auth/auth-session";
 import { Drawer } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 
 import { BrandMark } from "./brand-mark";
 import { LanguageSwitcher } from "./language-switcher";
@@ -25,6 +26,8 @@ export function MobileHeader({ items, role, fallbackTitle }: MobileHeaderProps) 
   const translateShell = useTranslations("shell");
   const translateRoles = useTranslations("roles");
   const [menuOpen, setMenuOpen] = useState(false);
+  const authentication = useAuthenticationOptional();
+  const router = useRouter();
   const title = useActiveLabel(items) ?? fallbackTitle;
   return (
     <header className="bg-surface sticky top-0 z-30 border-b lg:hidden">
@@ -50,13 +53,26 @@ export function MobileHeader({ items, role, fallbackTitle }: MobileHeaderProps) 
             label={translateShell("menuNavigation")}
             onNavigate={() => setMenuOpen(false)}
           />
-          <Link
-            className="min-h-touch text-danger hover:bg-danger-subtle flex items-center rounded-sm px-3 text-sm font-bold"
-            href="/sign-in"
-            onClick={() => setMenuOpen(false)}
-          >
-            {translate("signOut")}
-          </Link>
+          {authentication ? (
+            <button
+              className="min-h-touch text-danger hover:bg-danger-subtle flex w-full items-center rounded-sm px-3 text-start text-sm font-bold"
+              onClick={() => {
+                setMenuOpen(false);
+                void authentication.signOut().finally(() => router.replace("/sign-in"));
+              }}
+              type="button"
+            >
+              {translate("signOut")}
+            </button>
+          ) : (
+            <Link
+              className="min-h-touch text-danger hover:bg-danger-subtle flex items-center rounded-sm px-3 text-sm font-bold"
+              href="/sign-in"
+              onClick={() => setMenuOpen(false)}
+            >
+              {translate("signOut")}
+            </Link>
+          )}
         </div>
       </Drawer>
     </header>

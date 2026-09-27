@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EvidenceIdSchema } from "@scraptrace/contracts";
 
-import { ScrapTraceServiceError } from "@/services/http/http-client";
+import { HttpClient, ScrapTraceServiceError } from "@/services/http/http-client";
 import { createHttpServices } from "@/services/http/http-services";
 
 const evidenceId = EvidenceIdSchema.parse("0199a111-1111-7111-8111-111111111111");
@@ -112,5 +112,95 @@ describe("vision HTTP adapter", () => {
     await expect(
       createHttpServices("http://localhost:8000").vision.appraise(upload()),
     ).rejects.toBeInstanceOf(ScrapTraceServiceError);
+  });
+});
+
+describe("HTTP foundation", () => {
+  const session = {
+    actor_id: "0199b001-0001-7001-8001-000000000001",
+    role: "collector",
+    preferred_language: "en",
+    display_label: "Collector",
+  } as const;
+  const mappedSession = {
+    actorId: session.actor_id,
+    role: session.role,
+    preferredLanguage: session.preferred_language,
+    displayLabel: session.display_label,
+    developmentOnly: false,
+  } as const;
+  const success = (data: unknown) => ({
+    success: true,
+    contract_version: "1.0.0",
+    data,
+    meta: { correlation_id: "request-0002", timestamp },
+  });
+
+  it("restores and creates a secure-cookie session without exposing a token", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(input.toString()).pathname;
+      expect(init?.credentials).toBe("include");
+      expect(new Headers(init?.headers).get("X-Request-ID")).toMatch(/^web-/);
+      if (path.endsWith("/session")) return Response.json(success(session));
+      if (path.endsWith("/sign-in")) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          email: "collector@example.test",
+          password: "correct horse battery staple",
+        });
+        return Response.json(success(session));
+      }
+      return Response.json(success({ signed_out: true }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const authentication = createHttpServices("https://api.example.test").authentication;
+
+    await expect(authentication.getSession()).resolves.toEqual(mappedSession);
+    await expect(
+      authentication.signIn({
+        email: "collector@example.test",
+        password: "correct horse battery staple",
+      }),
+    ).resolves.toEqual(mappedSession);
+    await expect(authentication.signOut()).resolves.toBeUndefined();
+  });
+
+  it("treats an unauthenticated session lookup as anonymous", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
+    await expect(
+      createHttpServices("https://api.example.test").authentication.getSession(),
+    ).resolves.toBeNull();
+  });
+
+  it.each([401, 403, 404, 409, 413, 415, 422, 429, 503])(
+    "normalizes an empty %i response into a safe error",
+    async (status) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(null, { status })),
+      );
+      const request = new HttpClient("https://api.example.test").request("/v1/example", {
+        method: "GET",
+        suppressSessionExpiry: true,
+      });
+      await expect(request).rejects.toMatchObject({ status });
+    },
+  );
+
+  it("passes cancellation to fetch", async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.signal).toBe(controller.signal);
+      throw new DOMException("The operation was aborted.", "AbortError");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    controller.abort();
+    await expect(
+      new HttpClient("https://api.example.test").request("/v1/example", {
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
   });
 });
