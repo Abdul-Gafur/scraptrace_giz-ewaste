@@ -12,8 +12,8 @@ import { cn } from "@/lib/cn";
 import { ROLE_WORKSPACES } from "@/navigation/navigation-config";
 
 /**
- * Figma: role-sign-in. Development preview only: choosing a role and entering opens that
- * workspace's shell. It does not authenticate and grants no access.
+ * Figma: role-sign-in. Development preview only: choosing a role creates a mock session and opens
+ * that workspace's shell. This component is never rendered by the production HTTP configuration.
  */
 export function RolePreview() {
   const translateRoles = useTranslations("roles");

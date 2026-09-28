@@ -7,6 +7,10 @@ import {
   HandoffResponseSchema,
   ItemConditionSchema,
   PriceEstimateSchema,
+  ProcessingRequestSchema,
+  ProcessingResponseSchema,
+  ProgrammeReviewRequestSchema,
+  ProgrammeReviewResponseSchema,
   RecoveryRecordSchema,
   RecoveryRecordEventSchema,
   SupportedLanguageSchema,
@@ -24,7 +28,9 @@ import type { FrontendServices } from "@/services/ports/service-ports";
 import type {
   CaptureInput,
   HandoffLookupResult,
+  RecordProcessingInput,
   RecordHandoffInput,
+  ReviewDecisionInput,
   UpdateDraftInput,
 } from "@/services/ports/service-ports";
 
@@ -73,6 +79,29 @@ const HandoffConfirmationMetadataSchema = z.strictObject({
   notes: z.string().min(1).max(1_000).optional(),
   offline: z.boolean(),
 });
+const ProcessingConfirmationMetadataSchema = z.strictObject({
+  processing_method: ProcessingRequestSchema.shape.processing_method,
+  material_entries: ProcessingRequestSchema.shape.material_entries,
+  processing_timestamp: ProcessingRequestSchema.shape.processing_timestamp,
+  notes: z.string().min(1).max(1_000),
+  offline: z.boolean(),
+});
+const ReviewDecisionMetadataSchema = z
+  .strictObject({
+    decision: ProgrammeReviewRequestSchema.shape.decision,
+    reason_code: ProgrammeReviewRequestSchema.shape.reason_code,
+    reviewer_note: ProgrammeReviewRequestSchema.shape.reviewer_note,
+    requested_correction: ProgrammeReviewRequestSchema.shape.requested_correction,
+  })
+  .superRefine((value, context) => {
+    if (value.decision === "request_correction" && !value.requested_correction) {
+      context.addIssue({
+        code: "custom",
+        path: ["requested_correction"],
+        message: "Requested correction details are required.",
+      });
+    }
+  });
 const SubmitResponseSchema = z.discriminatedUnion("outcome", [
   z.strictObject({
     outcome: z.literal("submitted"),
@@ -152,6 +181,33 @@ const handoffConfirmationForm = (input: RecordHandoffInput): FormData => {
   form.append("weight_photo", input.evidence.weightPhoto, "weight-evidence");
   return form;
 };
+
+const processingConfirmationForm = (input: RecordProcessingInput): FormData => {
+  const metadata = ProcessingConfirmationMetadataSchema.parse({
+    processing_method: input.method,
+    material_entries: input.materialEntries.map((entry) => ({
+      material: entry.material.trim(),
+      weight: entry.weight,
+    })),
+    processing_timestamp: input.processedAt,
+    notes: input.notes.trim(),
+    offline: input.offline,
+  });
+  const form = new FormData();
+  form.append("metadata", JSON.stringify(metadata));
+  form.append("completion_evidence", input.completionEvidence, "processing-evidence");
+  return form;
+};
+
+const reviewDecisionMetadata = (input: ReviewDecisionInput) =>
+  ReviewDecisionMetadataSchema.parse({
+    decision: input.decision,
+    reason_code: input.reasonCode,
+    reviewer_note: input.reviewerNote.trim(),
+    ...(input.requestedCorrection
+      ? { requested_correction: input.requestedCorrection.trim() }
+      : {}),
+  });
 
 const blobToDataUrl = (blob: Blob): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -362,11 +418,57 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
           },
         ),
     },
-    processing: { record: notImplemented, submitProcessing: notImplemented },
+    processing: {
+      record: (request) => {
+        const parsed = ProcessingRequestSchema.parse(request);
+        return client.requestParsed(
+          `/v1/recovery-records/${parsed.recovery_record_id}/processing`,
+          ProcessingResponseSchema,
+          {
+            method: "POST",
+            body: parsed,
+            idempotencyKey: parsed.idempotency.idempotency_key,
+          },
+        );
+      },
+      submitProcessing: (input) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(input.recordId)}/processing`,
+          ProcessingResponseSchema,
+          {
+            method: "POST",
+            body: processingConfirmationForm(input),
+            idempotencyKey: `record-processing:${input.recordId}`,
+          },
+        ),
+    },
     reviews: {
-      decide: notImplemented,
-      submitDecision: notImplemented,
-      listQueue: notImplemented,
+      decide: (request) => {
+        const parsed = ProgrammeReviewRequestSchema.parse(request);
+        return client.requestParsed(
+          `/v1/recovery-records/${parsed.recovery_record_id}/review-decisions`,
+          ProgrammeReviewResponseSchema,
+          {
+            method: "POST",
+            body: parsed,
+            idempotencyKey: parsed.idempotency.idempotency_key,
+          },
+        );
+      },
+      submitDecision: (input) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(input.recordId)}/review-decisions`,
+          ProgrammeReviewResponseSchema,
+          {
+            method: "POST",
+            body: reviewDecisionMetadata(input),
+            idempotencyKey: `review-${input.decision}:${input.recordId}`,
+          },
+        ),
+      listQueue: () =>
+        client.requestParsed("/v1/reviews?status=open", RecoveryRecordListSchema, {
+          method: "GET",
+        }),
     },
     reporting: { summarize: notImplemented, listForReport: notImplemented },
     dataExports: { build: notImplemented },

@@ -474,3 +474,134 @@ describe("handoff HTTP adapter", () => {
     ).resolves.toMatchObject({ outcome: "accepted" });
   });
 });
+
+describe("processing and review HTTP adapters", () => {
+  it("uploads processing evidence and contract metadata", async () => {
+    const record = createRecoveryRecordFixture();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(input.toString()).pathname).toBe(
+        `/v1/recovery-records/${record.record_id}/processing`,
+      );
+      expect(init?.body).toBeInstanceOf(FormData);
+      expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+        `record-processing:${record.record_id}`,
+      );
+      const form = init?.body as FormData;
+      expect(JSON.parse(String(form.get("metadata")))).toEqual({
+        processing_method: "material_recovery",
+        material_entries: [{ material: "Copper", weight: { value: 4, unit: "kg" } }],
+        processing_timestamp: timestamp,
+        notes: "Materials separated",
+        offline: false,
+      });
+      expect(form.get("completion_evidence")).toBeInstanceOf(File);
+      return Response.json({
+        outcome: "processing_recorded",
+        recovery_record_id: record.record_id,
+        server_revision: 4,
+        replayed: false,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createHttpServices("https://api.example.test").processing.submitProcessing({
+        recordId: record.record_id,
+        method: "material_recovery",
+        materialEntries: [{ material: " Copper ", weight: { value: 4, unit: "kg" } }],
+        processedAt: timestamp,
+        notes: "Materials separated",
+        completionEvidence: new File(["complete"], "private.jpg", { type: "image/jpeg" }),
+        offline: false,
+      }),
+    ).resolves.toMatchObject({ outcome: "processing_recorded", server_revision: 4 });
+  });
+
+  it("loads the review queue and submits an explicit reviewer decision", async () => {
+    const record = createRecoveryRecordFixture();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(input.toString());
+      if (init?.method === "GET") {
+        expect(url.pathname).toBe("/v1/reviews");
+        expect(url.searchParams.get("status")).toBe("open");
+        return Response.json([record]);
+      }
+      expect(url.pathname).toBe(`/v1/recovery-records/${record.record_id}/review-decisions`);
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+        `review-approve:${record.record_id}`,
+      );
+      expect(JSON.parse(String(init?.body))).toEqual({
+        decision: "approve",
+        reason_code: "EVIDENCE_VERIFIED",
+        reviewer_note: "Evidence is internally consistent.",
+      });
+      return Response.json({
+        recovery_record_id: record.record_id,
+        previous_review_state: "open",
+        resulting_review_state: "approved",
+        previous_record_state: "under_review",
+        resulting_record_state: "approved_and_completed",
+        decision_timestamp: timestamp,
+        replayed: false,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const services = createHttpServices("https://api.example.test");
+
+    await expect(services.reviews.listQueue()).resolves.toEqual([record]);
+    await expect(
+      services.reviews.submitDecision({
+        recordId: record.record_id,
+        decision: "approve",
+        reasonCode: "EVIDENCE_VERIFIED",
+        reviewerNote: "Evidence is internally consistent.",
+      }),
+    ).resolves.toMatchObject({
+      recovery_record_id: record.record_id,
+      resulting_review_state: "approved",
+    });
+  });
+
+  it("requires correction instructions before sending that decision", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(() =>
+      createHttpServices("https://api.example.test").reviews.submitDecision({
+        recordId: createRecoveryRecordFixture().record_id,
+        decision: "request_correction",
+        reasonCode: "EVIDENCE_INCOMPLETE",
+        reviewerNote: "The weight image is unreadable.",
+      }),
+    ).toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects contract-invalid processing and review responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ outcome: "done" })),
+    );
+    const record = createRecoveryRecordFixture();
+    const services = createHttpServices("https://api.example.test");
+    await expect(
+      services.processing.submitProcessing({
+        recordId: record.record_id,
+        method: "safe_storage",
+        materialEntries: [],
+        processedAt: timestamp,
+        notes: "Secured for later treatment",
+        completionEvidence: new File(["complete"], "complete.jpg", { type: "image/jpeg" }),
+        offline: false,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      services.reviews.submitDecision({
+        recordId: record.record_id,
+        decision: "reject",
+        reasonCode: "INVALID_EVIDENCE",
+        reviewerNote: "Evidence cannot support the claim.",
+      }),
+    ).rejects.toThrow();
+  });
+});
