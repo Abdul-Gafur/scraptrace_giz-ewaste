@@ -52,6 +52,8 @@ def current_user(actor: Actor) -> dict[str, Any]:
         "Every failure returns the same message. Repeated failures are rate limited."
     ),
     response_model=Envelope[IssuedSession],
+    # Optional contract fields (ActorReference.programme_id/facility_id) are omitted, never null.
+    response_model_exclude_none=True,
     responses=error_responses(401, 422, 429, 503),
 )
 async def sign_in(
@@ -94,6 +96,7 @@ async def sign_in(
     "/me",
     summary="Current authenticated user",
     response_model=Envelope[CurrentUser],
+    response_model_exclude_none=True,
     responses=error_responses(401),
 )
 async def me(request: Request, actor: CurrentActor) -> dict[str, Any]:

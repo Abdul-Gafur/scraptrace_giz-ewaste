@@ -49,9 +49,12 @@ class SignInRequest(Strict):
 
 
 class ActorReferenceModel(Strict):
+    """The contract `ActorReference`. Absent scope fields are omitted from responses, so the
+    object can be copied into contract requests unchanged."""
+
     actor_id: uuid.UUID
-    programme_id: uuid.UUID | None = None
-    facility_id: uuid.UUID | None = None
+    programme_id: uuid.UUID | None = Field(default=None, json_schema_extra={"type": "string"})
+    facility_id: uuid.UUID | None = Field(default=None, json_schema_extra={"type": "string"})
 
 
 class CurrentUser(Strict):

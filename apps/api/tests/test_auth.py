@@ -266,3 +266,16 @@ def test_tokens_are_never_logged(api: TestClient, caplog: pytest.LogCaptureFixtu
     api.get("/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert token not in caplog.text
     assert DEMO_PASSWORD not in caplog.text
+
+
+@pytest.mark.parametrize("username", ["collector.demo", "recycler.demo", "reviewer.demo"])
+def test_actor_reference_is_contract_valid_and_reusable(api: TestClient, username: str) -> None:
+    from apps.api.app.contracts.transport import REGISTRY
+
+    reference = api.get("/v1/auth/me", headers=auth(api, username)).json()["data"][
+        "actor_reference"
+    ]
+    assert None not in reference.values()
+    assert REGISTRY.errors("recovery_record", reference, ("properties", "collector")) == []
+    session = sign_in(api, username)["user"]["actor_reference"]
+    assert session == reference

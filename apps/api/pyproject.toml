@@ -67,7 +67,7 @@ packages = ["apps.api.app", "services.vision.manifest", "services.vision.predict
 exclude = ["services/vision/(download_data|extract_crops|train|dataset|model)\\.py"]
 
 [[tool.mypy.overrides]]
-module = ["PIL.*", "jsonschema.*", "torch.*", "torchvision.*", "timm.*"]
+module = ["PIL.*", "jsonschema.*", "torch.*", "torchvision.*", "timm.*", "asyncpg.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 

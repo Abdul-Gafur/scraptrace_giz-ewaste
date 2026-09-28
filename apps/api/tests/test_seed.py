@@ -35,8 +35,17 @@ def test_seed_is_repeatable(api_settings: Settings) -> None:
     assert f"{len(SEED_RECORD_PLANS)} demonstration records advanced" in first_message
     assert "0 reference rows created" in second_message
     assert "0 demonstration records advanced" in second_message
+    expected = {
+        "draft-television": "draft",
+        "awaiting-laptops": "awaiting_handoff",
+        "received-refrigerator": "received",
+        "discrepancy-microwave": "under_review",
+        "completed-compressor": "approved_and_completed",
+        "approved-air-conditioner": "approved_and_completed",
+        "rejected-television": "rejected",
+    }
     assert first["records"] == sorted(
-        (str(plan.record_id), plan.stage) for plan in SEED_RECORD_PLANS
+        (str(plan.record_id), expected[plan.label]) for plan in SEED_RECORD_PLANS
     )
 
 
@@ -47,9 +56,15 @@ def test_seeded_discrepancy_opens_a_review_case(api_settings: Settings) -> None:
 
     async def cases(session: sa.ext.asyncio.AsyncSession) -> list[tuple[str, list[str]]]:
         result = await session.execute(sa.select(ReviewCase.status, ReviewCase.flag_codes))
-        return [(row.status, row.flag_codes) for row in result]
+        return sorted((row.status, row.flag_codes) for row in result)
 
-    assert query(api_settings, cases) == [("open", ["WEIGHT_DISCREPANCY"])]
+    # The three seeded discrepancies: one awaiting review, one approved, one rejected. The
+    # refrigerator's 4% difference is inside the 15% threshold and raises no flag.
+    assert query(api_settings, cases) == [
+        ("approved", ["WEIGHT_DISCREPANCY"]),
+        ("open", ["WEIGHT_DISCREPANCY"]),
+        ("rejected", ["WEIGHT_DISCREPANCY"]),
+    ]
 
 
 def test_seed_refuses_production_and_weak_passwords(

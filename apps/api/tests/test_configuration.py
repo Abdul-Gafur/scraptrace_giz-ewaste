@@ -63,3 +63,51 @@ def test_database_readiness_fails_safely_before_migration(tmp_path: Path) -> Non
     assert body["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
     assert body["meta"]["correlation_id"] == "request-db-0001"
     assert "sqlite" not in response.text.lower()
+
+
+def test_database_outage_is_a_retryable_dependency_failure(database_url: str) -> None:
+    settings = build_settings(database_url).model_copy(
+        update={
+            "database_url": SecretStr("postgresql+asyncpg://nobody:none@127.0.0.1:1/none"),
+            "database_pool_timeout_seconds": 2.0,
+        }
+    )
+    with TestClient(
+        create_app(settings=settings, predictor=FakePredictor()), raise_server_exceptions=False
+    ) as client:
+        response = client.post(
+            "/v1/auth/sessions", json={"username": "collector.demo", "password": "x" * 12}
+        )
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
+    assert response.json()["error"]["retryable"] is True
+    assert "127.0.0.1" not in response.text and "nobody" not in response.text
+
+
+def test_database_errors_are_classified() -> None:
+    from apps.api.app.core.errors import database_error_to_api_error
+    from sqlalchemy.exc import IntegrityError, InvalidRequestError, OperationalError
+    from sqlalchemy.orm.exc import StaleDataError
+
+    class UniqueViolationError(Exception):
+        pass
+
+    unique = IntegrityError("INSERT", {}, UniqueViolationError("duplicate key"))
+    other = IntegrityError("DELETE", {}, Exception("restrict_violation"))
+    cases = {
+        "unique": (unique, 409, "DUPLICATE_RECORD", False),
+        "constraint": (other, 409, "INVALID_STATE_TRANSITION", False),
+        "stale": (StaleDataError("stale"), 409, "VERSION_CONFLICT", False),
+        "outage": (
+            OperationalError("SELECT 1", {}, Exception("gone")),
+            503,
+            "DEPENDENCY_UNAVAILABLE",
+            True,
+        ),
+        "misuse": (InvalidRequestError("lazy load"), 500, "INTERNAL_FAILURE", False),
+    }
+    for name, (error, status, code, retryable) in cases.items():
+        mapped = database_error_to_api_error(error)
+        assert (mapped.status_code, mapped.code, mapped.retryable) == (status, code, retryable), (
+            name
+        )

@@ -33,6 +33,8 @@
     "api:db:check": "PYTHONPATH=. .venv/bin/alembic -c apps/api/alembic.ini check",
     "api:db:seed": "PYTHONPATH=. .venv/bin/python -m apps.api.app.cli seed",
     "api:db:purge-idempotency": "PYTHONPATH=. .venv/bin/python -m apps.api.app.cli purge-idempotency",
+    "api:audit": ".venv/bin/pip-audit --skip-editable --progress-spinner off",
+    "api:openapi": "PYTHONPATH=. .venv/bin/python -c \"import json; from apps.api.app.main import app; print(json.dumps(app.openapi(), indent=2))\"",
     "vision:download": "PYTHONPATH=. .venv/bin/python services/vision/extract_crops.py",
     "vision:train": "PYTHONPATH=. .venv/bin/python services/vision/train.py",
     "vision:train:foundation": "PYTHONPATH=. .venv/bin/python services/vision/train_foundation.py",

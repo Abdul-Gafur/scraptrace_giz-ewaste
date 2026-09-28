@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any
 
+import asyncpg
 from apps.api.app.contracts.validation import ContractValidationError
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from services.vision.predictor import format_utc_timestamp
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import TimeoutError as SqlAlchemyTimeoutError
 from sqlalchemy.orm.exc import StaleDataError
 from starlette.exceptions import HTTPException as StarletteHttpException
 
@@ -123,11 +126,19 @@ def database_error_to_api_error(error: SQLAlchemyError) -> ApiError:
             code="INVALID_STATE_TRANSITION",
             message="The request conflicts with the current state of stored data.",
         )
+    if isinstance(error, DBAPIError | SqlAlchemyTimeoutError):
+        # Connectivity, pool exhaustion, timeouts and other driver-level failures.
+        return ApiError(
+            status_code=503,
+            code="DEPENDENCY_UNAVAILABLE",
+            message="The database is unavailable. Try again shortly.",
+            retryable=True,
+        )
+    # Anything else is an owned defect (for example ORM misuse), not a retryable outage.
     return ApiError(
-        status_code=503,
-        code="DEPENDENCY_UNAVAILABLE",
-        message="The database is unavailable. Try again shortly.",
-        retryable=True,
+        status_code=500,
+        code="INTERNAL_FAILURE",
+        message="The request could not be completed.",
     )
 
 
@@ -188,6 +199,13 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(SQLAlchemyError)
     async def handle_database_error(request: Request, error: SQLAlchemyError) -> JSONResponse:
         api_error = database_error_to_api_error(error)
+        if api_error.code == "INTERNAL_FAILURE":
+            LOGGER.exception(
+                "database_usage_error",
+                exc_info=(type(error), error, error.__traceback__),
+                extra={"context": {"request_id": request.state.request_id}},
+            )
+            return _respond(request, api_error)
         log = LOGGER.warning if api_error.status_code < 500 else LOGGER.error
         # The exception class is enough to diagnose; statements and parameters are not logged
         # because they can carry personal data.
@@ -202,6 +220,36 @@ def register_error_handlers(app: FastAPI) -> None:
             },
         )
         return _respond(request, api_error)
+
+    async def handle_dependency_error(request: Request, error: Exception) -> JSONResponse:
+        # Driver-level connection failures are not always wrapped by SQLAlchemy (asyncpg can
+        # raise ConnectionRefusedError or its own errors while connecting). They are outages.
+        LOGGER.error(
+            "dependency_unavailable",
+            extra={
+                "context": {
+                    "request_id": request.state.request_id,
+                    "error_class": type(error).__name__,
+                }
+            },
+        )
+        return _respond(
+            request,
+            ApiError(
+                status_code=503,
+                code="DEPENDENCY_UNAVAILABLE",
+                message="A required service is unavailable. Try again shortly.",
+                retryable=True,
+            ),
+        )
+
+    for dependency_error in (
+        ConnectionError,
+        asyncio.TimeoutError,
+        asyncpg.PostgresError,
+        asyncpg.InterfaceError,
+    ):
+        app.add_exception_handler(dependency_error, handle_dependency_error)
 
     @app.exception_handler(ContractValidationError)
     async def handle_contract_error(

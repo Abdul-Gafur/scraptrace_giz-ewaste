@@ -278,7 +278,7 @@ SEED_CAPTURED_AT = "2026-09-20T09:00:00.000Z"
 SEED_HANDOFF_AT = "2026-09-21T10:30:00.000Z"
 
 
-STAGE_ORDER = ("draft", "awaiting_handoff", "received")
+STAGE_ORDER = ("draft", "awaiting_handoff", "received", "processed", "decided")
 
 
 @dataclass(frozen=True)
@@ -292,6 +292,9 @@ class SeedRecordPlan:
     stage: str  # one of STAGE_ORDER
     item_count: int | None = 1
     measured_weight_kg: float | None = None
+    materials: tuple[tuple[str, float], ...] = ()
+    decision: str | None = None
+    reason_code: str | None = None
 
     def reaches(self, stage: str) -> bool:
         return STAGE_ORDER.index(self.stage) >= STAGE_ORDER.index(stage)
@@ -338,9 +341,48 @@ SEED_RECORD_PLANS: tuple[SeedRecordPlan, ...] = (
         "damaged",
         18.0,
         RECYCLER_LOCATION_ID,
-        "received",
+        "processed",
         item_count=2,
         measured_weight_kg=31.0,
+        materials=(("Steel casing", 14.2), ("Transformer copper", 2.6)),
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c005-0005-7005-8005-000000000005"),
+        "completed-compressor",
+        "compressors",
+        "damaged",
+        26.0,
+        RECYCLER_LOCATION_ID,
+        "processed",
+        item_count=4,
+        measured_weight_kg=26.8,
+        materials=(("Cast steel", 19.5),),
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c006-0006-7006-8006-000000000006"),
+        "approved-air-conditioner",
+        "air_conditioners",
+        "repairable",
+        34.0,
+        RECYCLER_LOCATION_ID,
+        "decided",
+        measured_weight_kg=41.0,
+        materials=(("Aluminium fins", 6.4), ("Copper tubing", 3.8)),
+        decision="approve",
+        reason_code="EVIDENCE_SUFFICIENT",
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c007-0007-7007-8007-000000000007"),
+        "rejected-television",
+        "televisions",
+        "damaged",
+        22.0,
+        RECYCLER_LOCATION_ID,
+        "decided",
+        measured_weight_kg=41.0,
+        materials=(("Lead glass", 12.5),),
+        decision="reject",
+        reason_code="WEIGHT_UNEXPLAINED",
     ),
 )
 
@@ -494,6 +536,101 @@ async def _seed_handoff(
         )
 
 
+async def _seed_processing(
+    services: AppServices, plan: SeedRecordPlan, recycler: Any, context: RequestContext
+) -> None:
+    from apps.api.app.domain.integrity import sha256_canonical_json
+    from apps.api.app.domain.time import format_timestamp
+    from apps.api.app.services.evidence import EvidenceService, EvidenceUpload
+    from apps.api.app.services.processing import ProcessingService
+
+    image = sanitize_image_bytes(seed_photo(f"{plan.label}-processing"), services.settings, "image")
+    async with services.database.session_scope() as session:
+        _, evidence = await EvidenceService(session, services, context).upload(
+            plan.record_id,
+            recycler,
+            EvidenceUpload(
+                evidence_type="processing_completion",
+                evidence_id=plan.evidence_id("a3"),
+                captured_at=format_timestamp(services.clock()),
+                capture_source="approved_demo_fixture",
+                device_instance_id=uuid.UUID("0199b020-0020-7020-8020-000000000021"),
+                connectivity="online",
+                application_version="0.1.0",
+            ),
+            image,
+        )
+    request: dict[str, Any] = {
+        "recovery_record_id": str(plan.record_id),
+        "recycler_reference": recycler.reference(),
+        "processing_method": "material_recovery",
+        "material_entries": [
+            {"material": name, "weight": {"value": value, "unit": "kg"}}
+            for name, value in plan.materials
+        ],
+        # Processing follows the (real-time) receipt, so it is stamped with the current time.
+        "processing_timestamp": format_timestamp(services.clock()),
+        "completion_evidence_ids": [evidence["evidence_id"]],
+        "notes": "Material recovery recorded with weighbridge evidence.",
+    }
+    request["idempotency"] = {
+        "idempotency_key": f"seed-processing-{plan.record_id}",
+        "request_digest": sha256_canonical_json(request),
+        "scope": {
+            "actor_id": str(recycler.user_id),
+            "operation": "record_processing",
+            "resource_id": str(plan.record_id),
+        },
+    }
+    async with services.database.session_scope() as session:
+        await ProcessingService(session, services, context).submit(recycler, request)
+
+
+async def _seed_decision(
+    services: AppServices, plan: SeedRecordPlan, reviewer: Any, context: RequestContext
+) -> None:
+    from apps.api.app.domain.integrity import sha256_canonical_json
+    from apps.api.app.domain.time import format_timestamp
+    from apps.api.app.repositories.records import RecoveryRecordRepository
+    from apps.api.app.services.reviews import ReviewService
+
+    assert plan.decision is not None and plan.reason_code is not None
+    async with services.database.session_scope() as session:
+        repository = RecoveryRecordRepository(session)
+        record = await repository.get(plan.record_id)
+        assert record is not None and record.review_case is not None
+        flags = list(record.review_case.flag_codes)
+        review_state = record.review_case.status
+        considered = [
+            str(item.id)
+            for item in await repository.list_evidence(plan.record_id)
+            if item.evidence_type == "weight_measurement"
+        ]
+    request: dict[str, Any] = {
+        "recovery_record_id": str(plan.record_id),
+        "review_reason_codes": flags,
+        "assigned_reviewer": reviewer.reference(),
+        "evidence_considered": considered,
+        "decision": plan.decision,
+        "reason_code": plan.reason_code,
+        "reviewer_note": "Demonstration decision recorded by the seed command.",
+        "decision_timestamp": format_timestamp(services.clock()),
+        "previous_review_state": review_state,
+        "previous_record_state": "under_review",
+    }
+    request["idempotency"] = {
+        "idempotency_key": f"seed-review-{plan.record_id}",
+        "request_digest": sha256_canonical_json(request),
+        "scope": {
+            "actor_id": str(reviewer.user_id),
+            "operation": f"review_{plan.decision}",
+            "resource_id": str(plan.record_id),
+        },
+    }
+    async with services.database.session_scope() as session:
+        await ReviewService(session, services, context).decide(reviewer, request)
+
+
 async def seed_demonstration_records(services: AppServices) -> int:
     """Drives each planned record to its target stage through the services. Records already at
     or beyond a stage are left alone. Returns how many records advanced."""
@@ -502,6 +639,7 @@ async def seed_demonstration_records(services: AppServices) -> int:
     context = RequestContext(correlation_id="seed-demonstration-records")
     collector = await _seed_actor(services, "collector.demo", "collector")
     recycler = await _seed_actor(services, "recycler.demo", "recycler")
+    reviewer = await _seed_actor(services, "reviewer.demo", "programme_reviewer")
 
     advanced = 0
     for plan in SEED_RECORD_PLANS:
@@ -531,5 +669,11 @@ async def seed_demonstration_records(services: AppServices) -> int:
         if plan.reaches("received") and state == "awaiting_handoff":
             await _seed_handoff(services, plan, recycler, context)
             state = "received"
+        if plan.reaches("processed") and state == "received":
+            await _seed_processing(services, plan, recycler, context)
+            state = "processed"
+        if plan.reaches("decided") and state in ("processed", "under_review"):
+            await _seed_decision(services, plan, reviewer, context)
+            state = "decided"
         advanced += int(state != before)
     return advanced

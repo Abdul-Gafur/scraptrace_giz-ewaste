@@ -242,9 +242,187 @@ HANDOFF_LOOKUP_RESPONSE_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+
+def _processing(field: str) -> dict[str, Any]:
+    return REGISTRY.resolved("processing_request", "properties", field)
+
+
+MATERIAL_ENTRY_SCHEMA: dict[str, Any] = {
+    "title": "MaterialEntry",
+    **REGISTRY.resolved("processing_request", "properties", "material_entries", "items"),
+}
+MATERIAL_ENTRY_UPDATE_SCHEMA: dict[str, Any] = {
+    "title": "MaterialEntryUpdate",
+    "type": "object",
+    "properties": MATERIAL_ENTRY_SCHEMA["properties"],
+    "minProperties": 1,
+    "additionalProperties": False,
+}
+
+PROCESSING_DRAFT_SCHEMA: dict[str, Any] = {
+    "title": "ProcessingDraftUpdate",
+    "description": (
+        "Editable processing information before submission. Field names and constraints are "
+        "those of `ProcessingRequest`; `null` clears an optional field."
+    ),
+    "type": "object",
+    "properties": {
+        "processing_method": _processing("processing_method"),
+        "notes": _nullable(_processing("notes")),
+        "processing_timestamp": _nullable(_processing("processing_timestamp")),
+        "completion_evidence_ids": {
+            **_processing("completion_evidence_ids"),
+            "minItems": 0,
+            "maxItems": 100,
+        },
+    },
+    "minProperties": 1,
+    "additionalProperties": False,
+}
+
+_ENTRY_VIEW = {
+    "type": "object",
+    "properties": {
+        "entry_id": UUID_V7,
+        "material": MATERIAL_ENTRY_SCHEMA["properties"]["material"],
+        "weight": MATERIAL_ENTRY_SCHEMA["properties"]["weight"],
+    },
+    "required": ["entry_id", "material", "weight"],
+    "additionalProperties": False,
+}
+
+PROCESSING_DETAIL_SCHEMA: dict[str, Any] = {
+    "title": "ProcessingDetail",
+    "type": "object",
+    "properties": {
+        "record_id": UUID_V7,
+        "status": {"enum": ["draft", "submitted"]},
+        "processing_method": _processing("processing_method"),
+        "notes": _processing("notes"),
+        "processing_timestamp": _processing("processing_timestamp"),
+        "completion_evidence_ids": {"type": "array", "items": UUID_V7},
+        "material_entries": {"type": "array", "items": _ENTRY_VIEW},
+        "total_recovered_weight_kg": {"type": "number", "minimum": 0},
+        "version": {"type": "integer", "minimum": 1},
+        "submitted_at": _record("created_at"),
+        "updated_at": _record("updated_at"),
+    },
+    "required": [
+        "record_id",
+        "status",
+        "completion_evidence_ids",
+        "material_entries",
+        "total_recovered_weight_kg",
+        "version",
+        "updated_at",
+    ],
+    "additionalProperties": False,
+}
+
+_REVIEW_STATE = REGISTRY.resolved("programme_review_request", "properties", "previous_review_state")
+
+REVIEW_CASE_SUMMARY_SCHEMA: dict[str, Any] = {
+    "title": "ReviewCaseSummary",
+    "type": "object",
+    "properties": {
+        "case_id": UUID_V7,
+        "record_id": UUID_V7,
+        "human_reference": _record("human_reference"),
+        "category": _record("category"),
+        "status": _REVIEW_STATE,
+        "flag_codes": {"type": "array", "items": {"type": "string"}},
+        "opened_at": _record("created_at"),
+        "facility_id": {"anyOf": [UUID_V7, {"type": "null"}]},
+        "assigned_reviewer_id": {"anyOf": [UUID_V7, {"type": "null"}]},
+        "record_business_state": _record("business_state"),
+        "decision_eligible": {
+            "type": "boolean",
+            "description": "True when the record is `under_review`, so a decision can be made.",
+        },
+        "latest_decision": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "decision": REGISTRY.resolved(
+                            "programme_review_request", "properties", "decision"
+                        ),
+                        "reason_code": {"type": "string"},
+                        "decided_at": _record("created_at"),
+                    },
+                    "required": ["decision", "reason_code", "decided_at"],
+                    "additionalProperties": False,
+                },
+                {"type": "null"},
+            ]
+        },
+    },
+    "required": [
+        "case_id",
+        "record_id",
+        "human_reference",
+        "category",
+        "status",
+        "flag_codes",
+        "opened_at",
+        "facility_id",
+        "assigned_reviewer_id",
+        "record_business_state",
+        "decision_eligible",
+        "latest_decision",
+    ],
+    "additionalProperties": False,
+}
+
+REVIEW_DECISION_VIEW_SCHEMA: dict[str, Any] = {
+    "title": "ReviewDecisionView",
+    "type": "object",
+    "properties": {
+        "decision_id": UUID_V7,
+        "reviewer": _record("collector"),
+        "decision": REGISTRY.resolved("programme_review_request", "properties", "decision"),
+        "reason_code": {"type": "string"},
+        "reviewer_note": {"type": "string"},
+        "requested_correction": {"type": ["string", "null"]},
+        "review_reason_codes": {"type": "array", "items": {"type": "string"}},
+        "evidence_considered": {"type": "array", "items": UUID_V7},
+        "decision_evidence_id": UUID_V7,
+        "decision_timestamp": _record("created_at"),
+        "recorded_at": _record("created_at"),
+        "previous_review_state": _REVIEW_STATE,
+        "resulting_review_state": _REVIEW_STATE,
+        "previous_record_state": _record("business_state"),
+        "resulting_record_state": _record("business_state"),
+    },
+    "required": [
+        "decision_id",
+        "reviewer",
+        "decision",
+        "reason_code",
+        "reviewer_note",
+        "requested_correction",
+        "review_reason_codes",
+        "evidence_considered",
+        "decision_evidence_id",
+        "decision_timestamp",
+        "recorded_at",
+        "previous_review_state",
+        "resulting_review_state",
+        "previous_record_state",
+        "resulting_record_state",
+    ],
+    "additionalProperties": False,
+}
+
 _VALIDATORS = {
     id(schema): Draft202012Validator(schema)
     for schema in (
+        MATERIAL_ENTRY_SCHEMA,
+        MATERIAL_ENTRY_UPDATE_SCHEMA,
+        PROCESSING_DRAFT_SCHEMA,
+        PROCESSING_DETAIL_SCHEMA,
+        REVIEW_CASE_SUMMARY_SCHEMA,
+        REVIEW_DECISION_VIEW_SCHEMA,
         DRAFT_CREATE_SCHEMA,
         DRAFT_UPDATE_SCHEMA,
         CATEGORY_CONFIRMATION_SCHEMA,
