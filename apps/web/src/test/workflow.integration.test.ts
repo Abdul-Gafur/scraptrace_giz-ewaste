@@ -105,6 +105,7 @@ const confirmReceipt = (services: Harness, recordId: string, measuredKg: number,
     confirmedCondition: "damaged",
     measuredWeight: { value: measuredKg, unit: "kg" },
     finalPriceAmount: 42,
+    finalPriceCurrency: "GHS",
     receivingLocationId: DEMO_LOCATION_IDS.recycler,
     evidence: {
       handoffPhoto: image(`${label}-handoff`),
@@ -188,6 +189,44 @@ describe("scenario A: a successful recovery from capture to programme report", (
     expect(exported.content).toContain(record.human_reference);
     expect(exported.content).toContain("approved_and_completed");
     expect(exported.filename).toMatch(/^scraptrace-.*-records-\d{4}-\d{2}-\d{2}\.csv$/);
+  });
+});
+
+describe("collector draft recovery", () => {
+  it("persists, reopens, edits and submits the same backend-style record identifier", async () => {
+    const services = harness();
+    await seedConfiguration(services);
+    const photo = image("saved-draft");
+    const draft = await services.collector.recoveryRecords.createDraft({
+      category: "televisions",
+      language: "en",
+      condition: "unknown",
+      itemCount: 1,
+      areaLabel: "Greater Accra",
+      confirmationSource: "manual_selection",
+      image: photo,
+      offline: false,
+    });
+
+    const reopened = await services.collector.recoveryRecords.getById(draft.record_id);
+    expect(reopened).toMatchObject({ record_id: draft.record_id, business_state: "draft" });
+    const updated = await services.collector.recoveryRecords.updateDraft(draft.record_id, {
+      category: "televisions",
+      language: "en",
+      condition: "damaged",
+      itemCount: 1,
+      approximateWeight: { value: 8, unit: "kg" },
+      areaLabel: "Greater Accra",
+      confirmationSource: "manual_selection",
+      offline: false,
+    });
+    expect(updated.record_id).toBe(draft.record_id);
+    expect(updated).toMatchObject({ condition: "damaged", approximate_weight: { value: 8 } });
+    expect(services.repository.listEvidence(draft.record_id)).toHaveLength(1);
+
+    const submitted = await services.collector.recoveryRecords.submit(draft.record_id);
+    expect(submitted.record.record_id).toBe(draft.record_id);
+    expect(submitted.record.business_state).toBe("awaiting_handoff");
   });
 });
 

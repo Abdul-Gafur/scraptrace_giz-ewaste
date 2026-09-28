@@ -282,7 +282,6 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
   ): Promise<HandoffRequest> {
     const record = repository.findRecord(input.recordId);
     if (!record) throw notFound();
-    const settings = repository.getProgrammeSettings();
     const ids =
       evidenceIds ??
       repository
@@ -297,6 +296,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       confirmed_condition: input.confirmedCondition,
       measured_weight: { ...input.measuredWeight },
       final_price_amount: input.finalPriceAmount,
+      final_price_currency: input.finalPriceCurrency,
       evidence_ids: [...ids],
     };
     const payload = {
@@ -309,7 +309,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       confirmed_category: input.confirmedCategory,
       confirmed_condition: input.confirmedCondition,
       measured_weight: input.measuredWeight,
-      final_price: { amount: input.finalPriceAmount, currency: settings?.currency ?? "GHS" },
+      final_price: { amount: input.finalPriceAmount, currency: input.finalPriceCurrency },
       evidence_ids: ids,
     };
     return HandoffRequestSchema.parse({

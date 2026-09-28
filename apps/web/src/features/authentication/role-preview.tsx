@@ -5,20 +5,24 @@ import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { useAuthentication } from "@/auth/auth-session";
 import { buttonVariants } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
 import { ROLE_WORKSPACES } from "@/navigation/navigation-config";
 
 /**
- * Figma: role-sign-in. Development preview only: choosing a role and entering opens that
- * workspace's shell. It does not authenticate and grants no access.
+ * Figma: role-sign-in. Development preview only: choosing a role creates a mock session and opens
+ * that workspace's shell. This component is never rendered by the production HTTP configuration.
  */
 export function RolePreview() {
   const translateRoles = useTranslations("roles");
   const translateDescriptions = useTranslations("roleDescriptions");
   const translate = useTranslations("screens.signIn");
   const [selected, setSelected] = useState<UserRole>(UserRoleSchema.enum.collector);
+  const [pending, setPending] = useState(false);
+  const authentication = useAuthentication();
+  const router = useRouter();
   return (
     <div className="space-y-3">
       <fieldset className="space-y-2">
@@ -61,12 +65,20 @@ export function RolePreview() {
           );
         })}
       </fieldset>
-      <Link
+      <button
         className={buttonVariants({ block: true, size: "large" })}
-        href={ROLE_WORKSPACES[selected].home}
+        disabled={pending}
+        onClick={() => {
+          setPending(true);
+          void authentication
+            .signIn({ demoRole: selected })
+            .then(() => router.push(ROLE_WORKSPACES[selected].home))
+            .finally(() => setPending(false));
+        }}
+        type="button"
       >
         {translate("enter")}
-      </Link>
+      </button>
     </div>
   );
 }

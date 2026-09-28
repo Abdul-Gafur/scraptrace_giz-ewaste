@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   DefinitionList,
@@ -21,6 +22,7 @@ import { RecordTimeline } from "@/features/shared/record-timeline";
 import { RecordQrCode } from "@/features/shared/qr-code";
 import { useRecord, useRecordEvents, useRecordEvidence } from "@/hooks/use-records";
 import { findLocationName } from "@/services/local/location-directory";
+import { Link } from "@/i18n/navigation";
 
 /**
  * One record as its collector sees it (FR-REC-004, FR-DSH-001, FR-DSH-002).
@@ -53,6 +55,10 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
 
               <FlagPanel flagCodes={record.review.flag_codes} />
 
+              <Alert title={translate("nextStepTitle")} tone="info">
+                {translate(`nextStep.${record.business_state}`)}
+              </Alert>
+
               {showQr ? (
                 <Card>
                   <CardHeader>
@@ -69,7 +75,15 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
 
               {record.business_state === "draft" ? (
                 <Alert title={translate("draftTitle")} tone="info">
-                  {translate("draftNotice")}
+                  <div className="space-y-3">
+                    <p>{translate("draftNotice")}</p>
+                    <Link
+                      className={buttonVariants({ variant: "secondary" })}
+                      href={`/collector/records/${record.record_id}/edit`}
+                    >
+                      {translate("resumeDraft")}
+                    </Link>
+                  </div>
                 </Alert>
               ) : null}
 
@@ -85,7 +99,12 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                         </div>
 
                         {record.vision_result ? (
-                          <div className="bg-surface rounded-md border px-4 py-2">
+                          <div className="bg-surface space-y-3 rounded-md border px-4 py-3">
+                            {record.vision_result.low_confidence ? (
+                              <Alert title={translate("lowConfidenceTitle")} tone="warning">
+                                {translate("lowConfidenceNotice")}
+                              </Alert>
+                            ) : null}
                             <DefinitionList>
                               <DefinitionRow term={translate("suggestedCategory")}>
                                 {labels.category(record.vision_result.suggested_category)}
@@ -93,8 +112,17 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                               <DefinitionRow term={translate("confidence")}>
                                 {formats.percent(record.vision_result.confidence)}
                               </DefinitionRow>
+                              <DefinitionRow term={translate("modelName")}>
+                                {record.vision_result.model_name}
+                              </DefinitionRow>
                               <DefinitionRow term={translate("modelVersion")}>
                                 {record.vision_result.model_version}
+                              </DefinitionRow>
+                              <DefinitionRow term={translate("inferredAt")}>
+                                {formats.dateTime(record.vision_result.inferred_at)}
+                              </DefinitionRow>
+                              <DefinitionRow term={translate("confirmedCategory")} tone="success">
+                                {labels.category(record.category_confirmation.confirmed_category)}
                               </DefinitionRow>
                               <DefinitionRow term={translate("confirmedBy")}>
                                 {labels.confirmation(record.category_confirmation.source)}
@@ -105,6 +133,9 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                                 </DefinitionRow>
                               ) : null}
                             </DefinitionList>
+                            <p className="text-muted-foreground text-xs leading-5">
+                              {translate("classifierLimitation")}
+                            </p>
                           </div>
                         ) : null}
 

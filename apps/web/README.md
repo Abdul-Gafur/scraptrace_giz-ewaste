@@ -44,7 +44,7 @@ Set `PLAYWRIGHT_BASE_URL` (for example `http://localhost:3000`) to run `npm run 
 - `src/navigation/navigation-config.ts` is the single source for role-aware navigation (labels, routes, icons, contract role and permission, active-route behaviour, mobile and desktop visibility). Components render what it returns and never check roles themselves. Hiding an item is not access control: backend authorization is mandatory (ADR-006).
 - `src/components/layout` holds the public, authentication, collector, operational and administration shells. The last three share `AppShell`.
 - `/[locale]/dev/components` is a development-only component showcase. `src/proxy.ts` returns 404 for `/dev` paths in production.
-- `/[locale]/sign-in` is a development role preview list that links to each workspace. It does not authenticate.
+- `/[locale]/sign-in` submits credentials to the authentication service in HTTP mode. In explicitly enabled non-production mock mode it also offers development-only role accounts.
 
 The production build uses Next.js with webpack because the managed development environment blocks the internal process/port used by Turbopack's CSS worker.
 
@@ -97,7 +97,7 @@ Routes own composition and metadata, not mock data or domain rules. Features mus
 | `/[locale]/administration/safety` | Administration         | `safety_content_administrator` | Card list, card editor, translations coverage, approval queue, published content       |
 | `/[locale]/administration/ml`     | Administration         | `data_ml_reviewer`             | Correction queue, approved labels, model information, configuration, data exports      |
 
-`src/auth/route-policy.ts` is the single frontend policy map. It uses contract roles, permissions, and contextual permission evaluation. These checks improve interface behavior only. Every future API must independently authenticate and authorize role, programme, facility, resource, operation, and returned fields. The current session provider is explicitly development-only.
+`src/auth/route-policy.ts` is the single frontend policy map. It uses contract roles, permissions, and contextual permission evaluation. These checks improve interface behavior only. The API must independently authenticate and authorize role, programme, facility, resource, operation, and returned fields. HTTP mode restores a secure-cookie session; mock mode uses an explicitly non-production development session.
 
 ## Design tokens and responsive behavior
 
@@ -133,6 +133,8 @@ To replace a mock service:
 4. Select the HTTP implementation in `ServiceProvider`.
 5. Keep pages and feature components unchanged.
 
+The Phase 1 HTTP adapter now covers authentication, collector records, evidence, history, QR lookup, handoff, processing and review decisions. See [`docs/frontend/screen-endpoint-matrix.md`](../../docs/frontend/screen-endpoint-matrix.md) for the route matrix and the backend/shared-contract gaps that still block real-API end-to-end verification.
+
 ## Server state and errors
 
 TanStack Query uses stable key factories, a 30-second mock-data stale time, bounded retry, no mutation retry, and development-only tools. Contract error envelopes drive retry decisions; non-retryable validation, permission, state, integrity, and idempotency failures are not globally retried.
@@ -151,7 +153,7 @@ The foundation includes semantic landmarks, a skip link, visible focus, keyboard
 - Headers restrict framing, object sources, referrers, browser capabilities, remote images, and content sources.
 - Production selects the HTTP boundary, never development mocks.
 - Fixtures contain no token, secret, real identity, precise personal location, or public evidence URL.
-- React renders escaped text; the app does not use `dangerouslySetInnerHTML`.
+- React renders untrusted text as escaped content. The sole HTML injection renders SVG produced by the pinned QR library from a contract-validated payload; no server HTML is inserted.
 - Client policy is not treated as an authorization boundary.
 
 ## QR generation and intake
@@ -160,6 +162,6 @@ The foundation includes semantic landmarks, a skip link, visible focus, keyboard
 
 ## Intentionally out of scope
 
-This application does not implement production authentication, a production API, IndexedDB, a service worker, background synchronization, payments, EPR credits, database access or deployment infrastructure. Model training, retraining and deployment are outside it by design: a stored correction is labelled feedback for a future, separately released dataset.
+This frontend does not implement IndexedDB, a service worker, background synchronization, payments, EPR credits, database access or deployment infrastructure. The typed HTTP integration boundary and secure-cookie session experience are implemented, but most corresponding backend routes are not yet present; the endpoint matrix records that dependency precisely. Model training, retraining and deployment are outside it by design: a stored correction is labelled feedback for a future, separately released dataset.
 
 In development mode the vision appraisal is derived deterministically from the image digest rather than run through the trained classifier, which lives in the Python service. It matches the contract exactly — seven scores, one highest-scoring category, a confidence equal to that score, and the registered model's real name and version — so correction, low-confidence routing and stored feedback behave as they will against the real service. It is not a second model and makes no claim about the image.

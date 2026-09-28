@@ -57,24 +57,43 @@ export const resetSharedRepository = (): void => {
   sharedRepository = null;
 };
 
+const DEMO_SESSION_KEY = "scraptrace.demo.session";
+
+const readDemoRole = (): UserRole | null => {
+  if (typeof window === "undefined") return null;
+  const stored = window.localStorage.getItem(DEMO_SESSION_KEY);
+  const parsed = UserRoleSchema.safeParse(stored);
+  return parsed.success ? parsed.data : null;
+};
+
+const sessionFor = (role: UserRole, preferredLanguage: SupportedLanguage) => {
+  const actor = demoActorFor(role);
+  return {
+    actorId: actor.actorId,
+    role: actor.role,
+    preferredLanguage,
+    displayLabel: actor.displayLabelKey,
+    developmentOnly: true,
+  } as const;
+};
+
 const createAuthenticationService = (
   context: LocalServiceContext,
   preferredLanguage: SupportedLanguage,
 ): AuthenticationService => ({
   async getSession() {
-    return {
-      actorId: context.actor.actorId,
-      role: context.actor.role,
-      preferredLanguage,
-      displayLabel: context.actor.displayLabelKey,
-      developmentOnly: true,
-    };
+    const role = readDemoRole();
+    return role ? sessionFor(role, preferredLanguage) : null;
+  },
+  async signIn(input) {
+    const role = UserRoleSchema.parse(input.demoRole ?? context.actor.role);
+    if (typeof window !== "undefined") window.localStorage.setItem(DEMO_SESSION_KEY, role);
+    return sessionFor(role, preferredLanguage);
   },
   async signOut() {
-    // The demonstration session is derived from the opened workspace, so signing out only needs
-    // to clear the device cache that belongs to the signed-in user (FR-OFF-008).
-    context.repository.reset();
-    seedRepository(context.repository);
+    // Signing out ends the session without deleting device records. Clearing locally held data is
+    // a separate, explicitly confirmed account action.
+    if (typeof window !== "undefined") window.localStorage.removeItem(DEMO_SESSION_KEY);
   },
 });
 

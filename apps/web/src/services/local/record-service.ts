@@ -1,5 +1,6 @@
 import {
   PermissionSchema,
+  RecoveryRecordSchema,
   SafetyGuideReferenceSchema,
   UserRoleSchema,
   type RecoveryRecord,
@@ -20,10 +21,11 @@ import type {
   HandoffLookupResult,
   RecoveryRecordService,
   SubmitOutcome,
+  UpdateDraftInput,
 } from "@/services/ports/service-ports";
 
 import { pause, requirePermission, type LocalServiceContext } from "./context";
-import { invalidTransition, notFound, validationFailed } from "./errors";
+import { invalidTransition, notFound, serviceError, validationFailed } from "./errors";
 import { ALL_DIRECTORY_LOCATIONS } from "./location-directory";
 import {
   applyTransition,
@@ -85,6 +87,36 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
         created_at: nowUtc(),
       }),
     );
+  };
+
+  const referencesFor = (input: CaptureInput | UpdateDraftInput) => {
+    // The reference records the card the collector actually read, in the language they read it.
+    const card =
+      findServableCard(repository, input.category, input.language) ??
+      findServableCard(repository, input.category, "en");
+    const safetyGuide = card
+      ? SafetyGuideReferenceSchema.parse({
+          card_id: card.card_id,
+          card_version: card.version,
+          category: card.category,
+          language: card.language,
+          approval_date: card.approval_date,
+          review_date: card.review_date,
+          source_references: card.sources.map((source) => source.reference),
+        })
+      : undefined;
+    const chosen = ALL_DIRECTORY_LOCATIONS.find(
+      (entry) => entry.location_id === input.destinationLocationId,
+    );
+    const destination = chosen
+      ? {
+          location_id: chosen.location_id,
+          facility_type: chosen.facility_type,
+          verification_status: chosen.verification_status,
+          selected_at: nowUtc(),
+        }
+      : undefined;
+    return { safetyGuide, destination };
   };
 
   return {
@@ -173,33 +205,7 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
           : {}),
       });
 
-      // The reference records the card the collector actually read, in the language they read it.
-      const card =
-        findServableCard(repository, input.category, input.language) ??
-        findServableCard(repository, input.category, "en");
-      const safetyGuide = card
-        ? SafetyGuideReferenceSchema.parse({
-            card_id: card.card_id,
-            card_version: card.version,
-            category: card.category,
-            language: card.language,
-            approval_date: card.approval_date,
-            review_date: card.review_date,
-            source_references: card.sources.map((source) => source.reference),
-          })
-        : undefined;
-
-      const chosen = ALL_DIRECTORY_LOCATIONS.find(
-        (entry) => entry.location_id === input.destinationLocationId,
-      );
-      const destination = chosen
-        ? {
-            location_id: chosen.location_id,
-            facility_type: chosen.facility_type,
-            verification_status: chosen.verification_status,
-            selected_at: nowUtc(),
-          }
-        : undefined;
+      const { safetyGuide, destination } = referencesFor(input);
 
       const draft = createDraftRecord({
         collector: actor,
@@ -216,6 +222,7 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
         confirmationSource: input.confirmationSource,
         ...(input.capturedAt ? { capturedAt: input.capturedAt } : {}),
         ...(input.correctionReason ? { correctionReason: input.correctionReason } : {}),
+        ...(input.estimatedPrice ? { estimatedPrice: input.estimatedPrice } : {}),
         ...(safetyGuide ? { safetyGuide } : {}),
         ...(destination ? { destination } : {}),
       });
@@ -229,6 +236,105 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
         ...draft,
         original_image_evidence_id: provisional.evidence_id,
       });
+    },
+
+    async updateDraft(recordId, input) {
+      await pause(context.delayMilliseconds);
+      const current = repository.findRecord(recordId);
+      if (!current) throw notFound();
+      requirePermission(context, permission["recovery_record:correct_own"], { record: current });
+      if (current.business_state !== "draft") {
+        throw invalidTransition("Only a draft record can be edited.");
+      }
+      if (input.baseRevision !== undefined && input.baseRevision !== current.revision) {
+        throw serviceError("VERSION_CONFLICT", "The draft changed before it could be saved.", {
+          safeDetails: { current_revision: current.revision },
+        });
+      }
+      if (input.category === "mixed_scrap" && !input.approximateWeight) {
+        throw validationFailed("Mixed scrap requires an approximate weight.", [
+          { field: "approximateWeight", reason: "required_for_mixed_scrap" },
+        ]);
+      }
+
+      const evidenceId = current.original_image_evidence_id;
+      if (input.image) {
+        const existing = repository.findEvidence(evidenceId);
+        if (!existing) throw notFound();
+        const replacement = createEvidence({
+          recordId,
+          evidenceType: "original_item_photo",
+          capturedBy: actor,
+          captureSource: input.offline ? "approved_demo_fixture" : "in_app_camera",
+          mimeType: input.image.type || "image/jpeg",
+          fileSizeBytes: input.image.size,
+          contentDigest: await sha256Blob(input.image),
+          ...(input.capturedAt ? { capturedAt: input.capturedAt } : {}),
+          ...(input.captureLocation ? { coordinates: input.captureLocation } : {}),
+          connectivity: input.offline ? "offline" : "online",
+          ...(input.visionResult
+            ? {
+                aiObservation: {
+                  model_name: input.visionResult.model_name,
+                  model_version: input.visionResult.model_version,
+                  original_prediction: input.visionResult.suggested_category,
+                  confidence: input.visionResult.confidence,
+                },
+              }
+            : {}),
+        });
+        repository.putEvidence({ ...replacement, evidence_id: evidenceId }, input.imagePreview);
+      }
+
+      const { safetyGuide, destination } = referencesFor(input);
+      const updatedAt = nowUtc();
+      const requiredCurrent = { ...current };
+      delete requiredCurrent.item_count;
+      delete requiredCurrent.approximate_weight;
+      delete requiredCurrent.capture_location;
+      delete requiredCurrent.vision_result;
+      delete requiredCurrent.estimated_price;
+      delete requiredCurrent.safety_guide;
+      delete requiredCurrent.destination;
+      const requiredArea = { ...current.approximate_area };
+      delete requiredArea.administrative_area;
+      const updated = RecoveryRecordSchema.parse({
+        ...requiredCurrent,
+        revision: current.revision + 1,
+        record_kind: input.category === "mixed_scrap" ? "batch" : "item",
+        category: input.category,
+        ...(input.category !== "mixed_scrap" && input.itemCount !== undefined
+          ? { item_count: input.itemCount }
+          : {}),
+        ...(input.approximateWeight ? { approximate_weight: input.approximateWeight } : {}),
+        condition: input.condition,
+        ...(input.captureLocation ? { capture_location: input.captureLocation } : {}),
+        approximate_area: {
+          ...requiredArea,
+          label: input.areaLabel,
+          ...(input.administrativeArea ? { administrative_area: input.administrativeArea } : {}),
+        },
+        ...(input.visionResult ? { vision_result: input.visionResult } : {}),
+        category_confirmation: {
+          confirmed_category: input.category,
+          confirmed_by: toActorReference(actor),
+          confirmed_at: updatedAt,
+          source: input.confirmationSource,
+          ...(input.correctionReason ? { correction_reason: input.correctionReason } : {}),
+        },
+        ...(input.estimatedPrice ? { estimated_price: input.estimatedPrice } : {}),
+        ...(safetyGuide ? { safety_guide: safetyGuide } : {}),
+        ...(destination ? { destination } : {}),
+        sync: {
+          ...current.sync,
+          sync_state: input.offline ? "pending_synchronization" : "synchronized",
+          local_revision: current.sync.local_revision + 1,
+          ...(input.offline ? {} : { server_revision: current.revision + 1 }),
+          last_attempt_at: updatedAt,
+        },
+        updated_at: updatedAt,
+      });
+      return repository.putRecord(updated);
     },
 
     async submit(recordId) {

@@ -96,7 +96,7 @@ export function CollectorHome() {
                   <ul className="space-y-2">
                     {drafts.map((record) => (
                       <ListItem
-                        href={`/collector/records/${record.record_id}`}
+                        href={`/collector/records/${record.record_id}/edit`}
                         key={record.record_id}
                         status={<StatusBadge status={record.business_state} />}
                         subtitle={record.human_reference}

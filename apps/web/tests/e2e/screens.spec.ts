@@ -78,8 +78,8 @@ test.describe("collector screens", () => {
     await page.goto("/en/collector/capture");
     await expect(page.getByText("1. Photograph the item")).toBeVisible();
     await page.getByRole("button", { name: "Submit this record" }).click();
-    await expect(page.getByText("Add a photograph of the item.")).toBeVisible();
-    await expect(page.getByText("Confirm a category before continuing.")).toBeVisible();
+    await expect(page.getByText("Add a photograph of the item.").first()).toBeVisible();
+    await expect(page.getByText("Confirm a category before continuing.").first()).toBeVisible();
     await expectClean(page);
   });
 

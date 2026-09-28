@@ -166,7 +166,7 @@ test.describe("application shells (English)", () => {
     await expect(page.getByRole("radio")).toHaveCount(6);
     await expect(page.getByText("Active")).toBeVisible();
     await page.getByRole("radio", { name: /Data and model reviewer/ }).check({ force: true });
-    await page.getByRole("link", { name: "Enter Selected Environment" }).click();
+    await page.getByRole("button", { name: "Enter Selected Environment" }).click();
     await expect(page).toHaveURL(/\/en\/administration\/ml$/);
   });
 

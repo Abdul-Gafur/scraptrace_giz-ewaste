@@ -11,6 +11,7 @@ import type {
   RecordHandoffInput,
   RecordProcessingInput,
   ReviewDecisionInput,
+  UpdateDraftInput,
 } from "@/services/ports/service-ports";
 
 /**
@@ -75,12 +76,16 @@ export function useRecordEvidence(recordId: string | undefined) {
     queryKey: queryKeys.records.evidence(recordId ?? "none"),
     queryFn: async () => {
       const evidence = await services.recoveryRecords.listEvidence(recordId ?? "");
-      const images: Record<string, string | null> = {};
-      for (const item of evidence) {
-        images[item.evidence_id] = await services.recoveryRecords.getEvidenceImage(
-          item.evidence_id,
-        );
-      }
+      const imageEntries = await Promise.all(
+        evidence.map(
+          async (item) =>
+            [
+              item.evidence_id,
+              await services.recoveryRecords.getEvidenceImage(item.evidence_id),
+            ] as const,
+        ),
+      );
+      const images = Object.fromEntries(imageEntries) as Record<string, string | null>;
       return { evidence, images };
     },
     enabled: Boolean(recordId),
@@ -100,6 +105,16 @@ export function useCreateDraft() {
   const invalidate = useInvalidateRecords();
   return useMutation({
     mutationFn: (input: CaptureInput) => services.recoveryRecords.createDraft(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateDraft() {
+  const services = useServices();
+  const invalidate = useInvalidateRecords();
+  return useMutation({
+    mutationFn: ({ recordId, input }: { recordId: string; input: UpdateDraftInput }) =>
+      services.recoveryRecords.updateDraft(recordId, input),
     onSuccess: invalidate,
   });
 }
