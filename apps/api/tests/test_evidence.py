@@ -35,12 +35,12 @@ def test_collector_adds_a_photograph_to_a_draft(api: TestClient) -> None:
     )
     assert response.status_code == 201, response.text
     data = response.json()["data"]
-    REGISTRY.check_response("evidence", data)
+    REGISTRY.check_response("evidence_metadata", data)
     assert data["evidence_type"] == "additional_item_photo"
     assert data["mime_type"] == "image/jpeg"
-    assert data["storage_reference"]["object_key"] == (
-        f"evidence/{record['record_id']}/{data['evidence_id']}"
-    )
+    # The private storage reference never leaves the server.
+    assert "storage_reference" not in data and record["record_id"] + "/" not in response.text
+    assert data["storage_transform"] == "reencoded_without_metadata"
     assert data["provenance"]["captured_by"]["actor_id"] == record["collector"]["actor_id"]
     assert data["provenance"]["server_received_at"]
 

@@ -174,7 +174,7 @@ export class ScrapTraceRepository {
   }
 
   findRecordByLookupToken(token: string): RecoveryRecord | null {
-    return this.state.records.find((record) => record.qr_payload.lookup_token === token) ?? null;
+    return this.state.records.find((record) => record.qr_payload?.lookup_token === token) ?? null;
   }
 
   findRecordByHumanReference(reference: string): RecoveryRecord | null {

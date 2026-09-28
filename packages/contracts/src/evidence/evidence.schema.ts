@@ -35,7 +35,21 @@ export const EvidenceSchema = z.strictObject({
   content_digest: Sha256DigestSchema,
   provenance: ProvenanceSchema,
   validation_status: z.enum(["pending", "accepted", "rejected", "quarantined"]),
+  /**
+   * How the stored bytes relate to the uploaded bytes. `reencoded_without_metadata` means the
+   * server re-encoded the image to remove EXIF and other metadata, so `content_digest` covers
+   * the stored (sanitised) bytes, not the original upload.
+   */
+  storage_transform: z.enum(["none", "reencoded_without_metadata"]).optional(),
 });
 
+/**
+ * Evidence as an API returns it. The private storage reference (provider, object key and
+ * version) is a server concern and never leaves the service; content is retrieved only through
+ * the authorised evidence-content operation by `evidence_id`.
+ */
+export const EvidenceMetadataSchema = EvidenceSchema.omit({ storage_reference: true });
+
 export type Evidence = z.infer<typeof EvidenceSchema>;
+export type EvidenceMetadata = z.infer<typeof EvidenceMetadataSchema>;
 export type EvidenceType = z.infer<typeof EvidenceTypeSchema>;

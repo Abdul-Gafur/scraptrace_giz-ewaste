@@ -111,7 +111,7 @@ class ProcessingRecord(Timestamps, Base):
     processing_method: Mapped[str | None] = enum_column(
         "processing_method", PROCESSING_METHODS, nullable=True
     )
-    result: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
+    result: Mapped[str | None] = mapped_column(sa.String(1000), nullable=True)
     notes: Mapped[str | None] = mapped_column(sa.String(1000), nullable=True)
     processed_at: Mapped[datetime | None] = mapped_column(nullable=True)
     evidence_ids: Mapped[list[str]] = mapped_column(nullable=False)

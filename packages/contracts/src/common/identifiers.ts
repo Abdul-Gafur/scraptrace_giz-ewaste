@@ -34,6 +34,47 @@ export const OpaqueLookupTokenSchema = z
   .regex(/^[A-Za-z0-9_-]+$/)
   .brand<"OpaqueLookupToken">();
 
+/**
+ * Crockford base32: digits and upper-case letters without I, L, O and U, so a code read aloud
+ * or copied by hand is unambiguous.
+ */
+export const MANUAL_TRANSFER_CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+/**
+ * A typed alternative to scanning the QR (FR-HND-001). Twelve base32 symbols carry 60 random
+ * bits, shown as three groups of four. It is a separate credential from the QR lookup token:
+ * the server stores only its digest, it expires, rotates and is revoked with the QR, and no
+ * endpoint exchanges it for the lookup token (ADR-009).
+ */
+export const ManualTransferCodeSchema = z
+  .string()
+  .regex(
+    /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/,
+    "Expected three groups of four Crockford base32 symbols.",
+  )
+  .brand<"ManualTransferCode">();
+
+/**
+ * Canonical form of a typed code: upper case, separators removed, the Crockford aliases
+ * (O→0, I/L→1) applied, then regrouped. Returns `null` for anything that cannot be a code.
+ */
+export const normalizeManualTransferCode = (value: string): z.infer<typeof ManualTransferCodeSchema> | null => {
+  const compact = value
+    .toUpperCase()
+    .replace(/[\s-]/g, "")
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1");
+  if (compact.length !== 12) return null;
+  const parsed = ManualTransferCodeSchema.safeParse(`${compact.slice(0, 4)}-${compact.slice(4, 8)}-${compact.slice(8)}`);
+  return parsed.success ? parsed.data : null;
+};
+
+/**
+ * Device-instance identifier recorded on evidence the API generates itself (QR scan, receipt
+ * and reviewer-decision documents), whose capture source is `system_generated`.
+ */
+export const SYSTEM_DEVICE_INSTANCE_ID = "0199c0de-0000-7000-8000-000000000001" as const;
+
 export const IdempotencyKeySchema = z
   .string()
   .min(16)
@@ -57,5 +98,6 @@ export type RecoveryRecordId = z.infer<typeof RecoveryRecordIdSchema>;
 export type EvidenceId = z.infer<typeof EvidenceIdSchema>;
 export type ActorReference = z.infer<typeof ActorReferenceSchema>;
 export type QrPayload = z.infer<typeof QrPayloadSchema>;
+export type ManualTransferCode = z.infer<typeof ManualTransferCodeSchema>;
 
 export const createUuidV7 = (): z.infer<typeof UuidV7Schema> => UuidV7Schema.parse(uuidv7());

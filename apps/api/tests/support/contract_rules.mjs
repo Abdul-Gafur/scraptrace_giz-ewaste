@@ -5,6 +5,8 @@
 //   {"digest": <json value>}  -> {"digest": "sha256:..."}
 //   {"permissions": true}      -> {"table": [[role, permission, contextBits, allowed], ...]}
 //   {"transitions": true}      -> {"rules": RECOVERY_RECORD_TRANSITIONS}
+//   {"vocabulary": true}       -> review codes, operation names and system identifiers
+//   {"normalize": [codes]}     -> {"normalized": [normalizeManualTransferCode(code)]}
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -32,6 +34,24 @@ if ("digest" in request) {
   process.stdout.write(JSON.stringify({ table, keys }));
 } else if (request.transitions) {
   process.stdout.write(JSON.stringify({ rules: contracts.RECOVERY_RECORD_TRANSITIONS }));
+} else if (request.vocabulary) {
+  process.stdout.write(
+    JSON.stringify({
+      flag_codes: contracts.REVIEW_FLAG_CODES,
+      reason_codes: contracts.REVIEW_REASON_CODES,
+      reasons_by_decision: contracts.REASON_CODES_BY_DECISION,
+      manual_review_reason: contracts.MANUAL_REVIEW_REASON,
+      operations: contracts.IDEMPOTENT_OPERATIONS,
+      system_device_instance_id: contracts.SYSTEM_DEVICE_INSTANCE_ID,
+      manual_code_alphabet: contracts.MANUAL_TRANSFER_CODE_ALPHABET,
+      lifecycle_events: contracts.LIFECYCLE_EVENT_TYPES,
+      fact_events: contracts.RECORD_FACT_EVENT_TYPES,
+    }),
+  );
+} else if (request.normalize) {
+  process.stdout.write(
+    JSON.stringify({ normalized: request.normalize.map((code) => contracts.normalizeManualTransferCode(code)) }),
+  );
 } else {
   process.stderr.write("Unknown request.\n");
   process.exit(2);

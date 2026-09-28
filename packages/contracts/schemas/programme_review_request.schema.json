@@ -60,6 +60,7 @@
     },
     "__schema1": {
       "minItems": 1,
+      "maxItems": 20,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema2"
@@ -67,8 +68,15 @@
     },
     "__schema2": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "WEIGHT_DISCREPANCY",
+        "CATEGORY_DISAGREEMENT",
+        "DUPLICATE_EVIDENCE_DIGEST",
+        "INCOMPLETE_EVIDENCE",
+        "MISSING_MATERIAL_WEIGHTS",
+        "PROCESSED_WEIGHT_ABOVE_RECEIVED",
+        "MANUAL_REVIEW"
+      ]
     },
     "__schema3": {
       "type": "object",
@@ -105,8 +113,14 @@
     },
     "__schema6": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "EVIDENCE_SUFFICIENT",
+        "WEIGHT_EXPLAINED",
+        "EVIDENCE_INSUFFICIENT",
+        "CATEGORY_INCORRECT",
+        "WEIGHT_UNEXPLAINED",
+        "ADDITIONAL_EVIDENCE_REQUIRED"
+      ]
     },
     "__schema7": {
       "type": "string",

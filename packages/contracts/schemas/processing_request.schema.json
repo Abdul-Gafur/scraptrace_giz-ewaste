@@ -53,6 +53,7 @@
     },
     "notes": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 1000
     },
     "idempotency": {
@@ -105,6 +106,7 @@
     "material_entries",
     "processing_timestamp",
     "completion_evidence_ids",
+    "notes",
     "idempotency"
   ],
   "additionalProperties": false,

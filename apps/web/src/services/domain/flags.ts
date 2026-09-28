@@ -1,46 +1,18 @@
-import type { EvidenceType, EwasteCategory } from "@scraptrace/contracts";
+import type { EvidenceType, EwasteCategory, ReviewFlagCode } from "@scraptrace/contracts";
 
 /**
- * Named review flags (FR-HND-006, FR-REV-002). A flag records that a value needs human
- * judgement. It is never proof of wrongdoing (BR-009) and never silently blocks or approves a
- * record. Codes are stable identifiers; their user-facing wording lives in the `flags` message
- * namespace.
+ * Named review flags and reviewer reason codes are shared contract vocabulary
+ * (`@scraptrace/contracts`), so the API enforces exactly the codes this interface displays.
+ * Their user-facing wording lives in the `flags` and `reviewReasons` message namespaces.
  */
-export const REVIEW_FLAG_CODES = [
-  "WEIGHT_DISCREPANCY",
-  "CATEGORY_DISAGREEMENT",
-  "DUPLICATE_EVIDENCE_DIGEST",
-  "INCOMPLETE_EVIDENCE",
-  "MISSING_MATERIAL_WEIGHTS",
-  "PROCESSED_WEIGHT_ABOVE_RECEIVED",
-] as const;
-
-export type ReviewFlagCode = (typeof REVIEW_FLAG_CODES)[number];
-
-export const isReviewFlagCode = (value: string): value is ReviewFlagCode =>
-  (REVIEW_FLAG_CODES as readonly string[]).includes(value);
-
-/** Reviewer decision reason codes. Stable values; wording lives in `reviewReasons`. */
-export const REVIEW_REASON_CODES = [
-  "EVIDENCE_SUFFICIENT",
-  "WEIGHT_EXPLAINED",
-  "EVIDENCE_INSUFFICIENT",
-  "CATEGORY_INCORRECT",
-  "WEIGHT_UNEXPLAINED",
-  "ADDITIONAL_EVIDENCE_REQUIRED",
-] as const;
-
-export type ReviewReasonCode = (typeof REVIEW_REASON_CODES)[number];
-
-/** Reason codes offered for each contract decision outcome. */
-export const REASON_CODES_BY_DECISION = {
-  approve: ["EVIDENCE_SUFFICIENT", "WEIGHT_EXPLAINED"],
-  reject: ["EVIDENCE_INSUFFICIENT", "CATEGORY_INCORRECT", "WEIGHT_UNEXPLAINED"],
-  request_correction: ["ADDITIONAL_EVIDENCE_REQUIRED", "EVIDENCE_INSUFFICIENT"],
-} as const satisfies Record<
-  "approve" | "reject" | "request_correction",
-  readonly ReviewReasonCode[]
->;
+export {
+  REASON_CODES_BY_DECISION,
+  REVIEW_FLAG_CODES,
+  REVIEW_REASON_CODES,
+  isReviewFlagCode,
+  type ReviewFlagCode,
+  type ReviewReasonCode,
+} from "@scraptrace/contracts";
 
 const GRAMS_PER_KILOGRAM = 1000;
 

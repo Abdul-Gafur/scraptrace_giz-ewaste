@@ -17,7 +17,7 @@ import type { HandoffService, RecordHandoffInput } from "@/services/ports/servic
 
 import { pause, requirePermission, type LocalServiceContext } from "./context";
 import { invalidTransition, notFound, serviceError, validationFailed } from "./errors";
-import { applyTransition, createEvidence } from "./record-factory";
+import { applyTransition, createEvidence, localQrPayload } from "./record-factory";
 
 const permission = PermissionSchema.enum;
 const role = UserRoleSchema.enum;
@@ -84,16 +84,9 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       repository.recordIdempotency(parsed.idempotency, rejected, nowUtc());
       return rejected;
     }
-    if (parsed.lookup_token !== record.qr_payload.lookup_token) {
-      const rejected = HandoffResponseSchema.parse({
-        outcome: "rejected",
-        reason_code: "LOOKUP_TOKEN_MISMATCH",
-        message: "The scanned code does not match this record.",
-        replayed: false,
-      });
-      repository.recordIdempotency(parsed.idempotency, rejected, nowUtc());
-      return rejected;
-    }
+    // An invalid credential is a not-found error, never a domain outcome, so it reveals
+    // nothing about the record (HandoffResponse contract).
+    if (parsed.lookup_token !== localQrPayload(record).lookup_token) throw notFound();
 
     const settings = repository.getProgrammeSettings();
     const availableEvidence: ReadonlySet<EvidenceType> = new Set(
@@ -176,7 +169,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       if (!record) throw notFound();
       requirePermission(context, permission["handoff:accept"], { record });
       if (record.handoff) {
-        return recordHandoff(await buildRequest(input, record.qr_payload.lookup_token));
+        return recordHandoff(await buildRequest(input, localQrPayload(record).lookup_token));
       }
       if (isTerminal(record)) {
         throw invalidTransition("A terminal record cannot receive a new handoff.");
@@ -265,7 +258,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
         input.evidence.weightPhotoPreview,
       );
 
-      const request = await buildRequest(input, record.qr_payload.lookup_token, [
+      const request = await buildRequest(input, localQrPayload(record).lookup_token, [
         scanEvidence.evidence_id,
         receiptEvidence.evidence_id,
         handoffPhoto.evidence_id,

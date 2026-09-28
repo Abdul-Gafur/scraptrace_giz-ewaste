@@ -10,7 +10,6 @@ from apps.api.app.api.openapi import (
     error_responses,
     json_body,
     json_response,
-    page_schema,
     ref,
     success_envelope_schema,
 )
@@ -22,13 +21,7 @@ from apps.api.app.api.requests import (
     read_json_object,
 )
 from apps.api.app.api.security import Context, CurrentActor, Services, Session
-from apps.api.app.contracts.transport import (
-    CATEGORY_CONFIRMATION_SCHEMA,
-    DRAFT_CREATE_SCHEMA,
-    DRAFT_UPDATE_SCHEMA,
-    EVIDENCE_UPLOAD_FIELDS_SCHEMA,
-    validate_transport,
-)
+from apps.api.app.contracts.transport import REGISTRY, validate_request
 from apps.api.app.core.errors import success_envelope
 from apps.api.app.domain.vocabulary import EWASTE_CATEGORIES, RECOVERY_RECORD_STATES
 from apps.api.app.services.evidence import EvidenceService, EvidenceUpload
@@ -47,19 +40,10 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix="/recovery-records", tags=["recovery records"])
 
 RECORD = success_envelope_schema(ref("recovery_record"))
-SUBMISSION = success_envelope_schema(
-    {
-        "type": "object",
-        "properties": {
-            "outcome": {"enum": ["submitted", "duplicate_image"]},
-            "record": ref("recovery_record"),
-            "replayed": {"type": "boolean"},
-            "flag_codes": {"type": "array", "items": {"type": "string"}},
-        },
-        "required": ["outcome", "record", "replayed", "flag_codes"],
-        "additionalProperties": False,
-    }
-)
+SUBMISSION = success_envelope_schema(ref("record_submission_response"))
+QR_CREDENTIALS = success_envelope_schema(ref("qr_credentials"))
+EVIDENCE_UPLOAD_FIELDS = REGISTRY.resolved("evidence_upload_request")
+NO_STORE = {"Cache-Control": "private, no-store"}
 IF_MATCH_DESCRIPTION = "The record revision last read, as returned in the ETag header."
 
 StateFilter = Literal[
@@ -108,8 +92,8 @@ def command_response(request: Request, result: CommandResult, **headers: str) ->
     status_code=201,
     summary="Create a draft recovery record with its original photograph",
     description=(
-        "Multipart request: `record` is a JSON document (`RecoveryRecordDraftCreate`, composed "
-        "from `RecoveryRecord` field contracts) and `original_image` is the accepted photograph. "
+        "Multipart request: `record` is a JSON document (`RecoveryRecordDraftCreate`) and "
+        "`original_image` is the accepted photograph. "
         "The photograph is validated, stripped of metadata, hashed and stored before the draft "
         "exists, so a draft never lacks the evidence its first transition requires. Requires "
         "`Idempotency-Key`; a retry with the same key and content replays the first result."
@@ -130,7 +114,7 @@ def command_response(request: Request, result: CommandResult, **headers: str) ->
                             "record": {
                                 "type": "string",
                                 "contentMediaType": "application/json",
-                                "contentSchema": DRAFT_CREATE_SCHEMA,
+                                "contentSchema": ref("recovery_record_draft_create"),
                             },
                             "original_image": {
                                 "type": "string",
@@ -157,7 +141,7 @@ async def create_record(
     key = require_header_key(idempotency_key)
     form = await read_form(request, maximum_fields=4)
     metadata = parse_json_text(form_text(form, "record") or "", "record")
-    validate_transport(DRAFT_CREATE_SCHEMA, metadata, prefix="record")
+    validate_request("recovery_record_draft_create", metadata, prefix="record")
     image = await read_sanitized_evidence(
         form_file(form, "original_image"), services.settings, "original_image"
     )
@@ -180,7 +164,7 @@ async def create_record(
     response_model=None,
     responses={
         200: json_response(
-            "One page of records", success_envelope_schema(page_schema(ref("recovery_record")))
+            "One page of records", success_envelope_schema(ref("recovery_record_page"))
         ),
         **error_responses(401, 403, 422),
     },
@@ -243,7 +227,7 @@ async def get_record(
         200: json_response("Updated draft", RECORD),
         **error_responses(401, 403, 404, 409, 415, 422, 428),
     },
-    openapi_extra=json_body(DRAFT_UPDATE_SCHEMA, "Fields to change"),
+    openapi_extra=json_body("recovery_record_draft_update", "Fields to change"),
 )
 async def update_record(
     record_id: uuid.UUID,
@@ -258,7 +242,7 @@ async def update_record(
 ) -> JSONResponse:
     revision = parse_if_match(if_match, required=True)
     patch = await read_json_object(request)
-    validate_transport(DRAFT_UPDATE_SCHEMA, patch)
+    validate_request("recovery_record_draft_update", patch)
     assert revision is not None
     result = await RecordService(session, services, context).update_draft(
         record_id, actor, patch, revision
@@ -279,7 +263,7 @@ async def update_record(
         200: json_response("Draft with the new confirmation", RECORD),
         **error_responses(401, 403, 404, 409, 415, 422, 428),
     },
-    openapi_extra=json_body(CATEGORY_CONFIRMATION_SCHEMA, "The confirmation"),
+    openapi_extra=json_body("category_confirmation_request", "The confirmation"),
 )
 async def confirm_category(
     record_id: uuid.UUID,
@@ -294,7 +278,7 @@ async def confirm_category(
 ) -> JSONResponse:
     revision = parse_if_match(if_match, required=True)
     confirmation = await read_json_object(request)
-    validate_transport(CATEGORY_CONFIRMATION_SCHEMA, confirmation)
+    validate_request("category_confirmation_request", confirmation)
     assert revision is not None
     result = await RecordService(session, services, context).confirm_category(
         record_id, actor, confirmation, revision
@@ -333,19 +317,46 @@ async def submit_record(
     return command_response(request, result)
 
 
-@router.post(
-    "/{record_id}/qr-token-rotations",
-    status_code=201,
-    summary="Reissue the record's QR code",
+@router.get(
+    "/{record_id}/qr-credentials",
+    summary="Retrieve the record's handoff credentials",
     description=(
-        "Revokes the current lookup token and returns a new `QrPayload` for a lost, shared or "
-        "expired QR. Only the owning collector, and only while the record awaits handoff. The "
-        "payload contains the contract version, record ID and an opaque token, with no "
-        "personal data. The QR image is rendered by the client."
+        "The owning collector's QR payload and manual transfer code, with their status "
+        "(`inactive` until submission, then `active` until expiry or handoff). The QR contains "
+        "only the contract version, record ID and an opaque token; the manual code is a "
+        "separate secret for typing when scanning is impossible. Neither is part of the record "
+        "resource, and no other role can read them. Responses are not cached."
     ),
     response_model=None,
     responses={
-        201: json_response("New QR payload", success_envelope_schema(ref("qr_payload"))),
+        200: json_response("Current credentials", QR_CREDENTIALS),
+        **error_responses(401, 403, 404),
+    },
+)
+async def qr_credentials(
+    record_id: uuid.UUID,
+    request: Request,
+    actor: CurrentActor,
+    services: Services,
+    session: Session,
+    context: Context,
+) -> JSONResponse:
+    data = await RecordService(session, services, context).qr_credentials(record_id, actor)
+    return JSONResponse(success_envelope(request, data), headers=NO_STORE)
+
+
+@router.post(
+    "/{record_id}/qr-token-rotations",
+    status_code=201,
+    summary="Reissue the record's QR code and manual transfer code",
+    description=(
+        "Revokes the current QR token and manual transfer code together and returns new "
+        "credentials, for a lost, shared or expired QR. Only the owning collector, and only "
+        "while the record awaits handoff. The previous QR and code stop resolving at once."
+    ),
+    response_model=None,
+    responses={
+        201: json_response("New credentials", QR_CREDENTIALS),
         **error_responses(401, 403, 404, 409),
     },
 )
@@ -357,20 +368,21 @@ async def rotate_qr_token(
     session: Session,
     context: Context,
 ) -> JSONResponse:
-    payload = await RecordService(session, services, context).rotate_qr_token(record_id, actor)
-    return JSONResponse(success_envelope(request, payload), status_code=201)
+    data = await RecordService(session, services, context).rotate_qr_token(record_id, actor)
+    return JSONResponse(success_envelope(request, data), status_code=201, headers=NO_STORE)
 
 
 @router.get(
     "/{record_id}/events",
     summary="Retrieve the record's lifecycle timeline",
-    description="Persisted `RecoveryRecordEvent` entries in occurrence order.",
+    description=(
+        "Persisted `RecoveryRecordEvent` entries in occurrence order: lifecycle transitions "
+        "and the record facts (draft created, evidence added, appraisal recorded, category "
+        "confirmed or corrected, QR issued or rotated, review opened)."
+    ),
     response_model=None,
     responses={
-        200: json_response(
-            "Timeline",
-            success_envelope_schema({"type": "array", "items": ref("recovery_record_event")}),
-        ),
+        200: json_response("Timeline", success_envelope_schema(ref("recovery_record_event_list"))),
         **error_responses(401, 403, 404),
     },
 )
@@ -398,9 +410,10 @@ async def record_events(
     ),
     response_model=None,
     responses={
-        201: json_response("Evidence stored", success_envelope_schema(ref("evidence"))),
+        201: json_response("Evidence stored", success_envelope_schema(ref("evidence_metadata"))),
         200: json_response(
-            "Replay of an earlier identical upload", success_envelope_schema(ref("evidence"))
+            "Replay of an earlier identical upload",
+            success_envelope_schema(ref("evidence_metadata")),
         ),
         **error_responses(401, 403, 404, 409, 413, 415, 422, 503),
     },
@@ -410,15 +423,16 @@ async def record_events(
             "content": {
                 "multipart/form-data": {
                     "schema": {
-                        **EVIDENCE_UPLOAD_FIELDS_SCHEMA,
+                        **EVIDENCE_UPLOAD_FIELDS,
                         "properties": {
-                            **EVIDENCE_UPLOAD_FIELDS_SCHEMA["properties"],
+                            **EVIDENCE_UPLOAD_FIELDS["properties"],
                             "image": {
                                 "type": "string",
                                 "contentMediaType": "application/octet-stream",
+                                "description": "JPEG, PNG or WebP; default maximum 5 MiB.",
                             },
                         },
-                        "required": [*EVIDENCE_UPLOAD_FIELDS_SCHEMA["required"], "image"],
+                        "required": [*EVIDENCE_UPLOAD_FIELDS["required"], "image"],
                     }
                 }
             },
@@ -436,10 +450,10 @@ async def upload_evidence(
     form = await read_form(request, maximum_fields=10)
     fields = {
         name: value
-        for name in EVIDENCE_UPLOAD_FIELDS_SCHEMA["properties"]
+        for name in EVIDENCE_UPLOAD_FIELDS["properties"]
         if (value := form_text(form, name, required=False)) is not None
     }
-    validate_transport(EVIDENCE_UPLOAD_FIELDS_SCHEMA, fields)
+    validate_request("evidence_upload_request", fields)
     image = await read_sanitized_evidence(form_file(form, "image"), services.settings, "image")
     upload = EvidenceUpload(
         evidence_type=fields["evidence_type"],
@@ -462,8 +476,7 @@ async def upload_evidence(
     response_model=None,
     responses={
         200: json_response(
-            "Evidence metadata",
-            success_envelope_schema({"type": "array", "items": ref("evidence")}),
+            "Evidence metadata", success_envelope_schema(ref("evidence_metadata_list"))
         ),
         **error_responses(401, 403, 404),
     },

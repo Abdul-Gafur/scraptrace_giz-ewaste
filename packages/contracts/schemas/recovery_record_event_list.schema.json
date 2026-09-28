@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "maxItems": 1000,
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/__schema0"
+  },
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "event_schema_version": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "event_id": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "recovery_record_id": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "event_type": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "actor": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "actor_role": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "previous_state": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "resulting_state": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "reason": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "flag_codes": {
+          "$ref": "#/$defs/__schema10"
+        }
+      },
+      "required": [
+        "event_schema_version",
+        "event_id",
+        "recovery_record_id",
+        "event_type",
+        "actor_role",
+        "occurred_at",
+        "previous_state",
+        "resulting_state"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema3": {
+      "type": "string",
+      "enum": [
+        "submit_record",
+        "publish_for_handoff",
+        "record_handoff",
+        "record_processing",
+        "mark_processing_complete",
+        "flag_for_review",
+        "approve_unflagged_completion",
+        "approve_review",
+        "request_correction",
+        "reject_review",
+        "draft_created",
+        "evidence_added",
+        "appraisal_recorded",
+        "category_confirmed",
+        "category_corrected",
+        "qr_issued",
+        "qr_rotated",
+        "review_opened"
+      ]
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "actor_id": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "programme_id": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "facility_id": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "collector",
+            "recycler",
+            "programme_reviewer",
+            "programme_manager",
+            "safety_content_administrator",
+            "data_ml_reviewer"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "system"
+        }
+      ]
+    },
+    "__schema6": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "__schema7": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "awaiting_handoff",
+        "received",
+        "processing_recorded",
+        "completed",
+        "under_review",
+        "approved_and_completed",
+        "rejected"
+      ]
+    },
+    "__schema8": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "__schema9": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "__schema10": {
+      "minItems": 1,
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema11"
+      }
+    },
+    "__schema11": {
+      "type": "string",
+      "enum": [
+        "WEIGHT_DISCREPANCY",
+        "CATEGORY_DISAGREEMENT",
+        "DUPLICATE_EVIDENCE_DIGEST",
+        "INCOMPLETE_EVIDENCE",
+        "MISSING_MATERIAL_WEIGHTS",
+        "PROCESSED_WEIGHT_ABOVE_RECEIVED"
+      ]
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/recovery_record_event_list.schema.json",
+  "title": "recovery_record_event_list"
+}

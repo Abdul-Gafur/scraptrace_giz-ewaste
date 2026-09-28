@@ -1265,7 +1265,15 @@
     "approve_unflagged_completion": "Aprovado sem revisão",
     "approve_review": "Aprovado pelo revisor",
     "request_correction": "Correção solicitada",
-    "reject_review": "Rejeitado pelo revisor"
+    "reject_review": "Rejeitado pelo revisor",
+    "draft_created": "Rascunho criado",
+    "evidence_added": "Evidência adicionada",
+    "appraisal_recorded": "Avaliação registada",
+    "category_confirmed": "Categoria confirmada",
+    "category_corrected": "Categoria corrigida",
+    "qr_issued": "Código QR emitido",
+    "qr_rotated": "Código QR reemitido",
+    "review_opened": "Revisão aberta"
   },
   "flags": {
     "panelTitle": "Sinalizações de revisão",

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "maxItems": 500,
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/__schema0"
+  },
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "location_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "facility_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "facility_type": {
+          "type": "string",
+          "enum": [
+            "scrapyard",
+            "collection_centre",
+            "recycler"
+          ]
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "programme_verified",
+            "expired",
+            "suspended"
+          ]
+        },
+        "verification_date": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_categories": {
+          "maxItems": 7,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        }
+      },
+      "required": [
+        "location_id",
+        "facility_id",
+        "name",
+        "facility_type",
+        "verification_status",
+        "verification_date",
+        "accepted_categories"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "enum": [
+        "refrigerators",
+        "laptops_and_desktop_computers",
+        "televisions",
+        "microwaves",
+        "air_conditioners",
+        "compressors",
+        "mixed_scrap"
+      ]
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/receiving_location_list.schema.json",
+  "title": "receiving_location_list"
+}

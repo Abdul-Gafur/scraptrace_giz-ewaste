@@ -119,7 +119,7 @@ def review_request(
         ),
         "scope": {
             "actor_id": str(reviewer_id),
-            "operation": f"review_{decision}",
+            "operation": "record_review_decision",
             "resource_id": record["record_id"],
         },
     }

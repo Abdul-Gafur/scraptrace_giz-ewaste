@@ -45,7 +45,7 @@ def test_collector_creates_a_contract_valid_draft(api: TestClient) -> None:
     assert data["business_state"] == "draft"
     assert data["handoff_state"] == "not_started"
     assert data["collector"]["actor_id"] == str(SEED_USER_IDS["collector.demo"])
-    assert data["qr_payload"]["record_id"] == data["record_id"]
+    assert "qr_payload" not in data  # credentials are served only by the owner operation
     assert data["destination"]["verification_status"] == "programme_verified"
     assert response.headers["etag"] == f'"{data["revision"]}"'
     assert response.headers["location"] == f"/v1/recovery-records/{data['record_id']}"
@@ -55,7 +55,8 @@ def test_collector_creates_a_contract_valid_draft(api: TestClient) -> None:
     assert original["evidence_id"] == data["original_image_evidence_id"]
     assert original["evidence_type"] == "original_item_photo"
     assert original["provenance"]["ai_observation"]["original_prediction"] == "televisions"
-    assert "untrusted" not in original["storage_reference"]["object_key"]
+    assert "storage_reference" not in original
+    assert "untrusted" not in evidence.text  # the client file name is never stored or echoed
 
 
 def test_offline_client_identifiers_are_kept(api: TestClient) -> None:
@@ -382,11 +383,16 @@ def test_submission_runs_the_state_machine_and_records_the_timeline(api: TestCli
     for event in timeline:
         REGISTRY.check_response("recovery_record_event", event)
     assert [(e["event_type"], e["actor_role"], e["resulting_state"]) for e in timeline] == [
+        ("draft_created", "collector", "draft"),
+        ("appraisal_recorded", "collector", "draft"),
+        ("category_confirmed", "collector", "draft"),
         ("submit_record", "collector", "submitted"),
         ("publish_for_handoff", "system", "awaiting_handoff"),
+        ("qr_issued", "system", "awaiting_handoff"),
     ]
-    assert timeline[0]["actor"]["actor_id"] == str(SEED_USER_IDS["collector.demo"])
-    assert "actor" not in timeline[1]
+    assert timeline[0]["evidence_id"] == record["original_image_evidence_id"]
+    assert timeline[3]["actor"]["actor_id"] == str(SEED_USER_IDS["collector.demo"])
+    assert "actor" not in timeline[4] and "actor" not in timeline[5]
 
 
 def test_repeated_submission_is_one_logical_mutation(api: TestClient) -> None:
@@ -398,7 +404,8 @@ def test_repeated_submission_is_one_logical_mutation(api: TestClient) -> None:
         assert again.status_code == 200
         assert again.json()["data"]["replayed"] is True
     events = api.get(f"{url}/events", headers=headers).json()["data"]
-    assert len(events) == 2
+    assert [event["event_type"] for event in events].count("submit_record") == 1
+    assert [event["event_type"] for event in events].count("qr_issued") == 1
 
 
 def test_submitted_records_are_no_longer_editable(api: TestClient) -> None:

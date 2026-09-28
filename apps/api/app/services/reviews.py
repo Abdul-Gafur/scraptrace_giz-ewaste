@@ -19,11 +19,7 @@ from typing import Any
 import sqlalchemy as sa
 from apps.api.app.container import AppServices
 from apps.api.app.contracts import mappers
-from apps.api.app.contracts.transport import (
-    REVIEW_CASE_SUMMARY_SCHEMA,
-    REVIEW_DECISION_VIEW_SCHEMA,
-    check_transport_response,
-)
+from apps.api.app.contracts.transport import check_response
 from apps.api.app.core.errors import (
     ApiError,
     invalid_transition,
@@ -68,6 +64,8 @@ DECISION_PERMISSION = {
     "request_correction": "review:request_correction",
 }
 DEFAULT_QUEUE_STATUSES = ("open", "awaiting_information")
+# One operation name per command (`IDEMPOTENT_OPERATIONS.recordReviewDecision`).
+REVIEW_OPERATION = "record_review_decision"
 
 
 @dataclass(frozen=True)
@@ -89,8 +87,9 @@ class DecisionOutcome:
 
 
 def case_summary(case: ReviewCase, record: RecoveryRecord) -> dict[str, Any]:
+    """`ReviewCaseSummary`. Absent optional fields are omitted, never `null`."""
     latest = case.decisions[-1] if case.decisions else None
-    summary = {
+    summary: dict[str, Any] = {
         "case_id": str(case.id),
         "record_id": str(record.id),
         "human_reference": record.human_reference,
@@ -98,21 +97,19 @@ def case_summary(case: ReviewCase, record: RecoveryRecord) -> dict[str, Any]:
         "status": case.status,
         "flag_codes": list(case.flag_codes),
         "opened_at": format_timestamp(case.opened_at),
-        "facility_id": str(case.facility_id) if case.facility_id else None,
-        "assigned_reviewer_id": str(case.assigned_reviewer_id)
-        if case.assigned_reviewer_id
-        else None,
         "record_business_state": record.business_state,
         "decision_eligible": record.business_state == "under_review",
-        "latest_decision": {
+    }
+    if case.facility_id is not None:
+        summary["facility_id"] = str(case.facility_id)
+    if case.assigned_reviewer_id is not None:
+        summary["assigned_reviewer_id"] = str(case.assigned_reviewer_id)
+    if latest is not None:
+        summary["latest_decision"] = {
             "decision": latest.decision,
             "reason_code": latest.reason_code,
             "decided_at": format_timestamp(latest.decision_timestamp),
         }
-        if latest is not None
-        else None,
-    }
-    check_transport_response(REVIEW_CASE_SUMMARY_SCHEMA, summary)
     return summary
 
 
@@ -123,7 +120,6 @@ def decision_view(decision: ReviewDecision) -> dict[str, Any]:
         "decision": decision.decision,
         "reason_code": decision.reason_code,
         "reviewer_note": decision.reviewer_note,
-        "requested_correction": decision.requested_correction,
         "review_reason_codes": list(decision.review_reason_codes),
         "evidence_considered": list(decision.evidence_considered),
         "decision_evidence_id": str(decision.decision_evidence_id),
@@ -134,7 +130,8 @@ def decision_view(decision: ReviewDecision) -> dict[str, Any]:
         "previous_record_state": decision.previous_record_state,
         "resulting_record_state": decision.resulting_record_state,
     }
-    check_transport_response(REVIEW_DECISION_VIEW_SCHEMA, view)
+    if decision.requested_correction:
+        view["requested_correction"] = decision.requested_correction
     return view
 
 
@@ -207,7 +204,9 @@ class ReviewService:
             if len(cases) > query.limit:
                 last = page[-1]
                 next_cursor = encode_cursor(query.sort, last.opened_at, last.id)
-        return {"items": items, "pagination": page_meta(next_cursor)}
+        page_body = {"items": items, "pagination": page_meta(next_cursor)}
+        check_response("review_case_page", page_body)
+        return page_body
 
     def _has_flag(self, flag_code: str) -> sa.ColumnElement[bool]:
         """JSON-array membership, expressed natively per dialect."""
@@ -249,8 +248,7 @@ class ReviewService:
                 "timeline": [mappers.recovery_record_event(event) for event in events],
                 "decisions": [decision_view(decision) for decision in case.decisions],
             }
-        for event in result["timeline"]:
-            self.services.contracts.check_response("recovery_record_event", event)
+        check_response("review_case_detail", result)
         return result
 
     # Decisions ------------------------------------------------------------------------------
@@ -263,9 +261,9 @@ class ReviewService:
             issues.append(
                 {"field": "idempotency.scope.actor_id", "reason": "must_be_signed_in_user"}
             )
-        if scope["operation"] not in (f"review_{decision}", "record_review_decision"):
+        if scope["operation"] != REVIEW_OPERATION:
             issues.append(
-                {"field": "idempotency.scope.operation", "reason": "must_name_the_decision"}
+                {"field": "idempotency.scope.operation", "reason": "must_be_record_review_decision"}
             )
         if scope.get("resource_id") != request["recovery_record_id"]:
             issues.append({"field": "idempotency.scope.resource_id", "reason": "must_match_record"})

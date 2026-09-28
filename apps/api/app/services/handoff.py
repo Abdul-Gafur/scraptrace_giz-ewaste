@@ -1,10 +1,12 @@
 """QR lookup and recycler handoff (FR-HND-001 to FR-HND-007).
 
-Lookup resolves a presented QR payload, QR text, opaque token or human transfer code to a
-minimised preview: only what a recycler needs to compare the delivery (no coordinates, no
-contact, no collector identity beyond the opaque actor reference the handoff contract needs).
-Invalid, unknown, inactive, revoked or expired tokens all return the same `404`, so nothing is
-revealed about unrelated records.
+Lookup resolves a presented QR payload, QR symbol text or manual transfer code to a minimised
+preview: only what a recycler needs to compare the delivery (no coordinates, no contact, no
+collector identity beyond the opaque actor reference the handoff contract needs). Invalid,
+unknown, inactive, revoked or expired credentials all return the same `404`, so nothing is
+revealed about unrelated records. A lookup never returns either credential: the handoff
+request carries the one the recycler presented, and the server verifies it again (ADR-009).
+Failed manual-code presentations are throttled per user in addition to the lookup limit.
 
 Handoff applies the contract rules in one transaction: facility and identity validation, the
 presented token, evidence checks, server-generated QR-scan and receipt evidence, named flags,
@@ -31,7 +33,7 @@ from apps.api.app.core.errors import (
 from apps.api.app.core.rate_limit import SlidingWindowRateLimiter
 from apps.api.app.db.models import Evidence, Handoff, RecoveryRecord
 from apps.api.app.domain.flags import Weight, evaluate_handoff_flags
-from apps.api.app.domain.identifiers import HUMAN_REFERENCE_PATTERN, normalize_transfer_code
+from apps.api.app.domain.identifiers import normalize_manual_transfer_code
 from apps.api.app.domain.time import format_timestamp, parse_timestamp
 from apps.api.app.repositories.identity import IdentityRepository
 from apps.api.app.repositories.records import RecoveryRecordRepository
@@ -113,6 +115,7 @@ class HandoffService:
         self.services = services
         self.context = context
         self.limiter = limiter
+        self.manual_code_limiter = services.manual_code_limiter
         self.records = RecoveryRecordRepository(session)
         self.identity = IdentityRepository(session)
         self.clock = services.clock
@@ -128,29 +131,74 @@ class HandoffService:
             )
         )
 
+    @staticmethod
+    def _too_many(message: str, retry_after: int) -> ApiError:
+        return ApiError(
+            status_code=429,
+            code="RATE_LIMIT_REACHED",
+            message=message,
+            retryable=True,
+            safe_details={"retry_after_seconds": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
     def _throttle(self, actor: Actor) -> None:
         key = SlidingWindowRateLimiter.key("handoff-lookup", str(actor.user_id))
         retry_after = self.limiter.retry_after(key)
         if retry_after:
-            raise ApiError(
-                status_code=429,
-                code="RATE_LIMIT_REACHED",
-                message="Too many code lookups. Try again shortly.",
-                retryable=True,
-                safe_details={"retry_after_seconds": retry_after},
-                headers={"Retry-After": str(retry_after)},
-            )
+            raise self._too_many("Too many code lookups. Try again shortly.", retry_after)
         self.limiter.hit(key)
 
+    def _manual_code_key(self, actor: Actor) -> str:
+        return SlidingWindowRateLimiter.key("manual-transfer-code-failure", str(actor.user_id))
+
+    def _throttle_manual_code(self, actor: Actor) -> None:
+        retry_after = self.manual_code_limiter.retry_after(self._manual_code_key(actor))
+        if retry_after:
+            raise self._too_many(
+                "Too many incorrect transfer codes. Try again later or scan the QR code.",
+                retry_after,
+            )
+
+    def _record_manual_code_failure(self, actor: Actor, presented: Presented) -> None:
+        if presented.transfer_code is not None:
+            self.manual_code_limiter.hit(self._manual_code_key(actor))
+
     async def _resolve_token(self, presented: Presented) -> RecoveryRecord | None:
-        token = await self.records.get_qr_token_by_digest(
-            self.services.qr_tokens.digest(presented.lookup_token)
-        )
-        if token is None or not self.services.qr_tokens.usable(token):
+        """The record a presented credential belongs to, if it is currently usable."""
+        qr_tokens = self.services.qr_tokens
+        if presented.lookup_token is not None:
+            token = await self.records.get_qr_token_by_digest(
+                qr_tokens.digest(presented.lookup_token)
+            )
+        elif presented.transfer_code is not None:
+            token = await self.records.get_qr_token_by_transfer_code_digest(
+                qr_tokens.transfer_code_digest(presented.transfer_code)
+            )
+        else:
+            token = None
+        if token is None or token.revoked_at is not None or not qr_tokens.usable(token):
             return None
         if presented.record_id is not None and presented.record_id != token.record_id:
             return None
         return await self.records.get(token.record_id)
+
+    @staticmethod
+    def _presented(request: dict[str, Any]) -> Presented:
+        """The credential in a lookup request (`HandoffLookupRequest`)."""
+        if "qr_payload" in request:
+            payload = request["qr_payload"]
+            return parse_qr_payload(
+                str(payload.get("contract_version")),
+                str(payload.get("record_id")),
+                str(payload.get("lookup_token")),
+            )
+        if "qr_text" in request:
+            return parse_qr_text(request["qr_text"])
+        code = normalize_manual_transfer_code(str(request["manual_transfer_code"]))
+        if code is None:
+            raise MalformedQr("manual transfer code")
+        return Presented(record_id=None, transfer_code=code)
 
     # Lookup ----------------------------------------------------------------------------------
 
@@ -159,20 +207,10 @@ class HandoffService:
             actor, "handoff:accept", self.context, "recovery_record", None
         )
         self._throttle(actor)
+        if "manual_transfer_code" in request:
+            self._throttle_manual_code(actor)
         try:
-            if "qr_payload" in request:
-                payload = request["qr_payload"]
-                presented: Presented | None = parse_qr_payload(
-                    str(payload.get("contract_version")),
-                    str(payload.get("record_id")),
-                    str(payload.get("lookup_token")),
-                )
-            elif "qr_text" in request:
-                presented = parse_qr_text(request["qr_text"])
-            elif "lookup_token" in request:
-                presented = Presented(lookup_token=request["lookup_token"], record_id=None)
-            else:
-                presented = None
+            presented = self._presented(request)
         except UnsupportedQrVersion as exc:
             await self._audit_failure(actor, "qr-lookup.failed", "unsupported_contract_version")
             raise unsupported_version() from exc
@@ -180,33 +218,13 @@ class HandoffService:
             await self._audit_failure(actor, "qr-lookup.failed", "malformed")
             raise unknown_code() from exc
 
-        token_value: str | None
         async with self.session.begin():
-            if presented is not None:
-                record = await self._resolve_token(presented)
-                token_value = presented.lookup_token
-            else:
-                code = normalize_transfer_code(str(request["transfer_code"]))
-                record = (
-                    await self.records.get_by_human_reference(code)
-                    if HUMAN_REFERENCE_PATTERN.fullmatch(code)
-                    else None
-                )
-                # A typed code proves presentation like a scan, so the handoff request can
-                # carry the record's current token.
-                token_value = (
-                    self.services.qr_tokens.lookup_token_for(record)
-                    if record is not None
-                    and self.services.qr_tokens.usable(self.services.qr_tokens.current(record))
-                    else None
-                )
-                if token_value is None:
-                    record = None
+            record = await self._resolve_token(presented)
             if record is None or record.programme_id not in actor.programme_ids:
-                failure = "unknown_code"
+                failure: str | None = "unknown_code"
             else:
                 failure = None
-                result = self._lookup_result(actor, record, token_value)
+                result = self._lookup_result(actor, record)
                 self.services.audit.add(
                     self.session,
                     self.services.audit.event(
@@ -218,17 +236,16 @@ class HandoffService:
                         target_id=record.id,
                         programme_id=record.programme_id,
                         facility_id=actor.facility_id,
-                        details={"outcome": result["outcome"]},
+                        details={"outcome": result["outcome"], "credential": presented.kind},
                     ),
                 )
         if failure is not None:
-            await self._audit_failure(actor, "qr-lookup.failed", failure)
+            self._record_manual_code_failure(actor, presented)
+            await self._audit_failure(actor, "qr-lookup.failed", f"{failure}:{presented.kind}")
             raise unknown_code()
         return result
 
-    def _lookup_result(
-        self, actor: Actor, record: RecoveryRecord, token_value: str | None
-    ) -> dict[str, Any]:
+    def _lookup_result(self, actor: Actor, record: RecoveryRecord) -> dict[str, Any]:
         scope = RecordScope.of(record)
         in_scope = context_for(actor, scope, facility_mode="lenient").assigned_facility
         if not in_scope:
@@ -242,10 +259,7 @@ class HandoffService:
             }
         if record.business_state != "awaiting_handoff":
             return {"outcome": "not_ready", "record": handoff_preview(record)}
-        result: dict[str, Any] = {"outcome": "ready", "record": handoff_preview(record)}
-        if token_value is not None:
-            result["lookup_token"] = token_value
-        return result
+        return {"outcome": "ready", "record": handoff_preview(record)}
 
     # Handoff ---------------------------------------------------------------------------------
 
@@ -298,6 +312,9 @@ class HandoffService:
         )
         generated: list[Evidence] = []
         evidence_service = EvidenceService(self.session, self.services, self.context)
+        failed: Presented | None = None
+        if "manual_transfer_code" in request:
+            self._throttle_manual_code(actor)
         try:
             async with self.session.begin():
                 record = await self.records.get(record_id, for_update=True)
@@ -307,15 +324,15 @@ class HandoffService:
                     if "replayed" in body:
                         body["replayed"] = True
                     return HandoffOutcome(200, body)
-                token_record = await self._resolve_token(
-                    Presented(lookup_token=request["lookup_token"], record_id=record_id)
-                )
+                presented = self._handoff_credential(request, record_id)
+                token_record = await self._resolve_token(presented)
                 if (
                     record is None
                     or token_record is None
+                    or token_record.id != record.id
                     or record.programme_id not in actor.programme_ids
                 ):
-                    await self._audit_failure(actor, "handoff.failed", "unknown_code")
+                    failed = presented
                     raise unknown_code()
                 location = await self._validate_location(actor, record, location_id)
 
@@ -343,7 +360,13 @@ class HandoffService:
                     )
                 else:
                     outcome = await self._accept(
-                        actor, record, request, location.facility_id, generated, evidence_service
+                        actor,
+                        record,
+                        request,
+                        location.facility_id,
+                        generated,
+                        evidence_service,
+                        presented,
                     )
                 self.services.contracts.check_response("handoff_response", outcome.body)
                 guard.remember(scope, outcome.status_code, outcome.body)
@@ -364,7 +387,18 @@ class HandoffService:
                 return outcome
         except BaseException:
             await evidence_service.discard_generated(generated)
+            if failed is not None:
+                self._record_manual_code_failure(actor, failed)
+                await self._audit_failure(actor, "handoff.failed", f"unknown_code:{failed.kind}")
             raise
+
+    @staticmethod
+    def _handoff_credential(request: dict[str, Any], record_id: uuid.UUID) -> Presented:
+        """The credential a `HandoffRequest` presents, bound to the record it names."""
+        if "lookup_token" in request:
+            return Presented(record_id=record_id, lookup_token=request["lookup_token"])
+        code = normalize_manual_transfer_code(str(request["manual_transfer_code"]))
+        return Presented(record_id=record_id, transfer_code=code or "invalid")
 
     async def _validate_location(
         self, actor: Actor, record: RecoveryRecord, location_id: uuid.UUID
@@ -446,6 +480,7 @@ class HandoffService:
         facility_id: uuid.UUID,
         generated: list[Evidence],
         evidence_service: EvidenceService,
+        presented: Presented,
     ) -> HandoffOutcome:
         now = self.clock()
         skew = timedelta(seconds=self.services.settings.clock_skew_seconds)
@@ -483,6 +518,7 @@ class HandoffService:
             {
                 "record_id": str(record.id),
                 "token_id": str(self.services.qr_tokens.current(record).id),
+                "credential": presented.kind,
                 "verified_at": format_timestamp(now),
                 "receiving_location_id": request["receiving_location_id"],
             },
@@ -502,6 +538,8 @@ class HandoffService:
                 "final_price": request["final_price"],
                 "handoff_time": request["handoff_time"],
                 "recorded_at": format_timestamp(now),
+                # Recycler notes are part of what the recycler attested at receipt.
+                **({"notes": request["notes"]} if "notes" in request else {}),
             },
         )
         generated.append(receipt)

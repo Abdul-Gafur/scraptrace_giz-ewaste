@@ -10,6 +10,17 @@ export const IdempotencyScopeSchema = z.strictObject({
   resource_id: RecoveryRecordIdSchema.optional(),
 });
 
+/**
+ * The one operation name each idempotent command uses in `idempotency.scope.operation`. A
+ * retry must repeat the same key, digest and scope to replay the first result.
+ */
+export const IDEMPOTENT_OPERATIONS = {
+  createRecord: "create_record",
+  recordHandoff: "record_handoff",
+  recordProcessing: "record_processing",
+  recordReviewDecision: "record_review_decision",
+} as const;
+
 export const IdempotencyMetadataSchema = z.strictObject({
   idempotency_key: IdempotencyKeySchema,
   request_digest: Sha256DigestSchema,

@@ -4,6 +4,7 @@ import { DEMO_ACTORS, DEMO_LOCATION_IDS } from "@/auth/actors";
 import { newEvidenceId } from "@/services/domain/identifiers";
 import { VERIFIED_STATE, verifiedWeightKilograms } from "@/services/domain/records";
 import { createTestServices } from "@/services/local/local-services";
+import { localQrPayload } from "@/services/local/record-factory";
 import type { FrontendServices } from "@/services/ports/service-ports";
 import type { ScrapTraceRepository } from "@/services/local/repository";
 import { ScrapTraceServiceError } from "@/services/http/http-client";
@@ -136,11 +137,11 @@ describe("scenario A: a successful recovery from capture to programme report", (
 
     const record = await captureAndSubmit(services, { label: "A", declaredWeightKg: 20 });
     expect(record.business_state).toBe("awaiting_handoff");
-    expect(record.qr_payload.record_id).toBe(record.record_id);
+    expect(localQrPayload(record).record_id).toBe(record.record_id);
     expect(record.human_reference).toMatch(/^ST-[A-Z0-9]{8,16}$/);
 
     // The recycler resolves the same record from the QR text the collector presents.
-    const scanned = `SCRAPTRACE:1.0.0:${record.record_id}:${record.qr_payload.lookup_token}`;
+    const scanned = `SCRAPTRACE:1.0.0:${record.record_id}:${localQrPayload(record).lookup_token}`;
     const lookup = await services.recycler.recoveryRecords.lookupForHandoff(scanned);
     expect(lookup.outcome).toBe("ready");
     if (lookup.outcome !== "ready") throw new Error("lookup did not succeed");
@@ -419,7 +420,7 @@ describe("duplicate scans and repeated submissions", () => {
     const record = await captureAndSubmit(services, { label: "D2", declaredWeightKg: 20 });
     await confirmReceipt(services, record.record_id, 21, "D2");
 
-    const scanned = `SCRAPTRACE:1.0.0:${record.record_id}:${record.qr_payload.lookup_token}`;
+    const scanned = `SCRAPTRACE:1.0.0:${record.record_id}:${localQrPayload(record).lookup_token}`;
     const lookup = await services.recycler.recoveryRecords.lookupForHandoff(scanned);
     expect(lookup.outcome).toBe("already_received");
     if (lookup.outcome !== "already_received") throw new Error("expected already_received");
@@ -483,7 +484,7 @@ describe("lookup states", () => {
     await seedConfiguration(services);
     const record = await captureAndSubmit(services, { label: "V" });
     const result = await services.recycler.recoveryRecords.lookupForHandoff(
-      `SCRAPTRACE:9.9.9:${record.record_id}:${record.qr_payload.lookup_token}`,
+      `SCRAPTRACE:9.9.9:${record.record_id}:${localQrPayload(record).lookup_token}`,
     );
     expect(result).toEqual({ outcome: "unsupported_contract_version" });
   });

@@ -30,10 +30,13 @@ from apps.api.tests.conftest import FakePredictor, build_settings
 from apps.api.tests.support.api import auth, query, seed_database
 from apps.api.tests.support.handoff import handoff_photos, handoff_request
 from apps.api.tests.support.records import (
+    ISSUED_CREDENTIALS,
     created_record,
     draft_metadata,
+    lookup_token,
     photo,
     submitted_record,
+    transfer_code,
     upload_evidence,
 )
 from fastapi.testclient import TestClient
@@ -56,28 +59,67 @@ def _ready(api: TestClient, **kwargs: Any) -> tuple[dict[str, Any], dict[str, st
 # QR issuing and privacy --------------------------------------------------------------------
 
 
-def test_submitted_record_carries_a_privacy_safe_qr_payload(
-    api: TestClient, api_settings: Settings
-) -> None:
+def _credentials(api: TestClient, record_id: str, username: str = "collector.demo") -> Any:
+    return api.get(f"/v1/recovery-records/{record_id}/qr-credentials", headers=auth(api, username))
+
+
+def test_record_resource_never_embeds_a_credential(api: TestClient) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
-    payload = record["qr_payload"]
-    REGISTRY.check_response("qr_payload", payload)
+    assert "qr_payload" not in record
+    for username in ("collector.demo", "recycler.demo", "reviewer.demo", "manager.demo"):
+        body = api.get(
+            f"/v1/recovery-records/{record['record_id']}", headers=auth(api, username)
+        ).text
+        assert lookup_token(record["record_id"]) not in body
+        assert transfer_code(record["record_id"]) not in body
+
+
+def test_owner_receives_privacy_safe_credentials(api: TestClient, api_settings: Settings) -> None:
+    record = submitted_record(api, auth(api, "collector.demo"))
+    response = _credentials(api, record["record_id"])
+    assert response.status_code == 200
+    assert "no-store" in response.headers["cache-control"]
+    credentials = response.json()["data"]
+    REGISTRY.check_response("qr_credentials", credentials)
+    assert credentials["status"] == "active"
+    assert credentials["activated_at"] and credentials["expires_at"]
+    payload = credentials["qr_payload"]
     assert set(payload) == {"contract_version", "record_id", "lookup_token"}
-    token = payload["lookup_token"]
+    token, code = payload["lookup_token"], credentials["manual_transfer_code"]
     assert record["record_id"] not in token and record["human_reference"] not in token
+    assert code.replace("-", "") not in token and code != record["human_reference"]
 
     async def stored(session: sa.ext.asyncio.AsyncSession) -> list[tuple[Any, ...]]:
         rows = await session.execute(sa.select(QrLookupToken))
         return [tuple(vars(row).values()) for row in rows.scalars()]
 
     rows = query(api_settings, stored)
-    assert rows and all(token not in str(values) for values in rows)
+    assert rows and all(token not in str(values) and code not in str(values) for values in rows)
 
 
-def test_draft_tokens_are_inert_until_publication(api: TestClient) -> None:
-    draft = created_record(api, auth(api, "collector.demo"))
-    response = _lookup(api, auth(api, "recycler.demo"), {"qr_payload": draft["qr_payload"]})
-    assert response.status_code == 404
+@pytest.mark.parametrize(
+    ("username", "status"),
+    [
+        ("collector-two.demo", 404),
+        ("recycler.demo", 403),
+        ("reviewer.demo", 403),
+        ("manager.demo", 403),
+    ],
+)
+def test_only_the_owner_reads_credentials(api: TestClient, username: str, status: int) -> None:
+    record = submitted_record(api, auth(api, "collector.demo"))
+    assert _credentials(api, record["record_id"], username).status_code == status
+
+
+def test_draft_credentials_are_inert_until_publication(api: TestClient) -> None:
+    collector = auth(api, "collector.demo")
+    draft = created_record(api, collector)
+    credentials = _credentials(api, draft["record_id"]).json()["data"]
+    assert credentials["status"] == "inactive" and "activated_at" not in credentials
+    recycler = auth(api, "recycler.demo")
+    assert _lookup(api, recycler, {"qr_payload": credentials["qr_payload"]}).status_code == 404
+    manual = {"manual_transfer_code": credentials["manual_transfer_code"]}
+    assert _lookup(api, recycler, manual).status_code == 404
 
 
 # Lookup ------------------------------------------------------------------------------------
@@ -86,19 +128,20 @@ def test_draft_tokens_are_inert_until_publication(api: TestClient) -> None:
 def test_recycler_resolves_every_presentation_form(api: TestClient) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
     headers = auth(api, "recycler.demo")
-    payload = record["qr_payload"]
+    token, code = lookup_token(record["record_id"]), transfer_code(record["record_id"])
     forms = [
-        {"qr_payload": payload},
-        {"qr_text": f"SCRAPTRACE:1.0.0:{payload['record_id']}:{payload['lookup_token']}"},
-        {"lookup_token": payload["lookup_token"]},
-        {"transfer_code": " " + record["human_reference"].lower().replace("-", "- ") + " "},
+        {"qr_payload": ISSUED_CREDENTIALS[record["record_id"]]["qr_payload"]},
+        {"qr_text": f"SCRAPTRACE:1.0.0:{record['record_id']}:{token}"},
+        {"manual_transfer_code": code},
     ]
     for body in forms:
         response = _lookup(api, headers, body)
         assert response.status_code == 200, (body, response.text)
         result = response.json()["data"]
+        REGISTRY.check_response("handoff_lookup_response", result)
         assert result["outcome"] == "ready"
-        assert result["lookup_token"] == payload["lookup_token"]
+        # A lookup never hands out a credential: neither the token nor the manual code.
+        assert token not in response.text and code not in response.text
         preview = result["record"]
         assert preview["record_id"] == record["record_id"]
         assert "capture_location" not in preview
@@ -108,10 +151,10 @@ def test_recycler_resolves_every_presentation_form(api: TestClient) -> None:
 @pytest.mark.parametrize(
     "body",
     [
-        {"lookup_token": "A" * 43},
+        {"qr_text": f"SCRAPTRACE:1.0.0:{uuid7()}:" + "A" * 43},
         {"qr_text": "SCRAPTRACE:1.0.0:not-a-record:" + "a" * 43},
         {"qr_text": "https://example.org/somewhere"},
-        {"transfer_code": "ST-NOTREAL00"},
+        {"manual_transfer_code": "0000-0000-0000"},
     ],
 )
 def test_unknown_codes_reveal_nothing(
@@ -138,17 +181,56 @@ def test_unknown_codes_reveal_nothing(
     assert query(api_settings, failures) == 1
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"lookup_token": "A" * 43},
+        {"transfer_code": "ST-ABCDEFGHJK"},
+        {"manual_transfer_code": "ST-ABCDEFGHJK"},
+        {"manual_transfer_code": "7K3Q-M9XD-2HVU"},
+    ],
+)
+def test_retired_and_malformed_presentation_forms_are_invalid(
+    api: TestClient, body: dict[str, Any]
+) -> None:
+    response = _lookup(api, auth(api, "recycler.demo"), body)
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_FAILED"
+
+
+def test_human_reference_is_not_a_transfer_credential(api: TestClient) -> None:
+    record = submitted_record(api, auth(api, "collector.demo"))
+    response = _lookup(
+        api, auth(api, "recycler.demo"), {"manual_transfer_code": record["human_reference"]}
+    )
+    assert response.status_code == 422
+
+
+def test_typed_codes_are_normalised(api: TestClient) -> None:
+    record = submitted_record(api, auth(api, "collector.demo"))
+    code = transfer_code(record["record_id"])
+    # Clients send the canonical form; the server applies the same normalisation to be safe.
+    response = _lookup(api, auth(api, "recycler.demo"), {"manual_transfer_code": code})
+    assert response.json()["data"]["outcome"] == "ready"
+
+
 def test_token_for_another_record_is_rejected(api: TestClient) -> None:
     collector = auth(api, "collector.demo")
     first = submitted_record(api, collector)
     second = submitted_record(api, collector)
-    mixed = {**first["qr_payload"], "record_id": second["record_id"]}
+    mixed = {
+        **ISSUED_CREDENTIALS[first["record_id"]]["qr_payload"],
+        "record_id": second["record_id"],
+    }
     assert _lookup(api, auth(api, "recycler.demo"), {"qr_payload": mixed}).status_code == 404
 
 
 def test_unsupported_qr_version_is_named(api: TestClient) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
-    payload = {**record["qr_payload"], "contract_version": "2.0.0"}
+    payload = {
+        **ISSUED_CREDENTIALS[record["record_id"]]["qr_payload"],
+        "contract_version": "2.0.0",
+    }
     response = _lookup(api, auth(api, "recycler.demo"), {"qr_payload": payload})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "UNSUPPORTED_CONTRACT_VERSION"
@@ -157,24 +239,26 @@ def test_unsupported_qr_version_is_named(api: TestClient) -> None:
 def test_lookup_requires_exactly_one_form(api: TestClient) -> None:
     headers = auth(api, "recycler.demo")
     assert _lookup(api, headers, {}).status_code == 422
-    both = {"lookup_token": "a" * 43, "transfer_code": "ST-ABCDEFGH"}
+    both = {"qr_text": "SCRAPTRACE:1.0.0:x:y", "manual_transfer_code": "7K3Q-M9XD-2HVT"}
     assert _lookup(api, headers, both).status_code == 422
 
 
 def test_other_facility_learns_only_that_the_code_is_elsewhere(api: TestClient) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
-    response = _lookup(
-        api, auth(api, "recycler-ashanti.demo"), {"qr_payload": record["qr_payload"]}
-    )
-    assert response.status_code == 200
-    assert response.json()["data"] == {"outcome": "other_facility"}
+    for body in (
+        {"qr_payload": ISSUED_CREDENTIALS[record["record_id"]]["qr_payload"]},
+        {"manual_transfer_code": transfer_code(record["record_id"])},
+    ):
+        response = _lookup(api, auth(api, "recycler-ashanti.demo"), body)
+        assert response.status_code == 200
+        assert response.json()["data"] == {"outcome": "other_facility"}
 
 
 @pytest.mark.parametrize("username", ["collector.demo", "reviewer.demo", "manager.demo"])
 def test_only_recyclers_look_up_codes(api: TestClient, username: str) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
-    response = _lookup(api, auth(api, username), {"qr_payload": record["qr_payload"]})
-    assert response.status_code == 403
+    body = {"manual_transfer_code": transfer_code(record["record_id"])}
+    assert _lookup(api, auth(api, username), body).status_code == 403
 
 
 def test_lookups_are_rate_limited(database_url: str, evidence_root: Any) -> None:
@@ -182,30 +266,67 @@ def test_lookups_are_rate_limited(database_url: str, evidence_root: Any) -> None
         database_url, lookup_rate_limit_attempts=2, evidence_storage_root=evidence_root
     )
     seed_database(settings)
+    unknown = {"qr_text": f"SCRAPTRACE:1.0.0:{uuid7()}:" + "a" * 43}
     with TestClient(create_app(settings=settings, predictor=FakePredictor())) as client:
         headers = auth(client, "recycler.demo")
         for _ in range(2):
-            assert _lookup(client, headers, {"lookup_token": "a" * 43}).status_code == 404
-        limited = _lookup(client, headers, {"lookup_token": "a" * 43})
+            assert _lookup(client, headers, unknown).status_code == 404
+        limited = _lookup(client, headers, unknown)
     assert limited.status_code == 429
     assert limited.headers["retry-after"]
 
 
-def test_rotation_revokes_the_previous_code(api: TestClient) -> None:
+def test_failed_manual_codes_are_throttled_separately(
+    database_url: str, evidence_root: Any
+) -> None:
+    settings = build_settings(
+        database_url, manual_code_failure_limit_attempts=3, evidence_storage_root=evidence_root
+    )
+    seed_database(settings)
+    with TestClient(create_app(settings=settings, predictor=FakePredictor())) as client:
+        record = submitted_record(client, auth(client, "collector.demo"))
+        headers = auth(client, "recycler.demo")
+        for guess in ("0000-0000-0001", "0000-0000-0002", "0000-0000-0003"):
+            response = _lookup(client, headers, {"manual_transfer_code": guess})
+            assert response.status_code == 404
+            assert response.json()["error"]["message"] == "No record matches this code."
+        # Even the right code is refused until the window passes, so guessing cannot continue.
+        correct = {"manual_transfer_code": transfer_code(record["record_id"])}
+        limited = _lookup(client, headers, correct)
+        assert limited.status_code == 429 and limited.headers["retry-after"]
+        assert transfer_code(record["record_id"]) not in limited.text
+        # Scanning the QR is unaffected by manual-code throttling.
+        scan = {"qr_payload": ISSUED_CREDENTIALS[record["record_id"]]["qr_payload"]}
+        assert _lookup(client, headers, scan).json()["data"]["outcome"] == "ready"
+        # Another recycler is not throttled by this recycler's failures.
+        other = _lookup(client, auth(client, "recycler-ashanti.demo"), correct)
+        assert other.status_code == 200
+
+
+def test_rotation_revokes_both_previous_credentials(api: TestClient) -> None:
     collector = auth(api, "collector.demo")
     record = submitted_record(api, collector)
+    before = dict(ISSUED_CREDENTIALS[record["record_id"]])
     rotated = api.post(
         f"/v1/recovery-records/{record['record_id']}/qr-token-rotations", headers=collector
     )
     assert rotated.status_code == 201
-    payload = rotated.json()["data"]
-    REGISTRY.check_response("qr_payload", payload)
-    assert payload["lookup_token"] != record["qr_payload"]["lookup_token"]
+    assert "no-store" in rotated.headers["cache-control"]
+    after = rotated.json()["data"]
+    REGISTRY.check_response("qr_credentials", after)
+    assert after["status"] == "active"
+    assert after["qr_payload"]["lookup_token"] != before["qr_payload"]["lookup_token"]
+    assert after["manual_transfer_code"] != before["manual_transfer_code"]
     recycler = auth(api, "recycler.demo")
-    assert _lookup(api, recycler, {"qr_payload": record["qr_payload"]}).status_code == 404
-    assert _lookup(api, recycler, {"qr_payload": payload}).json()["data"]["outcome"] == "ready"
-    current = api.get(f"/v1/recovery-records/{record['record_id']}", headers=collector)
-    assert current.json()["data"]["qr_payload"] == payload
+    assert _lookup(api, recycler, {"qr_payload": before["qr_payload"]}).status_code == 404
+    old_code = {"manual_transfer_code": before["manual_transfer_code"]}
+    assert _lookup(api, recycler, old_code).status_code == 404
+    assert _lookup(api, recycler, {"qr_payload": after["qr_payload"]}).json()["data"][
+        "outcome"
+    ] == ("ready")
+    new_code = {"manual_transfer_code": after["manual_transfer_code"]}
+    assert _lookup(api, recycler, new_code).json()["data"]["outcome"] == "ready"
+    assert _credentials(api, record["record_id"]).json()["data"] == after
     other = auth(api, "collector-two.demo")
     assert (
         api.post(
@@ -215,16 +336,25 @@ def test_rotation_revokes_the_previous_code(api: TestClient) -> None:
     )
 
 
-def test_expired_codes_do_not_resolve(api: TestClient, api_settings: Settings) -> None:
+def test_expired_credentials_do_not_resolve(api: TestClient, api_settings: Settings) -> None:
     record = submitted_record(api, auth(api, "collector.demo"))
+    credentials = ISSUED_CREDENTIALS[record["record_id"]]
     later = utc_now() + timedelta(days=api_settings.qr_token_ttl_days + 1)
     with TestClient(
         create_app(settings=api_settings, predictor=FakePredictor(), clock=lambda: later)
     ) as future:
-        response = _lookup(
-            future, auth(future, "recycler.demo"), {"qr_payload": record["qr_payload"]}
+        recycler = auth(future, "recycler.demo")
+        assert _lookup(future, recycler, {"qr_payload": credentials["qr_payload"]}).status_code == (
+            404
         )
-    assert response.status_code == 404
+        manual = {"manual_transfer_code": credentials["manual_transfer_code"]}
+        assert _lookup(future, recycler, manual).status_code == 404
+        expired = future.get(
+            f"/v1/recovery-records/{record['record_id']}/qr-credentials",
+            headers=auth(future, "collector.demo"),
+        ).json()["data"]
+    assert expired["status"] == "expired"
+    assert "qr_payload" not in expired and "manual_transfer_code" not in expired
 
 
 # Handoff -----------------------------------------------------------------------------------
@@ -272,6 +402,67 @@ def test_recycler_confirms_handoff(api: TestClient, api_settings: Settings) -> N
     assert query(api_settings, used)
 
 
+def test_manual_code_handoff_records_the_presented_credential(
+    api: TestClient, api_settings: Settings
+) -> None:
+    record, recycler, evidence_ids = _ready(api)
+    body = handoff_request(
+        record,
+        evidence_ids,
+        manual_transfer_code=transfer_code(record["record_id"]),
+        notes="Door seal cracked on arrival.",
+    )
+    assert "lookup_token" not in body
+    response = _handoff(api, recycler, body)
+    assert response.status_code == 201, response.text
+    assert response.json()["data"]["outcome"] == "accepted"
+
+    async def documents(session: sa.ext.asyncio.AsyncSession) -> dict[str, bytes]:
+        rows = await session.execute(
+            sa.select(Evidence).where(
+                Evidence.record_id == uuid.UUID(record["record_id"]),
+                Evidence.evidence_type.in_(("handoff_qr_scan", "recycler_receipt")),
+            )
+        )
+        return {
+            row.evidence_type: (api_settings.evidence_storage_root / row.object_key).read_bytes()
+            for row in rows.scalars()
+        }
+
+    stored = query(api_settings, documents)
+    assert b'"credential":"manual_transfer_code"' in stored["handoff_qr_scan"]
+    assert b'"notes":"Door seal cracked on arrival."' in stored["recycler_receipt"]
+    # Neither credential is written into the evidence documents.
+    for document in stored.values():
+        assert transfer_code(record["record_id"]).encode() not in document
+        assert lookup_token(record["record_id"]).encode() not in document
+
+
+def test_handoff_presents_exactly_one_credential(api: TestClient) -> None:
+    record, recycler, evidence_ids = _ready(api)
+    both = handoff_request(record, evidence_ids)
+    both["manual_transfer_code"] = transfer_code(record["record_id"])
+    response = _handoff(api, recycler, both)
+    assert response.status_code == 422
+    assert {"field": "lookup_token", "reason": "exactly_one_credential"} in response.json()[
+        "error"
+    ]["field_issues"]
+    neither = handoff_request(record, evidence_ids)
+    del neither["lookup_token"]
+    assert _handoff(api, recycler, neither).status_code == 422
+
+
+def test_manual_code_for_another_record_is_rejected(api: TestClient) -> None:
+    record, recycler, evidence_ids = _ready(api)
+    other = submitted_record(api, auth(api, "collector.demo"))
+    body = handoff_request(
+        record, evidence_ids, manual_transfer_code=transfer_code(other["record_id"])
+    )
+    response = _handoff(api, recycler, body)
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
+
+
 def test_retried_handoff_replays_without_duplicating(
     api: TestClient, api_settings: Settings
 ) -> None:
@@ -304,9 +495,29 @@ def test_second_scan_reports_the_original_receipt(api: TestClient) -> None:
         "original_received_at": first["received_at"],
         "original_logical_result": "accepted",
     }
-    lookup = _lookup(api, recycler, {"qr_payload": record["qr_payload"]}).json()["data"]
-    assert lookup["outcome"] == "already_received"
-    assert lookup["received_at"] == first["received_at"]
+    for body in (
+        {"qr_payload": ISSUED_CREDENTIALS[record["record_id"]]["qr_payload"]},
+        {"manual_transfer_code": transfer_code(record["record_id"])},
+    ):
+        lookup = _lookup(api, recycler, body).json()["data"]
+        assert lookup["outcome"] == "already_received"
+        assert lookup["received_at"] == first["received_at"]
+    manual_again = _handoff(
+        api,
+        recycler,
+        handoff_request(
+            record,
+            evidence_ids,
+            key="record_handoff:manual-second-scan",
+            manual_transfer_code=transfer_code(record["record_id"]),
+        ),
+    )
+    assert manual_again.json()["data"]["outcome"] == "duplicate_scan"
+    owner = api.get(
+        f"/v1/recovery-records/{record['record_id']}/qr-credentials",
+        headers=auth(api, "collector.demo"),
+    ).json()["data"]
+    assert owner["status"] == "used" and "qr_payload" not in owner
 
 
 def test_weight_discrepancy_opens_a_review_case_atomically(
@@ -370,6 +581,8 @@ def test_reused_handoff_photographs_are_flagged(api: TestClient) -> None:
         ({"weight": 0}, 422, "VALIDATION_FAILED"),
         ({"unit": "lb"}, 422, "VALIDATION_FAILED"),
         ({"lookup_token": "Z" * 43}, 404, "RESOURCE_NOT_FOUND"),
+        ({"manual_transfer_code": "0000-0000-0000"}, 404, "RESOURCE_NOT_FOUND"),
+        ({"notes": "n" * 1001}, 422, "VALIDATION_FAILED"),
         (
             {"handoff_time": format_timestamp(utc_now() + timedelta(days=1))},
             422,

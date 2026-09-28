@@ -13,11 +13,18 @@ if (mode !== "--write" && mode !== "--check") {
   throw new Error("Use --write to generate schemas or --check to verify committed artifacts.");
 }
 
+// Requests are described as a client sends them (fields with defaults stay optional);
+// responses as a server returns them.
+const REQUEST_SUFFIXES = ["_request", "_filters", "_create", "_update"];
+const isRequestSchema = (name) =>
+  REQUEST_SUFFIXES.some((suffix) => name.endsWith(suffix)) || name === "material_entry";
+
 const artifacts = new Map();
 for (const name of Object.keys(PUBLIC_SCHEMA_REGISTRY).sort()) {
   const schema = toJSONSchema(PUBLIC_SCHEMA_REGISTRY[name], {
     target: "draft-2020-12",
     reused: "ref",
+    io: isRequestSchema(name) ? "input" : "output",
   });
   schema.$id = `https://schemas.scraptrace.local/contracts/1.0.0/${name}.schema.json`;
   schema.title = name;

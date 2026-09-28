@@ -20,7 +20,7 @@ from typing import Any
 import sqlalchemy as sa
 from apps.api.app.container import AppServices
 from apps.api.app.contracts import mappers
-from apps.api.app.contracts.transport import PROCESSING_DETAIL_SCHEMA, check_transport_response
+from apps.api.app.contracts.transport import check_response
 from apps.api.app.core.errors import (
     ApiError,
     invalid_transition,
@@ -49,7 +49,6 @@ from apps.api.app.services.review_cases import merge_flags, raise_flags
 from sqlalchemy.ext.asyncio import AsyncSession
 
 PROCESSING_OPERATION = "record_processing"
-RESULT_LIMIT = 500
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -102,7 +101,7 @@ def processing_detail(processing: ProcessingRecord) -> dict[str, Any]:
         detail["processing_timestamp"] = format_timestamp(processing.processed_at)
     if processing.submitted_at is not None:
         detail["submitted_at"] = format_timestamp(processing.submitted_at)
-    check_transport_response(PROCESSING_DETAIL_SCHEMA, detail)
+    check_response("processing_detail", detail)
     return detail
 
 
@@ -528,8 +527,8 @@ class ProcessingService:
         processing.status = "submitted"
         processing.processing_method = request["processing_method"]
         processing.notes = notes
-        # ProcessingInformation.result allows 500 characters; the full notes are kept separately.
-        processing.result = notes[:RESULT_LIMIT]
+        # The notes are the recorded result (`ProcessingInformation.result`), unabridged.
+        processing.result = notes
         processing.processed_at = processed_at
         processing.evidence_ids = evidence_ids
         processing.submitted_at = now

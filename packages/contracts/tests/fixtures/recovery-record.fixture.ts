@@ -9,6 +9,15 @@ export const IDS = {
   location: "0199a666-6666-7666-8666-666666666666",
   card: "0199a777-7777-7777-8777-777777777777",
   mutation: "0199a888-8888-7888-8888-888888888888",
+  recycler: "0199a999-9999-7999-8999-999999999999",
+  reviewer: "0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa",
+  programme: "0199abbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb",
+  facility: "0199accc-cccc-7ccc-8ccc-cccccccccccc",
+  handoffPhoto: "0199addd-dddd-7ddd-8ddd-dddddddddddd",
+  weightPhoto: "0199aeee-eeee-7eee-8eee-eeeeeeeeeeee",
+  completion: "0199afff-ffff-7fff-8fff-fffffffffff0",
+  reviewCase: "0199b000-0000-7000-8000-00000000000a",
+  event: "0199b000-0000-7000-8000-00000000000b",
 } as const;
 
 const actor = { actor_id: IDS.actor } as const;

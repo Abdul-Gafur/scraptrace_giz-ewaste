@@ -380,7 +380,10 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
             ...published.record.review,
             review_state: "open",
             flag_codes: [
-              ...new Set([...published.record.review.flag_codes, "DUPLICATE_EVIDENCE_DIGEST"]),
+              ...new Set([
+                ...published.record.review.flag_codes,
+                "DUPLICATE_EVIDENCE_DIGEST" as const,
+              ]),
             ],
           },
         });

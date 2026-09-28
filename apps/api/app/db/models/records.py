@@ -171,6 +171,12 @@ class RecoveryRecordEvent(Base):
         "event_resulting_state", RECOVERY_RECORD_STATES, nullable=False
     )
     reason: Mapped[str | None] = mapped_column(sa.String(1000), nullable=True)
+    # The evidence an `evidence_added` event describes, and the flags a review-opening event
+    # raised. Both are empty for other events.
+    evidence_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("evidence.id", ondelete="RESTRICT"), nullable=True
+    )
+    flag_codes: Mapped[list[str] | None] = mapped_column(nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(sa.String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utc_now, nullable=False)
 
@@ -241,6 +247,7 @@ class QrLookupToken(Timestamps, Base):
             postgresql_where=sa.text("revoked_at IS NULL"),
             sqlite_where=sa.text("revoked_at IS NULL"),
         ),
+        sa.Index("uq_qr_lookup_tokens_transfer_code_digest", "transfer_code_digest", unique=True),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid7)
@@ -248,6 +255,9 @@ class QrLookupToken(Timestamps, Base):
         sa.ForeignKey("recovery_records.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     token_digest: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True)
+    # Keyed digest of the manual transfer code issued with this token (ADR-009). The code
+    # itself is never stored; it is re-derived for the owning collector.
+    transfer_code_digest: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     nonce: Mapped[bytes] = mapped_column(sa.LargeBinary(16), nullable=False)
     activated_at: Mapped[datetime | None] = mapped_column(nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(nullable=True)

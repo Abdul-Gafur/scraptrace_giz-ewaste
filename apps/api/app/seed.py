@@ -623,7 +623,7 @@ async def _seed_decision(
         "request_digest": sha256_canonical_json(request),
         "scope": {
             "actor_id": str(reviewer.user_id),
-            "operation": f"review_{plan.decision}",
+            "operation": "record_review_decision",
             "resource_id": str(plan.record_id),
         },
     }

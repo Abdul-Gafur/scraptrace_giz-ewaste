@@ -14,6 +14,7 @@ from apps.api.app.db.models import RecoveryRecord, ReviewCase
 from apps.api.app.domain.time import Clock
 from apps.api.app.services.audit import AuditTrail, RequestContext
 from apps.api.app.services.authorization import Actor
+from apps.api.app.services.lifecycle import fact_event
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -33,10 +34,22 @@ async def raise_flags(
     audit: AuditTrail,
     context: RequestContext,
 ) -> ReviewCase | None:
-    """Opens the record's review case, or adds flags to it and reopens it for review."""
+    """Opens the record's review case, or adds flags to it and reopens it for review. Either
+    way the record's timeline gains a `review_opened` event naming the new flags."""
     new_flags = list(dict.fromkeys(flags))
     if not new_flags:
         return record.review_case
+    session.add(
+        fact_event(
+            record,
+            "review_opened",
+            occurred_at=clock(),
+            context=context,
+            actor_role=opened_by_role if actor is None else actor.role,
+            actor=actor,
+            flag_codes=new_flags,
+        )
+    )
     case = record.review_case
     if case is None:
         case = ReviewCase(

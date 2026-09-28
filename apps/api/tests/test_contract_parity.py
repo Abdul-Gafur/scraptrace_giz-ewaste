@@ -117,3 +117,54 @@ def test_transition_rules_match_typescript() -> None:
         for rule in TRANSITIONS
     ]
     assert ported == rules
+
+
+def test_review_codes_and_operations_match_typescript() -> None:
+    from apps.api.app.services.evidence import SERVER_DEVICE_INSTANCE_ID
+    from apps.api.app.services.handoff import HANDOFF_OPERATION
+    from apps.api.app.services.processing import PROCESSING_OPERATION
+    from apps.api.app.services.reviews import REVIEW_OPERATION
+
+    source = evaluate({"vocabulary": True})
+    assert tuple(source["flag_codes"]) == vocabulary.REVIEW_FLAG_CODES
+    assert source["reasons_by_decision"] == {
+        decision: list(codes) for decision, codes in vocabulary.REASON_CODES_BY_DECISION.items()
+    }
+    assert source["manual_review_reason"] == vocabulary.MANUAL_REVIEW_REASON
+    assert source["operations"] == {
+        "createRecord": "create_record",
+        "recordHandoff": HANDOFF_OPERATION,
+        "recordProcessing": PROCESSING_OPERATION,
+        "recordReviewDecision": REVIEW_OPERATION,
+    }
+    assert source["system_device_instance_id"] == str(SERVER_DEVICE_INSTANCE_ID)
+    assert tuple(source["lifecycle_events"]) == vocabulary.LIFECYCLE_EVENT_TYPES
+    assert tuple(source["fact_events"]) == vocabulary.RECORD_FACT_EVENT_TYPES
+
+
+def test_manual_transfer_codes_normalise_like_typescript() -> None:
+    from apps.api.app.domain.identifiers import (
+        MANUAL_TRANSFER_CODE_ALPHABET,
+        derive_manual_transfer_code,
+        new_token_nonce,
+        normalize_manual_transfer_code,
+        uuid7,
+    )
+
+    derived = [
+        derive_manual_transfer_code(b"parity-test-secret-" + b"x" * 20, uuid7(), new_token_nonce())
+        for _ in range(20)
+    ]
+    samples = [
+        *derived,
+        *(code.lower().replace("-", " ") for code in derived),
+        "oooo-iiii-llll",
+        "7K3Q-M9XD-2HVU",
+        "7K3Q-M9XD",
+        "ST-ABCDEFGHJK",
+        "",
+    ]
+    source = evaluate({"normalize": samples, "vocabulary": False})
+    assert source["normalized"] == [normalize_manual_transfer_code(code) for code in samples]
+    assert all(normalize_manual_transfer_code(code) == code for code in derived)
+    assert evaluate({"vocabulary": True})["manual_code_alphabet"] == MANUAL_TRANSFER_CODE_ALPHABET

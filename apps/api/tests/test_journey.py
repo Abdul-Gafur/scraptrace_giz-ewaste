@@ -7,6 +7,7 @@ from apps.api.app.contracts.transport import REGISTRY
 from apps.api.app.core.config import Settings
 from apps.api.app.db.models import AuditEvent
 from apps.api.app.domain.integrity import recovery_record_digest
+from apps.api.app.domain.vocabulary import LIFECYCLE_EVENT_TYPES
 from apps.api.app.main import create_app
 from apps.api.tests.conftest import FakePredictor, image_bytes
 from apps.api.tests.support.api import auth, query
@@ -17,6 +18,7 @@ from apps.api.tests.support.records import (
     created_record,
     draft_metadata,
     photo,
+    qr_credentials,
     upload_evidence,
 )
 from apps.api.tests.support.workflow import processing_photo, processing_request, review_request
@@ -68,9 +70,11 @@ def test_collector_to_reviewer_journey(api: TestClient, api_settings: Settings) 
     )
     record = submitted.json()["data"]["record"]
     assert record["business_state"] == "awaiting_handoff"
-    qr = record["qr_payload"]
+    assert "qr_payload" not in record
+    credentials = qr_credentials(api, collector, record["record_id"])
+    qr = credentials["qr_payload"]
 
-    # 3. The recycler scans the QR and sees only the handoff preview.
+    # 3. The recycler scans the QR and sees only the handoff preview, never a credential.
     lookup = api.post(
         "/v1/handoff-lookups",
         headers=recycler,
@@ -79,13 +83,14 @@ def test_collector_to_reviewer_journey(api: TestClient, api_settings: Settings) 
         },
     ).json()["data"]
     assert lookup["outcome"] == "ready" and "capture_location" not in lookup["record"]
+    assert "lookup_token" not in lookup
 
     # 4. Confirms receipt at 31 kg against 18 kg declared: a weight discrepancy.
     evidence_ids = handoff_photos(api, recycler, record["record_id"], seed=902)
     handoff = api.post(
         "/v1/handoffs",
         headers=recycler,
-        json=handoff_request(record, evidence_ids, weight=31, lookup_token=lookup["lookup_token"]),
+        json=handoff_request(record, evidence_ids, weight=31, lookup_token=qr["lookup_token"]),
     ).json()["data"]
     assert handoff["outcome"] == "discrepancy" and handoff["flag_codes"] == ["WEIGHT_DISCREPANCY"]
 
@@ -163,7 +168,12 @@ def test_collector_to_reviewer_journey(api: TestClient, api_settings: Settings) 
     assert final["integrity_digest"] == recovery_record_digest(final)
     assert final["vision_result"]["suggested_category"] == "televisions"  # never overwritten
     timeline = api.get(f"/v1/recovery-records/{record['record_id']}/events", headers=collector)
-    assert [event["event_type"] for event in timeline.json()["data"]] == [
+    lifecycle = [
+        event["event_type"]
+        for event in timeline.json()["data"]
+        if event["event_type"] in LIFECYCLE_EVENT_TYPES
+    ]
+    assert lifecycle == [
         "submit_record",
         "publish_for_handoff",
         "record_handoff",
@@ -213,9 +223,13 @@ def test_unflagged_record_reaches_verified_completion_without_review(api: TestCl
     record = api.post(
         f"/v1/recovery-records/{record['record_id']}/submissions", headers=collector
     ).json()["data"]["record"]
+    # The collector reads the typed code aloud; the recycler hands off with it, no scan.
+    code = qr_credentials(api, collector, record["record_id"])["manual_transfer_code"]
     evidence = handoff_photos(api, recycler, record["record_id"], seed=951)
     accepted = api.post(
-        "/v1/handoffs", headers=recycler, json=handoff_request(record, evidence, weight=14.2)
+        "/v1/handoffs",
+        headers=recycler,
+        json=handoff_request(record, evidence, weight=14.2, manual_transfer_code=code),
     )
     assert accepted.json()["data"]["outcome"] == "accepted"
     completion = processing_photo(api, recycler, record["record_id"], seed=953)

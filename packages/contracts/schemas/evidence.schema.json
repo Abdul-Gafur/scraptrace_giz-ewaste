@@ -217,6 +217,13 @@
         "rejected",
         "quarantined"
       ]
+    },
+    "storage_transform": {
+      "type": "string",
+      "enum": [
+        "none",
+        "reencoded_without_metadata"
+      ]
     }
   },
   "required": [

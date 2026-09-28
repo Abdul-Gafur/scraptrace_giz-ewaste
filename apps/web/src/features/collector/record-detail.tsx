@@ -59,7 +59,7 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                 {translate(`nextStep.${record.business_state}`)}
               </Alert>
 
-              {showQr ? (
+              {showQr && record.qr_payload ? (
                 <Card>
                   <CardHeader>
                     <SectionHeading as="h2">{translate("qrHeading")}</SectionHeading>

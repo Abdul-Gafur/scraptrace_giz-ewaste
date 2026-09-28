@@ -11,6 +11,7 @@ import sys
 from typing import Any
 
 from apps.api.app.domain.time import parse_timestamp
+from apps.api.app.domain.vocabulary import REASON_CODES_BY_DECISION
 
 Issue = dict[str, str]
 
@@ -74,7 +75,7 @@ def timestamps(values: dict[str, Any]) -> list[Issue]:
 def recovery_record(value: dict[str, Any]) -> list[Issue]:
     """`RecoveryRecordSchema.superRefine` plus the nested vision, price and review rules."""
     issues: list[Issue] = []
-    if value["qr_payload"]["record_id"] != value["record_id"]:
+    if "qr_payload" in value and value["qr_payload"]["record_id"] != value["record_id"]:
         issues.append(_issue("qr_payload.record_id", "must_match_record"))
     if value["category"] == "mixed_scrap" and value["record_kind"] != "batch":
         issues.append(_issue("record_kind", "mixed_scrap_must_be_batch"))
@@ -97,4 +98,55 @@ def recovery_record(value: dict[str, Any]) -> list[Issue]:
 def programme_review_request(value: dict[str, Any]) -> list[Issue]:
     if value.get("decision") == "request_correction" and not value.get("requested_correction"):
         return [_issue("requested_correction", "required")]
+    return []
+
+
+def _non_empty(value: dict[str, Any]) -> list[Issue]:
+    """`.refine(Object.keys(value).length > 0)` on partial updates."""
+    return [] if value else [_issue("body", "at_least_one_field")]
+
+
+def handoff_request(value: dict[str, Any]) -> list[Issue]:
+    """`HandoffRequestSchema.superRefine`: exactly one presented credential."""
+    if ("lookup_token" in value) == ("manual_transfer_code" in value):
+        return [_issue("lookup_token", "exactly_one_credential")]
+    return []
+
+
+def review_reason(value: dict[str, Any]) -> list[Issue]:
+    """`ProgrammeReviewRequestSchema.superRefine`: the reason code suits the decision."""
+    allowed = REASON_CODES_BY_DECISION.get(str(value.get("decision")), ())
+    if value.get("reason_code") not in allowed:
+        return [_issue("reason_code", "unsupported_for_decision")]
+    return []
+
+
+def _timestamp_fields(value: dict[str, Any], *fields: str) -> list[Issue]:
+    return timestamps({field: value[field] for field in fields if field in value})
+
+
+def request_issues(name: str, value: dict[str, Any]) -> list[Issue]:
+    """Refinement issues for a request body that already satisfies its JSON Schema."""
+    if name == "recovery_record_draft_update":
+        return [*_non_empty(value), *_timestamp_fields(value, "captured_at")]
+    if name == "recovery_record_draft_create":
+        return _timestamp_fields(value, "captured_at")
+    if name == "processing_draft_update":
+        return [*_non_empty(value), *_timestamp_fields(value, "processing_timestamp")]
+    if name == "material_entry_update":
+        return _non_empty(value)
+    if name == "handoff_request":
+        return [*handoff_request(value), *_timestamp_fields(value, "handoff_time")]
+    if name == "processing_request":
+        return _timestamp_fields(value, "processing_timestamp")
+    if name == "programme_review_request":
+        return [
+            *programme_review_request(value),
+            *review_reason(value),
+            *_timestamp_fields(value, "decision_timestamp"),
+        ]
+    if name == "category_confirmation_request":
+        return _timestamp_fields(value, "confirmed_at")
+    if name == "evidence_upload_request":
+        return _timestamp_fields(value, "captured_at")
     return []

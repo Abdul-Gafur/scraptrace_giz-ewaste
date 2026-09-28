@@ -117,11 +117,7 @@ class RecordService:
     # Representation ----------------------------------------------------------------------
 
     def represent(self, record: RecoveryRecord, actor: Actor) -> dict[str, Any]:
-        data = mappers.recovery_record(
-            record,
-            lookup_token=self.services.qr_tokens.lookup_token_for(record),
-            audience=audience_for(actor, record),
-        )
+        data = mappers.recovery_record(record, audience=audience_for(actor, record))
         self.services.contracts.check_response("recovery_record", data)
         issues = refinements.recovery_record(data)
         if issues:
@@ -534,6 +530,13 @@ class RecordService:
         await self.session.flush()
         record.original_image_evidence_id = evidence_id
         self.records.add_qr_token(self.services.qr_tokens.new_token(record))
+        lifecycle = Lifecycle(self.session, self.clock, self.context)
+        lifecycle.record_fact(
+            record, "draft_created", actor_role="collector", actor=actor, evidence_id=evidence_id
+        )
+        if vision is not None:
+            lifecycle.record_fact(record, "appraisal_recorded", actor_role="collector", actor=actor)
+        self._category_fact(lifecycle, record, actor, confirmation)
         self.services.audit.add(
             self.session,
             self.services.audit.event(
@@ -551,6 +554,25 @@ class RecordService:
         loaded = await self.records.get(record.id)
         assert loaded is not None
         return self.represent(loaded, actor)
+
+    @staticmethod
+    def _category_fact(
+        lifecycle: Lifecycle, record: RecoveryRecord, actor: Actor, confirmation: dict[str, Any]
+    ) -> None:
+        """`category_corrected` when the collector overrode the prediction, otherwise
+        `category_confirmed` (an accepted prediction or a manual selection)."""
+        event = (
+            "category_corrected"
+            if confirmation["source"] == "human_correction"
+            else "category_confirmed"
+        )
+        lifecycle.record_fact(
+            record,
+            event,
+            actor_role="collector",
+            actor=actor,
+            reason=confirmation.get("correction_reason"),
+        )
 
     async def _apply_patch(
         self,
@@ -613,6 +635,11 @@ class RecordService:
             original = await self.records.get_evidence(record.original_image_evidence_id)
             if original is not None and original.ai_observation is None:
                 original.ai_observation = _ai_observation(patch["vision_result"])
+        lifecycle = Lifecycle(self.session, self.clock, self.context)
+        if "vision_result" in patch:
+            lifecycle.record_fact(record, "appraisal_recorded", actor_role="collector", actor=actor)
+        if "category_confirmation" in patch:
+            self._category_fact(lifecycle, record, actor, patch["category_confirmation"])
         record.updated_at = self.clock()
         self.services.audit.add(
             self.session,
@@ -716,6 +743,8 @@ class RecordService:
             # The record is now eligible for handoff, so its lookup token becomes resolvable.
             token = self.services.qr_tokens.current(record)
             self.services.qr_tokens.activate(token)
+            self.services.qr_tokens.ensure_transfer_code(token)
+            lifecycle.record_fact(record, "qr_issued", actor_role="system")
             self.services.audit.add(
                 self.session,
                 self.services.audit.event(
@@ -779,24 +808,58 @@ class RecordService:
                 revision=loaded.revision,
             )
 
-    async def rotate_qr_token(self, record_id: uuid.UUID, actor: Actor) -> dict[str, Any]:
-        """Revokes the record's current QR token and issues a new one (lost or shared QR, or
-        an expired token). Only the owning collector may rotate, and only before handoff."""
+    async def _load_owned(
+        self, record_id: uuid.UUID, actor: Actor, *, for_update: bool = False
+    ) -> RecoveryRecord:
+        """The caller's own record; other records are concealed as not found."""
         await self.services.authorizer.require_role_permission(
             actor, "recovery_record:correct_own", self.context, "recovery_record", record_id
         )
+        record = await self.records.get(record_id, for_update=for_update)
+        if record is None:
+            raise not_found()
+        await self.services.authorizer.require(
+            actor,
+            "recovery_record:correct_own",
+            context_for(actor, RecordScope.of(record)),
+            self.context,
+            target_type="recovery_record",
+            target_id=record.id,
+        )
+        return record
+
+    def _credentials(self, record: RecoveryRecord) -> dict[str, Any]:
+        data = self.services.qr_tokens.credentials(record)
+        self.services.contracts.check_response("qr_credentials", data)
+        return data
+
+    async def qr_credentials(self, record_id: uuid.UUID, actor: Actor) -> dict[str, Any]:
+        """The owning collector's QR payload and manual transfer code (ADR-009)."""
         async with self.session.begin():
-            record = await self.records.get(record_id, for_update=True)
-            if record is None:
-                raise not_found()
-            await self.services.authorizer.require(
-                actor,
-                "recovery_record:correct_own",
-                context_for(actor, RecordScope.of(record)),
-                self.context,
-                target_type="recovery_record",
-                target_id=record.id,
+            record = await self._load_owned(record_id, actor)
+            data = self._credentials(record)
+            self.services.audit.add(
+                self.session,
+                self.services.audit.event(
+                    action="qr-credentials.viewed",
+                    outcome="succeeded",
+                    context=self.context,
+                    actor=actor,
+                    target_type="recovery_record",
+                    target_id=record.id,
+                    programme_id=record.programme_id,
+                    details={"status": str(data["status"])},
+                ),
             )
+            await self.session.flush()
+        return data
+
+    async def rotate_qr_token(self, record_id: uuid.UUID, actor: Actor) -> dict[str, Any]:
+        """Revokes the record's current QR token and manual code together and issues new ones
+        (lost or shared QR, or expired credentials). Only the owning collector may rotate, and
+        only before handoff."""
+        async with self.session.begin():
+            record = await self._load_owned(record_id, actor, for_update=True)
             if record.business_state != "awaiting_handoff":
                 raise invalid_transition(
                     "A QR code can be reissued only while the record awaits handoff.",
@@ -818,10 +881,11 @@ class RecordService:
                     details={"token_id": str(replacement.id)},
                 ),
             )
+            Lifecycle(self.session, self.clock, self.context).record_fact(
+                record, "qr_rotated", actor_role="collector", actor=actor
+            )
             await self.session.flush()
-            payload = mappers.qr_payload(record.id, self.services.qr_tokens.derive(replacement))
-        self.services.contracts.check_response("qr_payload", payload)
-        return payload
+            return self._credentials(record)
 
 
 def _ai_observation(vision: dict[str, Any] | None) -> dict[str, Any] | None:

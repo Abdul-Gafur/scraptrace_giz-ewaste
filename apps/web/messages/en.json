@@ -1265,7 +1265,15 @@
     "approve_unflagged_completion": "Approved without review",
     "approve_review": "Approved by reviewer",
     "request_correction": "Correction requested",
-    "reject_review": "Rejected by reviewer"
+    "reject_review": "Rejected by reviewer",
+    "draft_created": "Draft created",
+    "evidence_added": "Evidence added",
+    "appraisal_recorded": "Appraisal recorded",
+    "category_confirmed": "Category confirmed",
+    "category_corrected": "Category corrected",
+    "qr_issued": "QR code issued",
+    "qr_rotated": "QR code reissued",
+    "review_opened": "Review opened"
   },
   "flags": {
     "panelTitle": "Review flags",

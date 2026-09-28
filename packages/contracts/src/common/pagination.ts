@@ -10,3 +10,8 @@ export const CursorPaginationMetaSchema = z.strictObject({
   has_more: z.boolean(),
 });
 
+export const pageSchema = <T extends z.ZodType>(item: T) =>
+  z.strictObject({
+    items: z.array(item),
+    pagination: CursorPaginationMetaSchema,
+  });

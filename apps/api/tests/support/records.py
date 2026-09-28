@@ -107,12 +107,34 @@ def created_record(client: TestClient, headers: dict[str, str], **kwargs: Any) -
     return dict(response.json()["data"])
 
 
+# Credentials the owning collector retrieved, by record ID. Records never embed them, so tests
+# read them from the owner-only operation exactly as the collector's device does.
+ISSUED_CREDENTIALS: dict[str, dict[str, Any]] = {}
+
+
+def qr_credentials(client: TestClient, headers: dict[str, str], record_id: str) -> dict[str, Any]:
+    response = client.get(f"/v1/recovery-records/{record_id}/qr-credentials", headers=headers)
+    assert response.status_code == 200, response.text
+    data = dict(response.json()["data"])
+    ISSUED_CREDENTIALS[record_id] = data
+    return data
+
+
+def lookup_token(record_id: str) -> str:
+    return str(ISSUED_CREDENTIALS[record_id]["qr_payload"]["lookup_token"])
+
+
+def transfer_code(record_id: str) -> str:
+    return str(ISSUED_CREDENTIALS[record_id]["manual_transfer_code"])
+
+
 def submitted_record(client: TestClient, headers: dict[str, str], **kwargs: Any) -> dict[str, Any]:
     record = created_record(client, headers, **kwargs)
     response = client.post(
         f"/v1/recovery-records/{record['record_id']}/submissions", headers=headers
     )
     assert response.status_code == 200, response.text
+    qr_credentials(client, headers, record["record_id"])
     return dict(response.json()["data"]["record"])
 
 

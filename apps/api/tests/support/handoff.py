@@ -8,6 +8,7 @@ from typing import Any
 from apps.api.app.domain.integrity import sha256_canonical_json
 from apps.api.app.domain.time import format_timestamp, utc_now
 from apps.api.app.seed import COLLECTION_CENTRE_ID, SEED_USER_IDS
+from apps.api.tests.support.records import lookup_token as issued_lookup_token
 from apps.api.tests.support.records import photo, upload_evidence
 from fastapi.testclient import TestClient
 
@@ -42,11 +43,17 @@ def handoff_request(
     currency: str = "GHS",
     key: str | None = None,
     lookup_token: str | None = None,
+    manual_transfer_code: str | None = None,
     **overrides: Any,
 ) -> dict[str, Any]:
+    credential = (
+        {"manual_transfer_code": manual_transfer_code}
+        if manual_transfer_code is not None
+        else {"lookup_token": lookup_token or issued_lookup_token(record["record_id"])}
+    )
     body: dict[str, Any] = {
         "recovery_record_id": record["record_id"],
-        "lookup_token": lookup_token or record["qr_payload"]["lookup_token"],
+        **credential,
         "collector_reference": record["collector"],
         "recycler_reference": {
             "actor_id": str(recycler_id),

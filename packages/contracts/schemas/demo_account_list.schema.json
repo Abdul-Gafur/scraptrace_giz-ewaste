@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "maxItems": 50,
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/__schema0"
+  },
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "collector",
+            "recycler",
+            "programme_reviewer",
+            "programme_manager",
+            "safety_content_administrator",
+            "data_ml_reviewer"
+          ]
+        }
+      },
+      "required": [
+        "username",
+        "display_name",
+        "role"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/demo_account_list.schema.json",
+  "title": "demo_account_list"
+}

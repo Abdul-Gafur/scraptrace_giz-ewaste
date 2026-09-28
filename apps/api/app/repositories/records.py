@@ -133,3 +133,9 @@ class RecoveryRecordRepository:
             sa.select(QrLookupToken).where(QrLookupToken.token_digest == digest)
         )
         return result.scalar_one_or_none()
+
+    async def get_qr_token_by_transfer_code_digest(self, digest: str) -> QrLookupToken | None:
+        result = await self.session.execute(
+            sa.select(QrLookupToken).where(QrLookupToken.transfer_code_digest == digest)
+        )
+        return result.scalar_one_or_none()

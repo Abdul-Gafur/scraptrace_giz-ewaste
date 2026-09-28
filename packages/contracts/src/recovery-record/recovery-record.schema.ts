@@ -8,6 +8,7 @@ import { UtcTimestampSchema } from "../common/timestamps.js";
 import { CONTRACT_SCHEMA_VERSION, SemanticVersionSchema } from "../schema-version.js";
 import { addPredictionConsistencyIssues } from "./prediction-consistency.js";
 import { HandoffStateSchema, ProcessingStateSchema, RecoveryRecordStateSchema, ReviewStateSchema, SynchronizationStateSchema } from "./recovery-record.states.js";
+import { ReviewDecisionSchema, ReviewFlagCodeSchema, ReviewReasonCodeSchema } from "./review-codes.js";
 
 export const EWASTE_CATEGORIES = [
   "refrigerators",
@@ -117,7 +118,8 @@ export const HandoffInformationSchema = z.strictObject({
 export const ProcessingInformationSchema = z.strictObject({
   recycler: ActorReferenceSchema,
   method: z.enum(["reuse_referral", "repair_referral", "material_recovery", "safe_storage", "other_reviewed"]),
-  result: z.string().min(1).max(500),
+  /** The recorded processing result: the submitted `ProcessingRequest.notes`, unabridged. */
+  result: z.string().min(1).max(1_000),
   material_entries: z.array(z.strictObject({ material: z.string().min(1).max(120), weight: WeightSchema })).max(100),
   processed_at: UtcTimestampSchema,
   evidence_ids: z.array(EvidenceIdSchema).min(1),
@@ -126,11 +128,11 @@ export const ProcessingInformationSchema = z.strictObject({
 export const ReviewInformationSchema = z
   .strictObject({
     review_state: ReviewStateSchema,
-    flag_codes: z.array(z.string().min(1).max(80)).max(50),
+    flag_codes: z.array(ReviewFlagCodeSchema).max(50),
     assigned_reviewer: ActorReferenceSchema.optional(),
     evidence_considered: z.array(EvidenceIdSchema).max(100),
-    decision: z.enum(["approve", "reject", "request_correction"]).optional(),
-    reason_code: z.string().min(1).max(80).optional(),
+    decision: ReviewDecisionSchema.optional(),
+    reason_code: ReviewReasonCodeSchema.optional(),
     reviewer_note: z.string().max(1_000).optional(),
     requested_correction: z.string().max(1_000).optional(),
     decided_at: UtcTimestampSchema.optional(),
@@ -154,7 +156,12 @@ const RecoveryRecordBaseSchema = z
     contract_schema_version: z.literal(CONTRACT_SCHEMA_VERSION),
     record_id: RecoveryRecordIdSchema,
     human_reference: HumanReadableReferenceSchema,
-    qr_payload: QrPayloadSchema,
+    /**
+     * Present only on a collector's local device copy. A QR lookup token is a credential, so an
+     * API never embeds it in the record resource that every authorised role can read; the
+     * owning collector retrieves it from the QR credential operation (ADR-009).
+     */
+    qr_payload: QrPayloadSchema.optional(),
     revision: z.number().int().nonnegative(),
     record_kind: RecordKindSchema,
     category: EwasteCategorySchema,
@@ -204,7 +211,7 @@ export const RecoveryRecordIntegrityPayloadSchema = RecoveryRecordBaseSchema.pic
 });
 
 export const RecoveryRecordSchema = RecoveryRecordBaseSchema.superRefine((value, context) => {
-    if (value.qr_payload.record_id !== value.record_id) {
+    if (value.qr_payload && value.qr_payload.record_id !== value.record_id) {
       context.addIssue({ code: "custom", path: ["qr_payload", "record_id"], message: "QR record ID must match the record." });
     }
     if (value.category === "mixed_scrap" && value.record_kind !== "batch") {

@@ -10,19 +10,13 @@ from apps.api.app.api.openapi import (
     error_responses,
     json_body,
     json_response,
-    page_schema,
     ref,
     success_envelope_schema,
 )
 from apps.api.app.api.requests import read_json_object
 from apps.api.app.api.security import Context, CurrentActor, Services, Session
-from apps.api.app.contracts import refinements
-from apps.api.app.contracts.transport import (
-    REVIEW_CASE_SUMMARY_SCHEMA,
-    REVIEW_DECISION_VIEW_SCHEMA,
-    validate_contract_request,
-)
-from apps.api.app.core.errors import ApiError, success_envelope
+from apps.api.app.contracts.transport import validate_request
+from apps.api.app.core.errors import success_envelope
 from apps.api.app.domain.vocabulary import REVIEW_FLAG_CODES
 from apps.api.app.services.pagination import MAXIMUM_LIMIT
 from apps.api.app.services.reviews import DEFAULT_QUEUE_STATUSES, ReviewQuery, ReviewService
@@ -42,19 +36,6 @@ FlagCode = Literal[
 ]
 assert get_args(FlagCode) == REVIEW_FLAG_CODES
 
-CASE_DETAIL = {
-    "type": "object",
-    "properties": {
-        "case": REVIEW_CASE_SUMMARY_SCHEMA,
-        "record": ref("recovery_record"),
-        "evidence": {"type": "array", "items": ref("evidence")},
-        "timeline": {"type": "array", "items": ref("recovery_record_event")},
-        "decisions": {"type": "array", "items": REVIEW_DECISION_VIEW_SCHEMA},
-    },
-    "required": ["case", "record", "evidence", "timeline", "decisions"],
-    "additionalProperties": False,
-}
-
 
 @router.get(
     "/review-cases",
@@ -66,9 +47,7 @@ CASE_DETAIL = {
     ),
     response_model=None,
     responses={
-        200: json_response(
-            "One page of cases", success_envelope_schema(page_schema(REVIEW_CASE_SUMMARY_SCHEMA))
-        ),
+        200: json_response("One page of cases", success_envelope_schema(ref("review_case_page"))),
         **error_responses(401, 403, 422),
     },
 )
@@ -110,7 +89,7 @@ async def review_queue(
     ),
     response_model=None,
     responses={
-        200: json_response("Case detail", success_envelope_schema(CASE_DETAIL)),
+        200: json_response("Case detail", success_envelope_schema(ref("review_case_detail"))),
         **error_responses(401, 403, 404),
     },
 )
@@ -136,7 +115,7 @@ async def review_case(
         "`under_review` with review state `awaiting_information`. `reason_code` must suit the "
         "decision, and `previous_*_state` must match the current states (otherwise "
         "`VERSION_CONFLICT`). A decided record cannot be decided again. Replays return the "
-        "first response."
+        "first response. `idempotency.scope.operation` is `record_review_decision`."
     ),
     response_model=None,
     responses={
@@ -146,7 +125,7 @@ async def review_case(
         200: json_response("Replay", success_envelope_schema(ref("programme_review_response"))),
         **error_responses(401, 403, 404, 409, 415, 422),
     },
-    openapi_extra=json_body(ref("programme_review_request"), "The contract ProgrammeReviewRequest"),
+    openapi_extra=json_body("programme_review_request", "The contract ProgrammeReviewRequest"),
 )
 async def decide(
     request: Request,
@@ -156,17 +135,6 @@ async def decide(
     context: Context,
 ) -> JSONResponse:
     body = await read_json_object(request)
-    validate_contract_request("programme_review_request", body)
-    issues = [
-        *refinements.programme_review_request(body),
-        *refinements.timestamps({"decision_timestamp": body["decision_timestamp"]}),
-    ]
-    if issues:
-        raise ApiError(
-            status_code=422,
-            code="VALIDATION_FAILED",
-            message="The request does not match the contract.",
-            field_issues=issues,
-        )
+    validate_request("programme_review_request", body)
     outcome = await ReviewService(session, services, context).decide(actor, body)
     return JSONResponse(success_envelope(request, outcome.body), status_code=outcome.status_code)

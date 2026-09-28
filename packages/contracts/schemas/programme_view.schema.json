@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "programme_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3,
+      "pattern": "^[A-Z]{3}$"
+    },
+    "country_code": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2,
+      "pattern": "^[A-Z]{2}$"
+    },
+    "weight_discrepancy_threshold_percentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "required": [
+    "programme_id",
+    "name",
+    "currency",
+    "country_code",
+    "weight_discrepancy_threshold_percentage"
+  ],
+  "additionalProperties": false,
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/programme_view.schema.json",
+  "title": "programme_view"
+}

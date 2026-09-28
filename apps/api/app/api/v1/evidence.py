@@ -26,7 +26,7 @@ EXTENSIONS = {
     summary="Retrieve evidence metadata and provenance",
     response_model=None,
     responses={
-        200: json_response("Evidence", success_envelope_schema(ref("evidence"))),
+        200: json_response("Evidence", success_envelope_schema(ref("evidence_metadata"))),
         **error_responses(401, 403, 404),
     },
 )
@@ -47,7 +47,9 @@ async def get_evidence(
     summary="Download evidence content",
     description=(
         "Streams the stored object to callers allowed to view the record. The digest is "
-        "re-verified on every read. Responses are private, uncacheable and sandboxed."
+        "re-verified on every read and returned in `X-Content-Digest`. Responses are private, "
+        "uncacheable and sandboxed (`ProtectedEvidenceDelivery`). There is no public or "
+        "permanent URL for evidence."
     ),
     response_class=Response,
     responses={
@@ -77,6 +79,7 @@ async def get_evidence_content(
         media_type=content.mime_type,
         headers={
             "Cache-Control": "private, no-store",
+            "X-Content-Digest": content.content_digest,
             "Content-Disposition": f'inline; filename="{content.evidence_id}.{extension}"',
             "Content-Security-Policy": "default-src 'none'; sandbox",
         },

@@ -38,7 +38,7 @@ No name, phone number or location appears in a QR payload. Opaque lookup tokens 
 
 ## Follow-up actions
 
-- [ ] Define lookup-token issuance, rotation and expiry in the API design.
+- [x] Define lookup-token issuance, rotation and expiry in the API design. Resolved by [ADR-009](ADR-009-handoff-credentials.md) (2026-09-28), which also separates the manual transfer code from the QR token.
 - [ ] Decide whether canonical JSON should adopt an external standard before cross-language signing.
 
 ## Related documents

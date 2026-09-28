@@ -1265,7 +1265,15 @@
     "approve_unflagged_completion": "اعتُمد دون مراجعة",
     "approve_review": "اعتمده المراجع",
     "request_correction": "طُلب تصحيح",
-    "reject_review": "رفضه المراجع"
+    "reject_review": "رفضه المراجع",
+    "draft_created": "تم إنشاء مسودة",
+    "evidence_added": "أُضيف دليل",
+    "appraisal_recorded": "تم تسجيل التقييم",
+    "category_confirmed": "تم تأكيد الفئة",
+    "category_corrected": "تم تصحيح الفئة",
+    "qr_issued": "صدر رمز QR",
+    "qr_rotated": "أُعيد إصدار رمز QR",
+    "review_opened": "فُتحت المراجعة"
   },
   "flags": {
     "panelTitle": "أعلام المراجعة",

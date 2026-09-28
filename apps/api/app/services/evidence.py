@@ -44,6 +44,7 @@ from apps.api.app.services.audit import RequestContext
 from apps.api.app.services.authorization import Actor, FacilityMode, RecordScope, context_for
 from apps.api.app.services.evidence_storage import EvidenceStorageError, object_key_for
 from apps.api.app.services.image_validation import SanitizedImage
+from apps.api.app.services.lifecycle import Lifecycle
 from apps.api.app.services.records import RecordService, audience_for
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,6 +77,7 @@ class EvidenceContent:
     content: bytes
     mime_type: str
     evidence_id: uuid.UUID
+    content_digest: str
 
 
 def storage_unavailable() -> ApiError:
@@ -97,7 +99,7 @@ class EvidenceService:
 
     def represent(self, item: Evidence, actor: Actor, record: RecoveryRecord) -> dict[str, Any]:
         data = mappers.evidence(item, personal_data=audience_for(actor, record).personal_data)
-        self.services.contracts.check_response("evidence", data)
+        self.services.contracts.check_response("evidence_metadata", data)
         return data
 
     @staticmethod
@@ -239,6 +241,14 @@ class EvidenceService:
                     updated_at=now,
                 )
                 self.records.add_evidence(item)
+                await self.session.flush()
+                Lifecycle(self.session, self.services.clock, self.context).record_fact(
+                    record,
+                    "evidence_added",
+                    actor_role=actor.role,
+                    actor=actor,
+                    evidence_id=evidence_id,
+                )
                 self.services.audit.add(
                     self.session,
                     self.services.audit.event(
@@ -387,4 +397,9 @@ class EvidenceService:
                 code="INTEGRITY_FAILURE",
                 message="Stored evidence no longer matches its recorded digest.",
             )
-        return EvidenceContent(content=content, mime_type=mime_type, evidence_id=evidence_id)
+        return EvidenceContent(
+            content=content,
+            mime_type=mime_type,
+            evidence_id=evidence_id,
+            content_digest=item.content_digest,
+        )

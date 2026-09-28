@@ -48,9 +48,6 @@
           "maximum": 100
         }
       },
-      "required": [
-        "limit"
-      ],
       "additionalProperties": false
     }
   },

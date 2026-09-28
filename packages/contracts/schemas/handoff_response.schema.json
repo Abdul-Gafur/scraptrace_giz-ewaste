@@ -36,8 +36,9 @@
         },
         "reason_code": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 80
+          "enum": [
+            "RECORD_NOT_AWAITING_HANDOFF"
+          ]
         },
         "message": {
           "type": "string",
@@ -119,8 +120,14 @@
     },
     "__schema1": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "WEIGHT_DISCREPANCY",
+        "CATEGORY_DISAGREEMENT",
+        "DUPLICATE_EVIDENCE_DIGEST",
+        "INCOMPLETE_EVIDENCE",
+        "MISSING_MATERIAL_WEIGHTS",
+        "PROCESSED_WEIGHT_ABOVE_RECEIVED"
+      ]
     }
   },
   "$id": "https://schemas.scraptrace.local/contracts/1.0.0/handoff_response.schema.json",

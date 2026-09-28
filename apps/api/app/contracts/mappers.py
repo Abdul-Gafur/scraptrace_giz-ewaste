@@ -55,14 +55,6 @@ def weight(value: float, unit: str) -> dict[str, Any]:
     return {"value": value, "unit": unit}
 
 
-def qr_payload(record_id: uuid.UUID, lookup_token: str) -> dict[str, str]:
-    return {
-        "contract_version": CONTRACT_SCHEMA_VERSION,
-        "record_id": str(record_id),
-        "lookup_token": lookup_token,
-    }
-
-
 def handoff_information(handoff: Handoff) -> dict[str, Any]:
     return {
         "recycler": actor_reference(
@@ -161,15 +153,14 @@ def integrity_payload(record: RecoveryRecord) -> dict[str, Any]:
     return payload
 
 
-def recovery_record(
-    record: RecoveryRecord, *, lookup_token: str, audience: RecordAudience
-) -> dict[str, Any]:
+def recovery_record(record: RecoveryRecord, *, audience: RecordAudience) -> dict[str, Any]:
+    """The `RecoveryRecord` resource. It never embeds the QR lookup token: credentials are
+    served only to the owning collector by the QR-credential operation (ADR-009)."""
     core = integrity_payload(record)
     data: dict[str, Any] = {
         "contract_schema_version": CONTRACT_SCHEMA_VERSION,
         "record_id": core["record_id"],
         "human_reference": record.human_reference,
-        "qr_payload": qr_payload(record.id, lookup_token),
         "revision": record.revision,
     }
     for field in (
@@ -220,12 +211,8 @@ def recovery_record(
 
 
 def evidence(item: Evidence, *, personal_data: bool) -> dict[str, Any]:
-    storage_reference: dict[str, Any] = {
-        "storage_provider": item.storage_provider,
-        "object_key": item.object_key,
-    }
-    if item.object_version:
-        storage_reference["object_version"] = item.object_version
+    """`EvidenceMetadata`: the private storage reference (provider, object key, version) stays
+    on the server. Content is served only through the authorised content operation."""
     provenance: dict[str, Any] = {
         "capture_source": item.capture_source,
         "captured_by": actor_reference(
@@ -248,12 +235,12 @@ def evidence(item: Evidence, *, personal_data: bool) -> dict[str, Any]:
         "evidence_id": str(item.id),
         "recovery_record_id": str(item.record_id),
         "evidence_type": item.evidence_type,
-        "storage_reference": storage_reference,
         "mime_type": item.mime_type,
         "file_size_bytes": item.file_size_bytes,
         "content_digest": item.content_digest,
         "provenance": provenance,
         "validation_status": item.validation_status,
+        "storage_transform": "reencoded_without_metadata" if item.metadata_stripped else "none",
     }
 
 
@@ -274,4 +261,8 @@ def recovery_record_event(event: RecoveryRecordEvent) -> dict[str, Any]:
     data["resulting_state"] = event.resulting_state
     if event.reason:
         data["reason"] = event.reason
+    if event.evidence_id is not None:
+        data["evidence_id"] = str(event.evidence_id)
+    if event.flag_codes:
+        data["flag_codes"] = list(event.flag_codes)
     return data

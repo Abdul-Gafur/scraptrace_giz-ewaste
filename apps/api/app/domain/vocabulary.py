@@ -89,7 +89,7 @@ SYNCHRONIZATION_STATES: Final[tuple[str, ...]] = (
     "action_required",
 )
 
-RECOVERY_RECORD_EVENT_TYPES: Final[tuple[str, ...]] = (
+LIFECYCLE_EVENT_TYPES: Final[tuple[str, ...]] = (
     "submit_record",
     "publish_for_handoff",
     "record_handoff",
@@ -100,6 +100,21 @@ RECOVERY_RECORD_EVENT_TYPES: Final[tuple[str, ...]] = (
     "approve_review",
     "request_correction",
     "reject_review",
+)
+# Persisted facts that do not change the business state (`RECORD_FACT_EVENT_TYPES`).
+RECORD_FACT_EVENT_TYPES: Final[tuple[str, ...]] = (
+    "draft_created",
+    "evidence_added",
+    "appraisal_recorded",
+    "category_confirmed",
+    "category_corrected",
+    "qr_issued",
+    "qr_rotated",
+    "review_opened",
+)
+RECOVERY_RECORD_EVENT_TYPES: Final[tuple[str, ...]] = (
+    *LIFECYCLE_EVENT_TYPES,
+    *RECORD_FACT_EVENT_TYPES,
 )
 
 EWASTE_CATEGORIES: Final[tuple[str, ...]] = (

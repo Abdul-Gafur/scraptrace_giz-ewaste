@@ -16,20 +16,17 @@ from typing import Any, cast
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-CONTRACT_SCHEMA_NAMES = (
-    "error_envelope",
-    "evidence",
-    "handoff_request",
-    "handoff_response",
-    "processing_request",
-    "processing_response",
-    "programme_review_request",
-    "programme_review_response",
-    "qr_payload",
-    "recovery_record",
-    "recovery_record_event",
-    "vision_appraisal_response",
-)
+MANIFEST_NAME = "manifest.json"
+
+
+def contract_schema_names(schema_directory: Path) -> tuple[str, ...]:
+    """Every schema the contracts package generated, as listed in its manifest."""
+    try:
+        manifest = load_schema(schema_directory / MANIFEST_NAME)
+        files = [str(entry["name"]) for entry in manifest["generated_files"]]
+    except Exception as exc:
+        raise ContractValidationError("The contract schema manifest cannot be loaded.") from exc
+    return tuple(sorted(name.removesuffix(".schema.json") for name in files))
 
 
 class ContractValidationError(RuntimeError):
@@ -112,7 +109,7 @@ class ContractRegistry:
     def __init__(self, schema_directory: Path) -> None:
         self.schemas: dict[str, dict[str, Any]] = {}
         self._validators: dict[str, Draft202012Validator] = {}
-        for name in CONTRACT_SCHEMA_NAMES:
+        for name in contract_schema_names(schema_directory):
             path = schema_directory / f"{name}.schema.json"
             try:
                 schema = load_schema(path)

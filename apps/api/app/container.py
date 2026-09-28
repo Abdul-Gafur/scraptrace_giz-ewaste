@@ -32,6 +32,7 @@ class AppServices:
     qr_tokens: QrTokenService
     evidence_storage: EvidenceStorage
     lookup_limiter: SlidingWindowRateLimiter
+    manual_code_limiter: SlidingWindowRateLimiter
 
 
 def build_services(settings: Settings, clock: Clock | None = None) -> AppServices:
@@ -59,5 +60,9 @@ def build_services(settings: Settings, clock: Clock | None = None) -> AppService
         evidence_storage=LocalEvidenceStorage(settings.evidence_storage_root),
         lookup_limiter=SlidingWindowRateLimiter(
             settings.lookup_rate_limit_attempts, settings.lookup_rate_limit_window_seconds
+        ),
+        manual_code_limiter=SlidingWindowRateLimiter(
+            settings.manual_code_failure_limit_attempts,
+            settings.manual_code_failure_limit_window_seconds,
         ),
     )

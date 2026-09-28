@@ -100,7 +100,6 @@
     "contract_schema_version",
     "record_id",
     "human_reference",
-    "qr_payload",
     "revision",
     "record_kind",
     "category",
@@ -682,7 +681,7 @@
         "result": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 500
+          "maxLength": 1000
         },
         "material_entries": {
           "maxItems": 100,
@@ -787,8 +786,14 @@
     },
     "__schema42": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "WEIGHT_DISCREPANCY",
+        "CATEGORY_DISAGREEMENT",
+        "DUPLICATE_EVIDENCE_DIGEST",
+        "INCOMPLETE_EVIDENCE",
+        "MISSING_MATERIAL_WEIGHTS",
+        "PROCESSED_WEIGHT_ABOVE_RECEIVED"
+      ]
     },
     "__schema43": {
       "$ref": "#/$defs/__schema11"
@@ -810,8 +815,14 @@
     },
     "__schema46": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "EVIDENCE_SUFFICIENT",
+        "WEIGHT_EXPLAINED",
+        "EVIDENCE_INSUFFICIENT",
+        "CATEGORY_INCORRECT",
+        "WEIGHT_UNEXPLAINED",
+        "ADDITIONAL_EVIDENCE_REQUIRED"
+      ]
     },
     "__schema47": {
       "type": "string",

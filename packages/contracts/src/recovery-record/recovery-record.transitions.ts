@@ -1,11 +1,11 @@
 import type { TransitionActorRole } from "../auth/roles.js";
 import type { EvidenceType } from "../evidence/evidence.schema.js";
-import type { RecoveryRecordEventType } from "./recovery-record.events.js";
+import type { LifecycleEventType } from "./recovery-record.events.js";
 import { TERMINAL_RECOVERY_RECORD_STATES, type RecoveryRecordState } from "./recovery-record.states.js";
 
 export interface RecoveryRecordTransitionRule {
   readonly from: RecoveryRecordState;
-  readonly event: RecoveryRecordEventType;
+  readonly event: LifecycleEventType;
   readonly required_roles: readonly TransitionActorRole[];
   readonly required_evidence: readonly EvidenceType[];
   readonly to: RecoveryRecordState;
@@ -150,7 +150,7 @@ export type TransitionResult =
 
 export interface TransitionInput {
   readonly current_state: RecoveryRecordState;
-  readonly event: RecoveryRecordEventType;
+  readonly event: LifecycleEventType;
   readonly actor_role: TransitionActorRole;
   readonly available_evidence: ReadonlySet<EvidenceType>;
   readonly is_offline: boolean;

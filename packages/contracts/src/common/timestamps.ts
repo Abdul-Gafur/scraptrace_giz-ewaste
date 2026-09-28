@@ -14,3 +14,9 @@ export const LocalClockContextSchema = z.strictObject({
 
 export type UtcTimestamp = z.infer<typeof UtcTimestampSchema>;
 
+
+/** A calendar date (`YYYY-MM-DD`) used by date-range filters; interpreted in UTC. */
+export const IsoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a calendar date in YYYY-MM-DD form.")
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Date is not a valid calendar day.");

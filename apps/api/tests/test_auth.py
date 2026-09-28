@@ -8,6 +8,7 @@ from datetime import timedelta
 import jwt
 import pytest
 import sqlalchemy as sa
+from apps.api.app.contracts.transport import REGISTRY
 from apps.api.app.core.config import Settings
 from apps.api.app.core.tokens import TokenService
 from apps.api.app.db.models import AuditEvent, User
@@ -22,6 +23,7 @@ from apps.api.tests.support.api import (
     auth,
     query,
     seed_database,
+    session_token,
     sign_in,
 )
 from fastapi.testclient import TestClient
@@ -43,7 +45,9 @@ def test_every_seeded_role_can_sign_in(api: TestClient, username: str) -> None:
     body = response.json()
     assert body["success"] is True and body["contract_version"] == "1.0.0"
     data = body["data"]
-    assert data["token_type"] == "Bearer" and data["access_token"]
+    # The credential is delivered only in the HttpOnly cookie, never in a readable body.
+    assert set(data) == {"expires_at", "user"}
+    assert REGISTRY.errors("session_created", data) == []
     assert data["user"]["role"] == ROLES[username]
     assert data["user"]["permissions"] == sorted(ROLE_PERMISSIONS[ROLES[username]])
     assert data["user"]["user_id"] == str(SEED_USER_IDS[username])
@@ -52,7 +56,9 @@ def test_every_seeded_role_can_sign_in(api: TestClient, username: str) -> None:
     assert "scraptrace_session=" in cookie
     assert "HttpOnly" in cookie and "SameSite=lax" in cookie and "Path=/" in cookie
 
-    me = api.get("/v1/auth/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+    token = response.cookies.get("scraptrace_session")
+    assert token and token not in response.text
+    me = api.get("/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
     assert me.json()["data"] == data["user"]
 
@@ -262,7 +268,7 @@ def test_api_responses_carry_security_headers(api: TestClient) -> None:
 
 
 def test_tokens_are_never_logged(api: TestClient, caplog: pytest.LogCaptureFixture) -> None:
-    token = sign_in(api, "collector.demo")["access_token"]
+    token = session_token(api, "collector.demo")
     api.get("/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert token not in caplog.text
     assert DEMO_PASSWORD not in caplog.text
@@ -276,6 +282,6 @@ def test_actor_reference_is_contract_valid_and_reusable(api: TestClient, usernam
         "actor_reference"
     ]
     assert None not in reference.values()
-    assert REGISTRY.errors("recovery_record", reference, ("properties", "collector")) == []
+    assert REGISTRY.errors("current_user", reference, ("properties", "actor_reference")) == []
     session = sign_in(api, username)["user"]["actor_reference"]
     assert session == reference

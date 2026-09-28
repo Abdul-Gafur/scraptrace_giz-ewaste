@@ -237,9 +237,8 @@ async def test_full_record_graph_maps_to_valid_contract_objects(
         token = record.qr_tokens[0]
         lookup_token = derive_lookup_token(QR_SECRET, token.id, token.nonce)
         assert token.token_digest == lookup_token_digest(lookup_token)
-        contract = mappers.recovery_record(
-            record, lookup_token=lookup_token, audience=mappers.FULL_AUDIENCE
-        )
+        contract = mappers.recovery_record(record, audience=mappers.FULL_AUDIENCE)
+        assert "qr_payload" not in contract
         REGISTRY.check_response("recovery_record", contract)
         assert refinements.recovery_record(contract) == []
         assert contract["handoff"]["measured_weight"] == {"value": 31.5, "unit": "kg"}
@@ -249,15 +248,13 @@ async def test_full_record_graph_maps_to_valid_contract_objects(
         assert recovery_record_digest(contract).startswith("sha256:")
 
         restricted = mappers.recovery_record(
-            record,
-            lookup_token=lookup_token,
-            audience=mappers.RecordAudience(personal_data=False, reviewer_notes=False),
+            record, audience=mappers.RecordAudience(personal_data=False, reviewer_notes=False)
         )
         REGISTRY.check_response("recovery_record", restricted)
         assert "reviewer_note" not in restricted["review"]
 
         for item in await records.list_evidence(record_id):
-            REGISTRY.check_response("evidence", mappers.evidence(item, personal_data=True))
+            REGISTRY.check_response("evidence_metadata", mappers.evidence(item, personal_data=True))
         events = await records.list_events(record_id)
         assert [event.event_type for event in events] == ["submit_record"]
         REGISTRY.check_response("recovery_record_event", mappers.recovery_record_event(events[0]))

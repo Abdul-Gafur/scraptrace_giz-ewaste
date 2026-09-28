@@ -17,6 +17,7 @@ import { SafetyCardSchema } from "@/services/domain/safety-content";
 import { addDays, toCalendarDate, toUtcTimestamp } from "@/services/domain/time";
 import { createHandoffService } from "./handoff-service";
 import { createProcessingService } from "./processing-service";
+import { localQrPayload } from "./record-factory";
 import { createRecordService } from "./record-service";
 import type { ScrapTraceRepository } from "./repository";
 import { createReviewService } from "./review-service";
@@ -365,7 +366,7 @@ const runPlan = async (repository: ScrapTraceRepository, plan: SeedRecordPlan): 
     evidence: {
       handoffPhoto: seedImage(`${plan.label}-handoff`),
       weightPhoto: seedImage(`${plan.label}-weight`),
-      scannedPayload: `SCRAPTRACE:1.0.0:${draft.record_id}:${draft.qr_payload.lookup_token}`,
+      scannedPayload: `SCRAPTRACE:1.0.0:${draft.record_id}:${localQrPayload(draft).lookup_token}`,
       notes: "Received at the programme intake bay.",
     },
     offline: false,

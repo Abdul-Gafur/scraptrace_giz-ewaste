@@ -8,6 +8,11 @@ database alone reveals no usable token, and lookups match on the digest.
 
 A token is created with its draft but is inert until the record is published for handoff
 (`activated_at`). Only activated, unexpired and unrevoked tokens resolve.
+
+Each token row also carries a manual transfer code (ADR-009): a separate 60-bit secret derived
+under its own context label and stored only as a keyed digest. It shares the token's
+activation, expiry, rotation and revocation, so the two credentials always resolve the same
+record at the same time, yet neither can be derived from or exchanged for the other.
 """
 
 from __future__ import annotations
@@ -22,11 +27,13 @@ from apps.api.app.domain.identifiers import (
     LOOKUP_TOKEN_PATTERN,
     UUID_V7_PATTERN,
     derive_lookup_token,
+    derive_manual_transfer_code,
     lookup_token_digest,
+    manual_transfer_code_digest,
     new_token_nonce,
     uuid7,
 )
-from apps.api.app.domain.time import Clock
+from apps.api.app.domain.time import Clock, format_timestamp
 from apps.api.app.domain.vocabulary import CONTRACT_SCHEMA_VERSION
 
 # The web application's QR symbol text (apps/web/src/services/domain/qr-payload.ts):
@@ -45,8 +52,15 @@ class MalformedQr(ValueError):
 
 @dataclass(frozen=True)
 class Presented:
-    lookup_token: str
+    """One credential a recycler presented: a scanned lookup token or a typed manual code."""
+
     record_id: uuid.UUID | None
+    lookup_token: str | None = None
+    transfer_code: str | None = None
+
+    @property
+    def kind(self) -> str:
+        return "qr_token" if self.lookup_token is not None else "manual_transfer_code"
 
 
 def parse_qr_payload(contract_version: str, record_id: str, lookup_token: str) -> Presented:
@@ -56,7 +70,7 @@ def parse_qr_payload(contract_version: str, record_id: str, lookup_token: str) -
         raise MalformedQr("record id")
     if LOOKUP_TOKEN_PATTERN.fullmatch(lookup_token) is None:
         raise MalformedQr("token")
-    return Presented(lookup_token=lookup_token, record_id=uuid.UUID(record_id))
+    return Presented(record_id=uuid.UUID(record_id), lookup_token=lookup_token)
 
 
 def parse_qr_text(text: str) -> Presented:
@@ -81,15 +95,61 @@ class QrTokenService:
     def new_token(self, record: RecoveryRecord) -> QrLookupToken:
         token_id, nonce = uuid7(), new_token_nonce()
         token = derive_lookup_token(self._secret, token_id, nonce)
+        code = derive_manual_transfer_code(self._secret, token_id, nonce)
         return QrLookupToken(
             id=token_id,
             record_id=record.id,
             token_digest=lookup_token_digest(token),
+            transfer_code_digest=self.transfer_code_digest(code),
             nonce=nonce,
         )
 
     def derive(self, token: QrLookupToken) -> str:
         return derive_lookup_token(self._secret, token.id, token.nonce)
+
+    def derive_transfer_code(self, token: QrLookupToken) -> str:
+        return derive_manual_transfer_code(self._secret, token.id, token.nonce)
+
+    def transfer_code_digest(self, code: str) -> str:
+        return manual_transfer_code_digest(self._secret, code)
+
+    def ensure_transfer_code(self, token: QrLookupToken) -> str:
+        """Returns the token's manual code, recording its digest on rows issued before manual
+        codes existed (migration 0002)."""
+        code = self.derive_transfer_code(token)
+        if token.transfer_code_digest is None:
+            token.transfer_code_digest = self.transfer_code_digest(code)
+        return code
+
+    def status(self, token: QrLookupToken) -> str:
+        """`QrCredentialStatus` of the record's current (unrevoked) token."""
+        if token.used_at is not None:
+            return "used"
+        if token.activated_at is None:
+            return "inactive"
+        if token.expires_at is not None and token.expires_at <= self._clock():
+            return "expired"
+        return "active"
+
+    def credentials(self, record: RecoveryRecord) -> dict[str, object]:
+        """The owning collector's `QrCredentials`. Both secrets are included only while they can
+        still be used."""
+        token = self.current(record)
+        status = self.status(token)
+        data: dict[str, object] = {"record_id": str(record.id), "status": status}
+        if status in ("inactive", "active"):
+            data["qr_payload"] = {
+                "contract_version": CONTRACT_SCHEMA_VERSION,
+                "record_id": str(record.id),
+                "lookup_token": self.derive(token),
+            }
+            data["manual_transfer_code"] = self.ensure_transfer_code(token)
+        data["issued_at"] = format_timestamp(token.created_at)
+        for field in ("activated_at", "expires_at", "used_at"):
+            value = getattr(token, field)
+            if value is not None:
+                data[field] = format_timestamp(value)
+        return data
 
     @staticmethod
     def current(record: RecoveryRecord) -> QrLookupToken:

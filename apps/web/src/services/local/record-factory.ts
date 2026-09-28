@@ -13,7 +13,8 @@ import {
   type GeoCoordinates,
   type RecoveryRecord,
   type RecoveryRecordEvent,
-  type RecoveryRecordEventType,
+  type LifecycleEventType,
+  type QrPayload,
   type TransitionActorRole,
   type VisionResult,
 } from "@scraptrace/contracts";
@@ -188,10 +189,19 @@ export const availableEvidenceTypes = (
 ): ReadonlySet<EvidenceType> =>
   new Set(repository.listEvidence(recordId).map((item) => item.evidence_type));
 
+/**
+ * The QR payload of a record in the browser-backed repository. Local records always carry the
+ * payload the device generated; an API never embeds it in the record resource (ADR-009).
+ */
+export const localQrPayload = (record: RecoveryRecord): QrPayload => {
+  if (!record.qr_payload) throw new Error("A local record always carries its QR payload.");
+  return record.qr_payload;
+};
+
 export interface ApplyTransitionInput {
   readonly repository: ScrapTraceRepository;
   readonly record: RecoveryRecord;
-  readonly event: RecoveryRecordEventType;
+  readonly event: LifecycleEventType;
   readonly actorRole: TransitionActorRole;
   readonly actor?: ActorContext;
   readonly reason?: string;

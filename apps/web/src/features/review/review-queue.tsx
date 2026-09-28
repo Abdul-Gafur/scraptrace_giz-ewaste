@@ -48,7 +48,8 @@ export function ReviewQueue() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (query.data ?? []).filter((record) => {
-      if (flag !== "all" && !record.review.flag_codes.includes(flag)) return false;
+      if (flag !== "all" && !(record.review.flag_codes as readonly string[]).includes(flag))
+        return false;
       if (category !== "all" && record.category !== category) return false;
       if (state !== "all" && record.business_state !== state) return false;
       if (facility !== "all" && record.handoff?.receiving_location_id !== facility) return false;

@@ -15,20 +15,11 @@ from apps.api.app.contracts.validation import ContractRegistry
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
-COMPONENT_NAMES = {
-    "error_envelope": "ErrorEnvelope",
-    "evidence": "Evidence",
-    "handoff_request": "HandoffRequest",
-    "handoff_response": "HandoffResponse",
-    "processing_request": "ProcessingRequest",
-    "processing_response": "ProcessingResponse",
-    "programme_review_request": "ProgrammeReviewRequest",
-    "programme_review_response": "ProgrammeReviewResponse",
-    "qr_payload": "QrPayload",
-    "recovery_record": "RecoveryRecord",
-    "recovery_record_event": "RecoveryRecordEvent",
-    "vision_appraisal_response": "VisionAppraisalResponse",
-}
+
+def component_name(schema_name: str) -> str:
+    """`recovery_record_page` -> `RecoveryRecordPage`: one component per contract schema."""
+    return "".join(part.capitalize() for part in schema_name.split("_"))
+
 
 ERROR_DESCRIPTIONS = {
     400: "Malformed request",
@@ -47,7 +38,7 @@ ERROR_DESCRIPTIONS = {
 
 
 def ref(schema_name: str) -> dict[str, str]:
-    return {"$ref": f"#/components/schemas/{COMPONENT_NAMES[schema_name]}"}
+    return {"$ref": f"#/components/schemas/{component_name(schema_name)}"}
 
 
 def component_ref(component: str, *pointer: str) -> dict[str, str]:
@@ -78,28 +69,6 @@ def success_envelope_schema(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def page_schema(item: dict[str, Any], extra: dict[str, Any] | None = None) -> dict[str, Any]:
-    properties: dict[str, Any] = {
-        "items": {"type": "array", "items": item},
-        "pagination": {
-            "type": "object",
-            "properties": {
-                "next_cursor": {"type": ["string", "null"]},
-                "has_more": {"type": "boolean"},
-            },
-            "required": ["next_cursor", "has_more"],
-            "additionalProperties": False,
-        },
-    }
-    properties.update(extra or {})
-    return {
-        "type": "object",
-        "properties": properties,
-        "required": list(properties),
-        "additionalProperties": False,
-    }
-
-
 def json_response(description: str, schema: dict[str, Any]) -> dict[str, Any]:
     return {"description": description, "content": {"application/json": {"schema": schema}}}
 
@@ -111,12 +80,13 @@ def error_responses(*statuses: int) -> dict[int | str, dict[str, Any]]:
     }
 
 
-def json_body(schema: dict[str, Any], description: str) -> dict[str, Any]:
+def json_body(schema_name: str, description: str) -> dict[str, Any]:
+    """A required JSON request body described by a contract schema."""
     return {
         "requestBody": {
             "required": True,
             "description": description,
-            "content": {"application/json": {"schema": schema}},
+            "content": {"application/json": {"schema": ref(schema_name)}},
         }
     }
 
@@ -139,8 +109,8 @@ def _rewrite_refs(node: Any, component: str) -> Any:
 
 def contract_components(registry: ContractRegistry) -> dict[str, Any]:
     return {
-        component: _rewrite_refs(copy.deepcopy(registry.schemas[name]), component)
-        for name, component in COMPONENT_NAMES.items()
+        component_name(name): _rewrite_refs(copy.deepcopy(schema), component_name(name))
+        for name, schema in registry.schemas.items()
     }
 
 

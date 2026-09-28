@@ -1265,7 +1265,15 @@
     "approve_unflagged_completion": "Approuvé sans examen",
     "approve_review": "Approuvé par l'examinateur",
     "request_correction": "Correction demandée",
-    "reject_review": "Rejeté par l'examinateur"
+    "reject_review": "Rejeté par l'examinateur",
+    "draft_created": "Brouillon créé",
+    "evidence_added": "Preuve ajoutée",
+    "appraisal_recorded": "Évaluation enregistrée",
+    "category_confirmed": "Catégorie confirmée",
+    "category_corrected": "Catégorie corrigée",
+    "qr_issued": "Code QR émis",
+    "qr_rotated": "Code QR réémis",
+    "review_opened": "Examen ouvert"
   },
   "flags": {
     "panelTitle": "Signalements d'examen",

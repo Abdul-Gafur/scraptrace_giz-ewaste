@@ -78,6 +78,10 @@ class Settings(BaseModel):
     sign_in_rate_limit_window_seconds: int = Field(default=900, ge=10, le=86_400)
     lookup_rate_limit_attempts: int = Field(default=30, ge=1, le=1000)
     lookup_rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
+    # Failed manual-transfer-code presentations per user; guessing is throttled separately
+    # from ordinary lookups (ADR-009).
+    manual_code_failure_limit_attempts: int = Field(default=10, ge=1, le=100)
+    manual_code_failure_limit_window_seconds: int = Field(default=900, ge=10, le=86_400)
     enable_demo_account_discovery: bool = False
     vision_requires_authentication: bool = True
 
@@ -284,6 +288,14 @@ def get_settings() -> Settings:
         lookup_rate_limit_window_seconds=_integer(
             "SCRAPTRACE_LOOKUP_RATE_LIMIT_WINDOW_SECONDS",
             defaults.lookup_rate_limit_window_seconds,
+        ),
+        manual_code_failure_limit_attempts=_integer(
+            "SCRAPTRACE_MANUAL_CODE_FAILURE_LIMIT_ATTEMPTS",
+            defaults.manual_code_failure_limit_attempts,
+        ),
+        manual_code_failure_limit_window_seconds=_integer(
+            "SCRAPTRACE_MANUAL_CODE_FAILURE_LIMIT_WINDOW_SECONDS",
+            defaults.manual_code_failure_limit_window_seconds,
         ),
         enable_demo_account_discovery=bool(
             _boolean("SCRAPTRACE_ENABLE_DEMO_ACCOUNT_DISCOVERY", False)

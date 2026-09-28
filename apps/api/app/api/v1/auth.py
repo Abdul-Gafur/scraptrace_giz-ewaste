@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from apps.api.app.api.openapi import error_responses
-from apps.api.app.api.schemas import (
-    CurrentUser,
-    DemoAccount,
-    Envelope,
-    IssuedSession,
-    SignInRequest,
+from apps.api.app.api.openapi import (
+    error_responses,
+    json_body,
+    json_response,
+    ref,
+    success_envelope_schema,
 )
+from apps.api.app.api.requests import read_json_object
 from apps.api.app.api.security import (
     SESSION_COOKIE_NAME,
     Context,
@@ -19,6 +19,7 @@ from apps.api.app.api.security import (
     Services,
     enforce_same_origin,
 )
+from apps.api.app.contracts.transport import check_response, validate_request
 from apps.api.app.core.errors import not_found, success_envelope
 from apps.api.app.domain.time import format_timestamp
 from apps.api.app.services.authorization import Actor
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 def current_user(actor: Actor) -> dict[str, Any]:
+    """`CurrentUser`: identity, role, scope and the actor reference to copy into requests."""
     return {
         "user_id": str(actor.user_id),
         "username": actor.username,
@@ -47,17 +49,20 @@ def current_user(actor: Actor) -> dict[str, Any]:
     status_code=status.HTTP_201_CREATED,
     summary="Sign in",
     description=(
-        "Verifies a username and password and issues a short-lived access token. The token is "
-        "returned for API clients and set as an HttpOnly, SameSite=Lax cookie for browsers. "
-        "Every failure returns the same message. Repeated failures are rate limited."
+        "Verifies a username and password (`SignInRequest`) and issues a short-lived session "
+        "credential only as an HttpOnly, SameSite=Lax cookie; the body (`SessionCreated`) "
+        "carries the expiry and the user, never the credential. Every failure returns the same "
+        "message. Repeated failures are rate limited. Non-browser clients send the cookie "
+        "value as a Bearer token."
     ),
-    response_model=Envelope[IssuedSession],
-    # Optional contract fields (ActorReference.programme_id/facility_id) are omitted, never null.
-    response_model_exclude_none=True,
-    responses=error_responses(401, 422, 429, 503),
+    response_model=None,
+    responses={
+        201: json_response("Signed in", success_envelope_schema(ref("session_created"))),
+        **error_responses(401, 403, 415, 422, 429, 503),
+    },
+    openapi_extra=json_body("sign_in_request", "Username and password"),
 )
 async def sign_in(
-    body: SignInRequest,
     request: Request,
     response: Response,
     services: Services,
@@ -67,9 +72,11 @@ async def sign_in(
     # hostile page cannot plant a session (login CSRF). Non-browser clients send no Origin.
     if request.headers.get("origin") is not None:
         enforce_same_origin(request, services.settings)
+    body = await read_json_object(request)
+    validate_request("sign_in_request", body)
     client_host = request.client.host if request.client is not None else "unknown"
     result = await services.authentication.sign_in(
-        body.username, body.password, client_host, context
+        body["username"], body["password"], client_host, context
     )
     response.set_cookie(
         SESSION_COOKIE_NAME,
@@ -81,26 +88,28 @@ async def sign_in(
         path="/",
     )
     request.state.actor_role = result.actor.role
-    return success_envelope(
-        request,
-        {
-            "access_token": result.token.token,
-            "token_type": "Bearer",
-            "expires_at": format_timestamp(result.token.expires_at),
-            "user": current_user(result.actor),
-        },
-    )
+    data = {
+        "expires_at": format_timestamp(result.token.expires_at),
+        "user": current_user(result.actor),
+    }
+    check_response("session_created", data)
+    return success_envelope(request, data)
 
 
 @router.get(
     "/me",
     summary="Current authenticated user",
-    response_model=Envelope[CurrentUser],
-    response_model_exclude_none=True,
-    responses=error_responses(401),
+    description="Restores the browser session from its cookie. `401` when there is none.",
+    response_model=None,
+    responses={
+        200: json_response("The user", success_envelope_schema(ref("current_user"))),
+        **error_responses(401),
+    },
 )
 async def me(request: Request, actor: CurrentActor) -> dict[str, Any]:
-    return success_envelope(request, current_user(actor))
+    data = current_user(actor)
+    check_response("current_user", data)
+    return success_envelope(request, data)
 
 
 @router.delete(
@@ -133,10 +142,15 @@ async def sign_out(actor: CurrentActor, services: Services, context: Context) ->
         "Available only when `SCRAPTRACE_ENABLE_DEMO_ACCOUNT_DISCOVERY=true` in the development "
         "or test environment; otherwise 404. Returns usernames and roles, never passwords."
     ),
-    response_model=Envelope[list[DemoAccount]],
-    responses=error_responses(404),
+    response_model=None,
+    responses={
+        200: json_response("Accounts", success_envelope_schema(ref("demo_account_list"))),
+        **error_responses(404),
+    },
 )
 async def demo_accounts(request: Request, services: Services) -> dict[str, Any]:
     if not services.settings.demo_account_discovery_enabled:
         raise not_found()
-    return success_envelope(request, await services.authentication.demo_accounts())
+    data = await services.authentication.demo_accounts()
+    check_response("demo_account_list", data)
+    return success_envelope(request, data)

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "password": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "required": [
+    "username",
+    "password"
+  ],
+  "additionalProperties": false,
+  "$id": "https://schemas.scraptrace.local/contracts/1.0.0/sign_in_request.schema.json",
+  "title": "sign_in_request"
+}

@@ -11,6 +11,7 @@ from apps.api.app.contracts.transport import REGISTRY
 from apps.api.app.core.config import Settings
 from apps.api.app.db.models import AuditEvent, ReviewDecision
 from apps.api.app.domain.time import format_timestamp, utc_now
+from apps.api.app.domain.vocabulary import LIFECYCLE_EVENT_TYPES
 from apps.api.tests.support.api import auth, query
 from apps.api.tests.support.records import upload_evidence
 from apps.api.tests.support.workflow import (
@@ -104,14 +105,21 @@ def test_case_detail_contains_permitted_evidence_and_timeline(
         "processing_completion",
     } <= types
     for item in data["evidence"]:
-        REGISTRY.check_response("evidence", item)
-    assert [event["event_type"] for event in data["timeline"]] == [
+        REGISTRY.check_response("evidence_metadata", item)
+    timeline = [event["event_type"] for event in data["timeline"]]
+    assert [event for event in timeline if event in LIFECYCLE_EVENT_TYPES] == [
         "submit_record",
         "publish_for_handoff",
         "record_handoff",
         "record_processing",
         "flag_for_review",
     ]
+    # Persisted facts sit in order between the transitions; none is synthesised by a client.
+    assert timeline[:3] == ["draft_created", "appraisal_recorded", "category_confirmed"]
+    assert timeline[timeline.index("publish_for_handoff") + 1] == "qr_issued"
+    assert timeline.count("evidence_added") == 3  # handoff, weight and completion photographs
+    opened = [event for event in data["timeline"] if event["event_type"] == "review_opened"]
+    assert opened and all(event["flag_codes"] for event in opened)
     assert data["decisions"] == []
 
     async def accessed(session: sa.ext.asyncio.AsyncSession) -> int:
@@ -282,7 +290,7 @@ def test_decision_idempotency_conflict(api: TestClient, api_settings: Settings) 
     [
         ({"reason_code": "WEIGHT_UNEXPLAINED"}, 422, "reason_code"),
         ({"reviewer_note": "   "}, 422, "reviewer_note"),
-        ({"review_reason_codes": ["SUSPECTED_FRAUD"]}, 422, "review_reason_codes"),
+        ({"review_reason_codes": ["SUSPECTED_FRAUD"]}, 422, "review_reason_codes.0"),
         (
             {"evidence_considered": ["0199c0ff-00ff-70ff-80ff-0000000000ff"]},
             422,

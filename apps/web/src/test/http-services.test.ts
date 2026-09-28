@@ -9,6 +9,7 @@ import {
 import { HttpClient, ScrapTraceServiceError } from "@/services/http/http-client";
 import { createHttpServices } from "@/services/http/http-services";
 import { createRecoveryRecordFixture, FIXTURE_IDS } from "@/services/mocks/deterministic-fixtures";
+import { localQrPayload } from "@/services/local/record-factory";
 
 const evidenceId = EvidenceIdSchema.parse("0199a111-1111-7111-8111-111111111111");
 const timestamp = "2026-09-26T12:30:00.000Z";
@@ -353,7 +354,7 @@ describe("recovery-record HTTP adapter", () => {
 describe("handoff HTTP adapter", () => {
   it("looks up a scanned backend QR payload and parses the record", async () => {
     const record = createRecoveryRecordFixture();
-    const code = `SCRAPTRACE:1.0.0:${record.record_id}:${record.qr_payload.lookup_token}`;
+    const code = `SCRAPTRACE:1.0.0:${record.record_id}:${localQrPayload(record).lookup_token}`;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(input.toString()).pathname).toBe("/v1/handoff-lookups");
       expect(init?.method).toBe("POST");
@@ -435,7 +436,7 @@ describe("handoff HTTP adapter", () => {
     const record = createRecoveryRecordFixture();
     const request = HandoffRequestSchema.parse({
       recovery_record_id: record.record_id,
-      lookup_token: record.qr_payload.lookup_token,
+      lookup_token: localQrPayload(record).lookup_token,
       collector_reference: record.collector,
       recycler_reference: { actor_id: FIXTURE_IDS.recycler },
       receiving_location_id: FIXTURE_IDS.location,
@@ -533,7 +534,7 @@ describe("processing and review HTTP adapters", () => {
       );
       expect(JSON.parse(String(init?.body))).toEqual({
         decision: "approve",
-        reason_code: "EVIDENCE_VERIFIED",
+        reason_code: "EVIDENCE_SUFFICIENT",
         reviewer_note: "Evidence is internally consistent.",
       });
       return Response.json({
@@ -554,7 +555,7 @@ describe("processing and review HTTP adapters", () => {
       services.reviews.submitDecision({
         recordId: record.record_id,
         decision: "approve",
-        reasonCode: "EVIDENCE_VERIFIED",
+        reasonCode: "EVIDENCE_SUFFICIENT",
         reviewerNote: "Evidence is internally consistent.",
       }),
     ).resolves.toMatchObject({
@@ -570,7 +571,7 @@ describe("processing and review HTTP adapters", () => {
       createHttpServices("https://api.example.test").reviews.submitDecision({
         recordId: createRecoveryRecordFixture().record_id,
         decision: "request_correction",
-        reasonCode: "EVIDENCE_INCOMPLETE",
+        reasonCode: "ADDITIONAL_EVIDENCE_REQUIRED",
         reviewerNote: "The weight image is unreadable.",
       }),
     ).toThrow();
@@ -599,7 +600,7 @@ describe("processing and review HTTP adapters", () => {
       services.reviews.submitDecision({
         recordId: record.record_id,
         decision: "reject",
-        reasonCode: "INVALID_EVIDENCE",
+        reasonCode: "EVIDENCE_INSUFFICIENT",
         reviewerNote: "Evidence cannot support the claim.",
       }),
     ).rejects.toThrow();

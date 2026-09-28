@@ -11,8 +11,10 @@ export * from "./common/timestamps.js";
 
 export * from "./auth/permissions.js";
 export * from "./auth/roles.js";
+export * from "./auth/session.contract.js";
 
 export * from "./evidence/evidence.schema.js";
+export * from "./evidence/evidence.transport.js";
 export * from "./evidence/provenance.schema.js";
 
 export * from "./recovery-record/recovery-record.events.js";
@@ -20,6 +22,10 @@ export * from "./recovery-record/recovery-record.integrity.js";
 export * from "./recovery-record/recovery-record.schema.js";
 export * from "./recovery-record/recovery-record.states.js";
 export * from "./recovery-record/recovery-record.transitions.js";
+export * from "./recovery-record/recovery-record.transport.js";
+export * from "./recovery-record/review-codes.js";
+
+export * from "./reference/reference.contract.js";
 
 export * from "./sync/conflicts.schema.js";
 export * from "./sync/idempotency.schema.js";
@@ -28,6 +34,7 @@ export * from "./sync/sync.schema.js";
 export * from "./services/handoff.contract.js";
 export * from "./services/locations.contract.js";
 export * from "./services/processing.contract.js";
+export * from "./services/qr.contract.js";
 export * from "./services/reporting.contract.js";
 export * from "./services/review.contract.js";
 export * from "./services/safety.contract.js";

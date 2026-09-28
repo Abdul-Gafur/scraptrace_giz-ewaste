@@ -82,7 +82,7 @@ Use `transitionRecoveryRecord` to evaluate the matrix without database or networ
 
 Evidence contains an opaque evidence/record ID, purpose type, private object reference, MIME type, size, SHA-256 content digest, capture source, actor, application-generated device-instance ID, capture/server times, optional consented coordinates, application version, connectivity state, and AI/correction provenance where relevant.
 
-Storage references are object keys, not raw bytes or public URLs. Hardware fingerprints such as IMEI, MAC address or device serial number do not belong in contracts. The original prediction and human correction are separate facts; corrections do not overwrite model output or trigger automatic learning.
+Storage references are object keys, not raw bytes or public URLs. They belong to the persisted `Evidence` shape only: APIs return `EvidenceMetadata`, which omits the storage reference, and serve content through an authorised operation by `evidence_id` (`ProtectedEvidenceDelivery`: `private, no-store`, digest header, no permanent URL). `storage_transform: "reencoded_without_metadata"` states that the digest covers the sanitised stored bytes. Evidence the server generates itself uses `capture_source: "system_generated"` and the fixed `SYSTEM_DEVICE_INSTANCE_ID`. Hardware fingerprints such as IMEI, MAC address or device serial number do not belong in contracts. The original prediction and human correction are separate facts; corrections do not overwrite model output or trigger automatic learning.
 
 ## Identifiers, QR and integrity
 
@@ -97,6 +97,8 @@ Offline-created records, events, evidence and mutations use lowercase UUIDv7 ide
 ```
 
 The QR contains no name, phone number, account details or coordinates. The lookup token is not authorization.
+
+Handoff credentials follow [ADR-009](../../docs/decisions/ADR-009-handoff-credentials.md). Each record has a QR lookup token and a separate **manual transfer code** (`ManualTransferCodeSchema`: three groups of four Crockford base32 symbols, 60 bits; normalise typed input with `normalizeManualTransferCode`). Only the owning collector receives them, as `QrCredentials` with a status (`inactive`, `active`, `expired`, `used`). A record resource returned by an API never embeds them: `RecoveryRecord.qr_payload` is present only on a device's local copy. `HandoffLookupRequest` presents exactly one credential, `HandoffLookupResponse` never returns either one, and `HandoffRequest` carries exactly one of `lookup_token` or `manual_transfer_code`.
 
 Record integrity uses deterministic canonical JSON and the form `sha256:<64 lowercase hexadecimal characters>`. The immutable payload includes initial identity, item/batch, capture, original evidence reference, prediction and confirmation facts. Revision, synchronization, current state, update time and other operational metadata are excluded. Legitimate amendments keep the previous digest and append an attributable event.
 
@@ -131,6 +133,30 @@ The helper denies permissions absent from the matrix and applies ownership, faci
 ## Service and error contracts
 
 Contracts cover vision appraisal, grounded safety guidance, nearby locations, handoff, processing, programme review and reporting. Normal alternatives use explicit outcomes such as `unable_to_classify`, `safe_fallback`, `no_results`, `duplicate_scan` and `review_required`.
+
+Phase 1 transport contracts cover every request and response that crosses the web/API boundary:
+
+| Area | Contracts |
+|---|---|
+| Authentication | `SignInRequest`, `SessionCreated` (no credential in the body; the session is an HttpOnly cookie), `CurrentUser`, `DemoAccountList` |
+| Reference data | `ProgrammeView`, `ReceivingLocationList` |
+| Records | `RecoveryRecordDraftCreate` (multipart `record` + `original_image`), `RecoveryRecordDraftUpdate` (`If-Match`), `CategoryConfirmationRequest`, `RecoveryRecordListRequest`, `RecoveryRecordPage`, `RecordSubmissionResponse`, `RecoveryRecordEventList` |
+| Evidence | `EvidenceUploadRequest` (multipart fields beside `image`), `EvidenceMetadata`, `EvidenceMetadataList`, `ProtectedEvidenceDelivery` |
+| QR and handoff | `QrCredentials`, `HandoffLookupRequest`, `HandoffPreview`, `HandoffLookupResponse`, `HandoffRequest`, `HandoffResponse` |
+| Processing | `ProcessingDraftUpdate`, `MaterialEntry`, `MaterialEntryUpdate`, `ProcessingDetail`, `ProcessingRequest`, `ProcessingResponse` |
+| Review | `ReviewQueueFilters`, `ReviewCaseSummary`, `ReviewCasePage`, `ReviewCaseDetail`, `ReviewDecisionView`, `ProgrammeReviewRequest`, `ProgrammeReviewResponse` |
+
+Conventions shared by all of them:
+
+- Lists that can grow without bound are cursor pages: `{items, pagination: {next_cursor, has_more}}` (`pageSchema`). Per-record evidence and timelines are bounded arrays.
+- Absent optional fields are **omitted, never `null`**. `null` appears only in update requests, where it clears a field, and in `ReceivingLocationView.verification_date`.
+- Timestamps are UTC ISO 8601 with a `Z` suffix and at most millisecond precision; date filters are `YYYY-MM-DD` UTC days.
+- Weights are `{value > 0, unit: "kg" | "g"}`; totals are reported in kilograms.
+- Review flags (`REVIEW_FLAG_CODES`), reviewer reason codes (`REVIEW_REASON_CODES`, `REASON_CODES_BY_DECISION`) and handoff rejection reasons are shared enums. Clients display them; only the server raises flags.
+- Each idempotent command uses one operation name (`IDEMPOTENT_OPERATIONS`): `create_record`, `record_handoff`, `record_processing` and `record_review_decision`.
+- Processing notes are the recorded result and are limited to 1,000 characters on both the request and the stored `ProcessingInformation.result`.
+
+The timeline contains lifecycle events (`LIFECYCLE_EVENT_TYPES`, which drive the state machine) and persisted **record facts** (`RECORD_FACT_EVENT_TYPES`: `draft_created`, `evidence_added`, `appraisal_recorded`, `category_confirmed`, `category_corrected`, `qr_issued`, `qr_rotated`, `review_opened`). Record facts never change the business state, and clients never synthesise them.
 
 The safe error envelope includes contract version, stable error code, safe message/translation key, correlation ID, retryability, field issues, safe details and UTC timestamp. It excludes stack traces, tokens, prompts, personal data and infrastructure details. HTTP adapters must still select the correct status code.
 
