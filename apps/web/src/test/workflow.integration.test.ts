@@ -105,6 +105,7 @@ const confirmReceipt = (services: Harness, recordId: string, measuredKg: number,
     confirmedCondition: "damaged",
     measuredWeight: { value: measuredKg, unit: "kg" },
     finalPriceAmount: 42,
+    finalPriceCurrency: "GHS",
     receivingLocationId: DEMO_LOCATION_IDS.recycler,
     evidence: {
       handoffPhoto: image(`${label}-handoff`),

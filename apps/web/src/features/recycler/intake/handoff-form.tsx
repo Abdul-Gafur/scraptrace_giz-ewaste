@@ -134,6 +134,7 @@ export function HandoffForm({
       confirmedCondition: condition,
       measuredWeight: { value: parsedWeight, unit: weightUnit },
       finalPriceAmount: Number.parseFloat(price),
+      finalPriceCurrency: currency,
       receivingLocationId: locationId,
       evidence: {
         handoffPhoto: handoffPhoto.blob,

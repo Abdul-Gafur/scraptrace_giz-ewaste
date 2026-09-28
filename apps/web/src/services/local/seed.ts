@@ -360,6 +360,7 @@ const runPlan = async (repository: ScrapTraceRepository, plan: SeedRecordPlan): 
     confirmedCondition: plan.condition,
     measuredWeight: { value: plan.measuredWeightKg ?? plan.declaredWeightKg ?? 1, unit: "kg" },
     finalPriceAmount: Math.round((plan.measuredWeightKg ?? 1) * 4.5 * 100) / 100,
+    finalPriceCurrency: "GHS",
     receivingLocationId: plan.destination,
     evidence: {
       handoffPhoto: seedImage(`${plan.label}-handoff`),

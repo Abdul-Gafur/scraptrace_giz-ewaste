@@ -170,6 +170,7 @@ export interface RecordHandoffInput {
   readonly confirmedCondition: "working" | "repairable" | "damaged" | "unknown";
   readonly measuredWeight: { readonly value: number; readonly unit: "kg" | "g" };
   readonly finalPriceAmount: number;
+  readonly finalPriceCurrency: string;
   readonly receivingLocationId: string;
   readonly evidence: HandoffEvidenceInput;
   readonly offline: boolean;

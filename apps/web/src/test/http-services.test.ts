@@ -3,11 +3,12 @@ import {
   CONTRACT_SCHEMA_VERSION,
   EVENT_SCHEMA_VERSION,
   EvidenceIdSchema,
+  HandoffRequestSchema,
 } from "@scraptrace/contracts";
 
 import { HttpClient, ScrapTraceServiceError } from "@/services/http/http-client";
 import { createHttpServices } from "@/services/http/http-services";
-import { createRecoveryRecordFixture } from "@/services/mocks/deterministic-fixtures";
+import { createRecoveryRecordFixture, FIXTURE_IDS } from "@/services/mocks/deterministic-fixtures";
 
 const evidenceId = EvidenceIdSchema.parse("0199a111-1111-7111-8111-111111111111");
 const timestamp = "2026-09-26T12:30:00.000Z";
@@ -346,5 +347,130 @@ describe("recovery-record HTTP adapter", () => {
     const records = createHttpServices("https://api.example.test").recoveryRecords;
     await expect(records.listEvidence(createRecoveryRecordFixture().record_id)).rejects.toThrow();
     await expect(records.listEvents(createRecoveryRecordFixture().record_id)).rejects.toThrow();
+  });
+});
+
+describe("handoff HTTP adapter", () => {
+  it("looks up a scanned backend QR payload and parses the record", async () => {
+    const record = createRecoveryRecordFixture();
+    const code = `SCRAPTRACE:1.0.0:${record.record_id}:${record.qr_payload.lookup_token}`;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(input.toString()).pathname).toBe("/v1/handoff-lookups");
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(String(init?.body))).toEqual({ code });
+      return Response.json({ outcome: "ready", record });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createHttpServices("https://api.example.test").recoveryRecords.lookupForHandoff(code),
+    ).resolves.toEqual({ outcome: "ready", record });
+  });
+
+  it("maps the transport receipt timestamp for an already received lookup", async () => {
+    const record = createRecoveryRecordFixture();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ outcome: "already_received", record, received_at: timestamp }),
+      ),
+    );
+
+    await expect(
+      createHttpServices("https://api.example.test").recoveryRecords.lookupForHandoff(
+        record.human_reference,
+      ),
+    ).resolves.toEqual({ outcome: "already_received", record, receivedAt: timestamp });
+  });
+
+  it("uploads receipt evidence as multipart data with a stable idempotency key", async () => {
+    const record = createRecoveryRecordFixture();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(input.toString()).pathname).toBe(
+        `/v1/recovery-records/${record.record_id}/handoffs`,
+      );
+      expect(init?.body).toBeInstanceOf(FormData);
+      expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+        `record-handoff:${record.record_id}`,
+      );
+      const form = init?.body as FormData;
+      expect(JSON.parse(String(form.get("metadata")))).toMatchObject({
+        confirmed_category: "televisions",
+        measured_weight: { value: 20, unit: "kg" },
+        receiving_location_id: FIXTURE_IDS.location,
+      });
+      expect(form.get("handoff_photo")).toBeInstanceOf(File);
+      expect(form.get("weight_photo")).toBeInstanceOf(File);
+      return Response.json({
+        outcome: "accepted",
+        recovery_record_id: record.record_id,
+        received_at: timestamp,
+        replayed: false,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createHttpServices("https://api.example.test").handoffs.confirmReceipt({
+        recordId: record.record_id,
+        confirmedCategory: "televisions",
+        confirmedCondition: "damaged",
+        measuredWeight: { value: 20, unit: "kg" },
+        finalPriceAmount: 120,
+        finalPriceCurrency: "GHS",
+        receivingLocationId: FIXTURE_IDS.location,
+        evidence: {
+          handoffPhoto: new File(["handoff"], "handoff.jpg", { type: "image/jpeg" }),
+          weightPhoto: new File(["weight"], "scale.jpg", { type: "image/jpeg" }),
+          scannedPayload: "opaque scanned value",
+          notes: "Seal intact",
+        },
+        offline: false,
+      }),
+    ).resolves.toMatchObject({ outcome: "accepted", recovery_record_id: record.record_id });
+  });
+
+  it("validates and sends a contract-shaped handoff request", async () => {
+    const record = createRecoveryRecordFixture();
+    const request = HandoffRequestSchema.parse({
+      recovery_record_id: record.record_id,
+      lookup_token: record.qr_payload.lookup_token,
+      collector_reference: record.collector,
+      recycler_reference: { actor_id: FIXTURE_IDS.recycler },
+      receiving_location_id: FIXTURE_IDS.location,
+      handoff_time: timestamp,
+      confirmed_category: "televisions",
+      confirmed_condition: "damaged",
+      measured_weight: { value: 20, unit: "kg" },
+      final_price: { amount: 120, currency: "GHS" },
+      evidence_ids: [evidenceId, "0199a222-2222-7222-8222-222222222223"],
+      idempotency: {
+        idempotency_key: "record-handoff:test-request",
+        request_digest: `sha256:${"b".repeat(64)}`,
+        scope: {
+          actor_id: FIXTURE_IDS.recycler,
+          operation: "record_handoff",
+          resource_id: record.record_id,
+        },
+      },
+    });
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual(request);
+      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+        request.idempotency.idempotency_key,
+      );
+      return Response.json({
+        outcome: "accepted",
+        recovery_record_id: record.record_id,
+        received_at: timestamp,
+        replayed: false,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createHttpServices("https://api.example.test").handoffs.record(request),
+    ).resolves.toMatchObject({ outcome: "accepted" });
   });
 });

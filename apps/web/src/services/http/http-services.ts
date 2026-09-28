@@ -3,11 +3,14 @@ import {
   EvidenceSchema,
   EwasteCategorySchema,
   GeoCoordinatesSchema,
+  HandoffRequestSchema,
+  HandoffResponseSchema,
   ItemConditionSchema,
   PriceEstimateSchema,
   RecoveryRecordSchema,
   RecoveryRecordEventSchema,
   SupportedLanguageSchema,
+  UuidV7Schema,
   UserRoleSchema,
   VisionResultSchema,
   WeightSchema,
@@ -18,7 +21,12 @@ import {
 import { z } from "zod";
 
 import type { FrontendServices } from "@/services/ports/service-ports";
-import type { CaptureInput, UpdateDraftInput } from "@/services/ports/service-ports";
+import type {
+  CaptureInput,
+  HandoffLookupResult,
+  RecordHandoffInput,
+  UpdateDraftInput,
+} from "@/services/ports/service-ports";
 
 import { HttpClient, ScrapTraceServiceError } from "./http-client";
 
@@ -37,6 +45,34 @@ const SignedOutResponseSchema = serviceSuccessSchema(
   z.strictObject({ signed_out: z.literal(true) }),
 );
 const RecoveryRecordListSchema = z.array(RecoveryRecordSchema);
+const HandoffLookupResponseSchema = z.discriminatedUnion("outcome", [
+  z.strictObject({ outcome: z.literal("ready"), record: RecoveryRecordSchema }),
+  z.strictObject({ outcome: z.literal("not_found") }),
+  z.strictObject({ outcome: z.literal("not_ready"), record: RecoveryRecordSchema }),
+  z.strictObject({
+    outcome: z.literal("already_received"),
+    record: RecoveryRecordSchema,
+    received_at: z.iso.datetime(),
+  }),
+  z.strictObject({ outcome: z.literal("other_facility"), record: RecoveryRecordSchema }),
+  z.strictObject({ outcome: z.literal("unsupported_contract_version") }),
+]);
+const HandoffConfirmationMetadataSchema = z.strictObject({
+  confirmed_category: EwasteCategorySchema,
+  confirmed_condition: ItemConditionSchema,
+  measured_weight: WeightSchema,
+  final_price: z.strictObject({
+    amount: z.number().nonnegative(),
+    currency: z
+      .string()
+      .length(3)
+      .regex(/^[A-Z]{3}$/),
+  }),
+  receiving_location_id: UuidV7Schema,
+  scanned_payload: z.string().min(1).max(1_000),
+  notes: z.string().min(1).max(1_000).optional(),
+  offline: z.boolean(),
+});
 const SubmitResponseSchema = z.discriminatedUnion("outcome", [
   z.strictObject({
     outcome: z.literal("submitted"),
@@ -96,6 +132,24 @@ const captureForm = (input: CaptureInput | UpdateDraftInput): FormData => {
   const form = new FormData();
   form.append("metadata", JSON.stringify(captureMetadata(input)));
   if (input.image) form.append("image", input.image, "evidence-upload");
+  return form;
+};
+
+const handoffConfirmationForm = (input: RecordHandoffInput): FormData => {
+  const metadata = HandoffConfirmationMetadataSchema.parse({
+    confirmed_category: input.confirmedCategory,
+    confirmed_condition: input.confirmedCondition,
+    measured_weight: input.measuredWeight,
+    final_price: { amount: input.finalPriceAmount, currency: input.finalPriceCurrency },
+    receiving_location_id: input.receivingLocationId,
+    scanned_payload: input.evidence.scannedPayload,
+    ...(input.evidence.notes ? { notes: input.evidence.notes } : {}),
+    offline: input.offline,
+  });
+  const form = new FormData();
+  form.append("metadata", JSON.stringify(metadata));
+  form.append("handoff_photo", input.evidence.handoffPhoto, "handoff-evidence");
+  form.append("weight_photo", input.evidence.weightPhoto, "weight-evidence");
   return form;
 };
 
@@ -227,7 +281,20 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
             }
           : result;
       },
-      lookupForHandoff: notImplemented,
+      async lookupForHandoff(scannedTextOrCode) {
+        const result = await client.requestParsed(
+          "/v1/handoff-lookups",
+          HandoffLookupResponseSchema,
+          { method: "POST", body: { code: scannedTextOrCode.trim() } },
+        );
+        return result.outcome === "already_received"
+          ? {
+              outcome: result.outcome,
+              record: result.record,
+              receivedAt: result.received_at,
+            }
+          : (result satisfies HandoffLookupResult);
+      },
       listEvents: (recordId) =>
         client.requestParsed(
           `/v1/recovery-records/${encodeURIComponent(recordId)}/events`,
@@ -271,7 +338,30 @@ export const createHttpServices = (apiBaseUrl: string): FrontendServices => {
     },
     safetyGuidance: { getGuidance: notImplemented },
     locations: { search: notImplemented },
-    handoffs: { record: notImplemented, confirmReceipt: notImplemented },
+    handoffs: {
+      record: (request) => {
+        const parsed = HandoffRequestSchema.parse(request);
+        return client.requestParsed(
+          `/v1/recovery-records/${parsed.recovery_record_id}/handoffs`,
+          HandoffResponseSchema,
+          {
+            method: "POST",
+            body: parsed,
+            idempotencyKey: parsed.idempotency.idempotency_key,
+          },
+        );
+      },
+      confirmReceipt: (input) =>
+        client.requestParsed(
+          `/v1/recovery-records/${encodeURIComponent(input.recordId)}/handoffs`,
+          HandoffResponseSchema,
+          {
+            method: "POST",
+            body: handoffConfirmationForm(input),
+            idempotencyKey: `record-handoff:${input.recordId}`,
+          },
+        ),
+    },
     processing: { record: notImplemented, submitProcessing: notImplemented },
     reviews: {
       decide: notImplemented,

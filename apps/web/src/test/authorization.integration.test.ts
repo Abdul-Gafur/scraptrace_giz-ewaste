@@ -63,6 +63,7 @@ const handoffInput = (recordId: string) => ({
   confirmedCondition: "damaged" as const,
   measuredWeight: { value: 10, unit: "kg" as const },
   finalPriceAmount: 1,
+  finalPriceCurrency: "GHS",
   receivingLocationId: DEMO_LOCATION_IDS.recycler,
   evidence: {
     handoffPhoto: image("handoff"),
