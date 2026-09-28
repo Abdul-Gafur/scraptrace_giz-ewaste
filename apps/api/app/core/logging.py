@@ -45,6 +45,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             "duration_ms": round((time.perf_counter() - started) * 1000, 2),
         }
         for key in (
+            "actor_role",
+            "operation",
             "model_version",
             "inference_duration_ms",
             "outcome",

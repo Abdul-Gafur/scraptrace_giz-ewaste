@@ -1,0 +1,26 @@
+# Local development PostgreSQL for the ScrapTrace API. Not a deployment definition.
+#
+#   export SCRAPTRACE_LOCAL_POSTGRES_PASSWORD='<generate a local-only value>'
+#   npm run api:db:up
+#
+# Then point SCRAPTRACE_DATABASE_URL at
+#   postgresql+asyncpg://scraptrace:<password>@127.0.0.1:55432/scraptrace
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scraptrace
+      POSTGRES_DB: scraptrace
+      POSTGRES_PASSWORD: ${SCRAPTRACE_LOCAL_POSTGRES_PASSWORD:?Set SCRAPTRACE_LOCAL_POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - scraptrace-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scraptrace -d scraptrace"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  scraptrace-postgres:

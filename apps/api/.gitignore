@@ -1,0 +1,5 @@
+# Local evidence storage and any local database files.
+.data/
+*.sqlite3
+# Editable-install metadata.
+*.egg-info/

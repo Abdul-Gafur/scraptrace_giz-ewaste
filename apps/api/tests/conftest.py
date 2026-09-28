@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 import io
+import shutil
+from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
 from apps.api.app.core.config import Settings
+from apps.api.app.db.session import Database
 from apps.api.app.main import create_app
+from apps.api.tests.support.api import seed_database
+from apps.api.tests.support.database import (
+    TEST_DATABASE_URL,
+    reset_postgres_schema,
+    truncate_postgres,
+    upgrade,
+)
 from fastapi.testclient import TestClient
 from PIL import Image
+from pydantic import SecretStr
 from services.vision.predictor import InferenceError, ModelLoadError
 
 SCORES = [
@@ -66,9 +78,87 @@ class FakePredictor:
         return self.response
 
 
+@pytest.fixture(scope="session")
+def migrated_template(tmp_path_factory: pytest.TempPathFactory) -> str | Path:
+    """The fully migrated schema, built once per session by the real Alembic migrations."""
+    if TEST_DATABASE_URL:
+        reset_postgres_schema(TEST_DATABASE_URL)
+        upgrade(TEST_DATABASE_URL)
+        return TEST_DATABASE_URL
+    template = tmp_path_factory.mktemp("database") / "template.sqlite3"
+    upgrade(f"sqlite+aiosqlite:///{template}")
+    return template
+
+
 @pytest.fixture
-def settings() -> Settings:
-    return Settings(environment="test", maximum_upload_bytes=2048)
+def database_url(migrated_template: str | Path, tmp_path_factory: pytest.TempPathFactory) -> str:
+    """An isolated, migrated database for one test, kept outside the test's own `tmp_path`."""
+    if TEST_DATABASE_URL:
+        truncate_postgres(TEST_DATABASE_URL)
+        return TEST_DATABASE_URL
+    target = tmp_path_factory.mktemp("database") / "scraptrace-test.sqlite3"
+    shutil.copyfile(Path(migrated_template), target)
+    return f"sqlite+aiosqlite:///{target}"
+
+
+TEST_AUTH_SECRET = "test-only-auth-signing-key-" + "k" * 32
+TEST_QR_SECRET = "test-only-qr-derivation-key-" + "q" * 32
+
+
+def build_settings(database_url: str, **overrides: Any) -> Settings:
+    values: dict[str, Any] = {
+        "environment": "test",
+        "database_url": SecretStr(database_url),
+        # Test-only hashing cost; production defaults are Argon2id t=3, m=64 MiB.
+        "password_hash_time_cost": 1,
+        "password_hash_memory_cost_kib": 8,
+        "password_hash_parallelism": 1,
+        "auth_token_secret": SecretStr(TEST_AUTH_SECRET),
+        "qr_token_secret": SecretStr(TEST_QR_SECRET),
+    }
+    values.update(overrides)
+    return Settings(**values)
+
+
+@pytest.fixture
+def evidence_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("evidence")
+
+
+@pytest.fixture
+def settings(database_url: str, evidence_root: Path) -> Settings:
+    # The legacy vision tests exercise the classifier boundary itself; the authenticated vision
+    # policy (the default, and mandatory in production) is covered in test_auth.py.
+    return build_settings(
+        database_url,
+        maximum_upload_bytes=2048,
+        vision_requires_authentication=False,
+        evidence_storage_root=evidence_root,
+    )
+
+
+@pytest.fixture
+def api_settings(database_url: str, evidence_root: Path) -> Settings:
+    """Production-posture settings for authenticated API tests."""
+    return build_settings(database_url, evidence_storage_root=evidence_root)
+
+
+@pytest.fixture
+def api(api_settings: Settings) -> Iterator[TestClient]:
+    """A client for an application whose database holds the deterministic seed data."""
+    seed_database(api_settings)
+    with TestClient(create_app(settings=api_settings, predictor=FakePredictor())) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+async def database(settings: Settings) -> AsyncIterator[Database]:
+    instance = Database(settings)
+    await instance.start()
+    try:
+        yield instance
+    finally:
+        await instance.stop()
 
 
 @pytest.fixture

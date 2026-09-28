@@ -6,21 +6,19 @@ import re
 import time
 from typing import Annotated, Any
 
-from apps.api.app.contracts.validation import load_schema
-from apps.api.app.core.config import REPOSITORY_ROOT, Settings
+from apps.api.app.api.openapi import ref
+from apps.api.app.api.security import authenticate, bearer_scheme, cookie_scheme
+from apps.api.app.container import AppServices
+from apps.api.app.core.config import Settings
 from apps.api.app.core.errors import ApiError
 from apps.api.app.core.request_id import valid_request_id
-from apps.api.app.dependencies import get_api_settings, get_vision_service
+from apps.api.app.dependencies import get_api_settings, get_services, get_vision_service
+from apps.api.app.services.authorization import Actor
 from apps.api.app.services.image_validation import read_validated_image
 from apps.api.app.services.vision_service import VisionService
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.security import HTTPAuthorizationCredentials
 
-VISION_RESPONSE_SCHEMA = load_schema(
-    REPOSITORY_ROOT / "packages/contracts/schemas/vision_appraisal_response.schema.json"
-)
-ERROR_SCHEMA = load_schema(
-    REPOSITORY_ROOT / "packages/contracts/schemas/error_envelope.schema.json"
-)
 EVIDENCE_ID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 )
@@ -29,12 +27,26 @@ EVIDENCE_ID_PATTERN = re.compile(
 router = APIRouter(prefix="/vision", tags=["vision"])
 
 
+async def vision_actor(
+    request: Request,
+    services: Annotated[AppServices, Depends(get_services)],
+    bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    cookie: Annotated[str | None, Depends(cookie_scheme)],
+) -> Actor | None:
+    """Documented policy: appraisal requires any authenticated role by default and always in
+    production. It grants no record access and stores nothing."""
+    if not services.settings.vision_requires_authentication:
+        return None
+    return await authenticate(request, services, bearer, cookie)
+
+
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {
         "description": description,
-        "content": {"application/json": {"schema": ERROR_SCHEMA}},
+        "content": {"application/json": {"schema": ref("error_envelope")}},
     }
     for status, description in {
+        401: "Authentication required (when the vision policy requires it)",
         413: "Upload exceeds the configured maximum",
         415: "Unsupported image type",
         422: "Invalid request or image",
@@ -52,14 +64,15 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     description=(
         "Classifies one photograph into one of seven categories. This endpoint does not detect, "
         "count, or draw bounding boxes around multiple objects. Low-confidence or ambiguous "
-        "results require manual category confirmation. Uploads are not retained. This walking "
-        "skeleton has no authentication layer and must remain behind a controlled boundary."
+        "results require manual category confirmation. Uploads are not retained: evidence "
+        "storage is a separate endpoint. Authentication is required unless "
+        "SCRAPTRACE_VISION_REQUIRES_AUTHENTICATION is false, which production refuses."
     ),
     response_model=None,
     responses={
         200: {
             "description": "Contract-valid vision appraisal",
-            "content": {"application/json": {"schema": VISION_RESPONSE_SCHEMA}},
+            "content": {"application/json": {"schema": ref("vision_appraisal_response")}},
         },
         **ERROR_RESPONSES,
     },
@@ -72,6 +85,7 @@ async def appraise_image(
     ],
     settings: Annotated[Settings, Depends(get_api_settings)],
     service: Annotated[VisionService, Depends(get_vision_service)],
+    _actor: Annotated[Actor | None, Depends(vision_actor)],
     request_id: Annotated[
         str | None,
         Form(description="Optional client correlation ID; returned in the X-Request-ID header"),
