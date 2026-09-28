@@ -1,4 +1,8 @@
-import { ReportingFiltersSchema, type RecoveryRecord } from "@scraptrace/contracts";
+import {
+  ReportingFiltersSchema,
+  type RecoveryRecord,
+  type ReviewReasonCode,
+} from "@scraptrace/contracts";
 
 import { DEMO_ACTORS, DEMO_LOCATION_IDS } from "@/auth/actors";
 import { newEvidenceId } from "@/services/domain/identifiers";
@@ -99,9 +103,18 @@ const captureAndSubmit = async (
   return submitted.record;
 };
 
-const confirmReceipt = (services: Harness, recordId: string, measuredKg: number, label: string) =>
-  services.recycler.handoffs.confirmReceipt({
+const confirmReceipt = async (
+  services: Harness,
+  recordId: string,
+  measuredKg: number,
+  label: string,
+) => {
+  const record = services.repository.findRecord(recordId);
+  if (!record) throw new Error("record not found");
+  return services.recycler.handoffs.confirmReceipt({
     recordId,
+    collectorReference: record.collector,
+    credential: { kind: "qr_token", lookupToken: localQrPayload(record).lookup_token },
     confirmedCategory: "televisions",
     confirmedCondition: "damaged",
     measuredWeight: { value: measuredKg, unit: "kg" },
@@ -111,11 +124,34 @@ const confirmReceipt = (services: Harness, recordId: string, measuredKg: number,
     evidence: {
       handoffPhoto: image(`${label}-handoff`),
       weightPhoto: image(`${label}-weight`),
-      scannedPayload: "scanned",
-      notes: "Received at the intake bay.",
     },
+    notes: "Received at the intake bay.",
     offline: false,
   });
+};
+
+/** A reviewer decision built from the review case the reviewer is looking at. */
+const decide = async (
+  services: Harness,
+  input: {
+    readonly recordId: string;
+    readonly decision: "approve" | "reject" | "request_correction";
+    readonly reasonCode: ReviewReasonCode;
+    readonly reviewerNote: string;
+    readonly requestedCorrection?: string;
+  },
+) => {
+  const detail = await services.reviewer.reviews.findCaseForRecord(input.recordId);
+  if (!detail) throw new Error("no review case");
+  return services.reviewer.reviews.submitDecision({
+    ...input,
+    reviewReasonCodes:
+      detail.case.flag_codes.length > 0 ? detail.case.flag_codes : ["MANUAL_REVIEW"],
+    evidenceConsidered: detail.evidence.map((item) => item.evidence_id),
+    previousReviewState: detail.case.status,
+    previousRecordState: detail.case.record_business_state,
+  });
+};
 
 const recordProcessing = (services: Harness, recordId: string, label: string, kg = 5) =>
   services.recycler.processing.submitProcessing({
@@ -256,8 +292,8 @@ describe("scenario B: a weight discrepancy that a reviewer approves", () => {
     const before = await services.manager.reporting.summarize(reportFilters());
     expect(before.verified_weight.value).toBe(0);
 
-    const queue = await services.reviewer.reviews.listQueue();
-    expect(queue.map((item) => item.record_id)).toContain(record.record_id);
+    const queue = await services.reviewer.reviews.listCases({});
+    expect(queue.items.map((item) => item.record_id)).toContain(record.record_id);
 
     const evidence = await services.reviewer.recoveryRecords.listEvidence(record.record_id);
     expect(evidence.map((item) => item.evidence_type).sort()).toEqual([
@@ -269,7 +305,7 @@ describe("scenario B: a weight discrepancy that a reviewer approves", () => {
       "weight_measurement",
     ]);
 
-    const decision = await services.reviewer.reviews.submitDecision({
+    const decision = await decide(services, {
       recordId: record.record_id,
       decision: "approve",
       reasonCode: "WEIGHT_EXPLAINED",
@@ -287,8 +323,8 @@ describe("scenario B: a weight discrepancy that a reviewer approves", () => {
     expect(after.verified_weight.value).toBeCloseTo(40, 3);
 
     // The decided record has left the queue.
-    const remaining = await services.reviewer.reviews.listQueue();
-    expect(remaining.map((item) => item.record_id)).not.toContain(record.record_id);
+    const remaining = await services.reviewer.reviews.listCases({});
+    expect(remaining.items.map((item) => item.record_id)).not.toContain(record.record_id);
   });
 });
 
@@ -300,7 +336,7 @@ describe("scenario C: a rejection and a correction request", () => {
     await confirmReceipt(services, record.record_id, 45, "C");
     await recordProcessing(services, record.record_id, "C");
 
-    const decision = await services.reviewer.reviews.submitDecision({
+    const decision = await decide(services, {
       recordId: record.record_id,
       decision: "reject",
       reasonCode: "WEIGHT_UNEXPLAINED",
@@ -314,7 +350,7 @@ describe("scenario C: a rejection and a correction request", () => {
 
     // A decided record cannot be decided again or edited.
     await expect(
-      services.reviewer.reviews.submitDecision({
+      decide(services, {
         recordId: record.record_id,
         decision: "approve",
         reasonCode: "EVIDENCE_SUFFICIENT",
@@ -334,7 +370,7 @@ describe("scenario C: a rejection and a correction request", () => {
     await confirmReceipt(services, record.record_id, 45, "C2");
     await recordProcessing(services, record.record_id, "C2");
 
-    const requested = await services.reviewer.reviews.submitDecision({
+    const requested = await decide(services, {
       recordId: record.record_id,
       decision: "request_correction",
       reasonCode: "ADDITIONAL_EVIDENCE_REQUIRED",
@@ -352,7 +388,7 @@ describe("scenario C: a rejection and a correction request", () => {
     const summary = await services.manager.reporting.summarize(reportFilters());
     expect(summary.verified_weight.value).toBe(0);
 
-    const approved = await services.reviewer.reviews.submitDecision({
+    const approved = await decide(services, {
       recordId: record.record_id,
       decision: "approve",
       reasonCode: "WEIGHT_EXPLAINED",
@@ -369,7 +405,7 @@ describe("scenario C: a rejection and a correction request", () => {
     await recordProcessing(services, record.record_id, "C3");
 
     await expect(
-      services.reviewer.reviews.submitDecision({
+      decide(services, {
         recordId: record.record_id,
         decision: "approve",
         reasonCode: "EVIDENCE_SUFFICIENT",
@@ -378,7 +414,7 @@ describe("scenario C: a rejection and a correction request", () => {
     ).rejects.toBeInstanceOf(ScrapTraceServiceError);
 
     await expect(
-      services.reviewer.reviews.submitDecision({
+      decide(services, {
         recordId: record.record_id,
         decision: "request_correction",
         reasonCode: "ADDITIONAL_EVIDENCE_REQUIRED",
@@ -489,7 +525,7 @@ describe("lookup states", () => {
     expect(result).toEqual({ outcome: "unsupported_contract_version" });
   });
 
-  it("reports a record that has not been published for handoff", async () => {
+  it("does not resolve the inactive credentials of an unpublished draft", async () => {
     const services = harness();
     await seedConfiguration(services);
     const draft = await services.collector.recoveryRecords.createDraft({
@@ -502,18 +538,30 @@ describe("lookup states", () => {
       image: image("draft-only"),
       offline: false,
     });
-    const result = await services.recycler.recoveryRecords.lookupForHandoff(draft.human_reference);
-    expect(result.outcome).toBe("not_ready");
+    const credentials = await services.collector.recoveryRecords.getQrCredentials(draft.record_id);
+    expect(credentials.status).toBe("inactive");
+    const result = await services.recycler.recoveryRecords.lookupForHandoff(
+      credentials.manual_transfer_code ?? "",
+    );
+    expect(result.outcome).toBe("not_found");
   });
 
-  it("resolves a typed transfer code case-insensitively", async () => {
+  it("resolves a typed manual transfer code, normalised, and never the display reference", async () => {
     const services = harness();
     await seedConfiguration(services);
     const record = await captureAndSubmit(services, { label: "T" });
+    const { manual_transfer_code: code } =
+      await services.collector.recoveryRecords.getQrCredentials(record.record_id);
     const result = await services.recycler.recoveryRecords.lookupForHandoff(
-      record.human_reference.toLowerCase(),
+      (code ?? "").toLowerCase().replace(/-/g, " "),
     );
-    expect(result.outcome).toBe("ready");
+    expect(result).toMatchObject({
+      outcome: "ready",
+      credential: { kind: "manual_transfer_code", code },
+    });
+    expect(
+      await services.recycler.recoveryRecords.lookupForHandoff(record.human_reference),
+    ).toEqual({ outcome: "not_found" });
   });
 
   it("refuses a record destined for a facility this account is not assigned to", async () => {
@@ -533,8 +581,10 @@ describe("lookup states", () => {
         selected_at: record.created_at,
       },
     });
-    const result = await services.recycler.recoveryRecords.lookupForHandoff(record.human_reference);
-    expect(result.outcome).toBe("other_facility");
+    const { manual_transfer_code: code } =
+      await services.collector.recoveryRecords.getQrCredentials(record.record_id);
+    const result = await services.recycler.recoveryRecords.lookupForHandoff(code ?? "");
+    expect(result).toEqual({ outcome: "other_facility" });
   });
 });
 
@@ -630,7 +680,7 @@ describe("manager reporting reflects what other roles did", () => {
 
     await confirmReceipt(services, rejected.record_id, 30, "R2");
     await recordProcessing(services, rejected.record_id, "R2");
-    await services.reviewer.reviews.submitDecision({
+    await decide(services, {
       recordId: rejected.record_id,
       decision: "reject",
       reasonCode: "WEIGHT_UNEXPLAINED",

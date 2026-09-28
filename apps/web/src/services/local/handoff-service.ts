@@ -8,7 +8,7 @@ import {
 import type { z } from "zod";
 
 import { toActorReference } from "@/auth/actors";
-import { sha256Blob, sha256Json, sha256Text } from "@/services/domain/digest";
+import { sha256Blob, sha256Json } from "@/services/domain/digest";
 import { evaluateHandoffFlags } from "@/services/domain/flags";
 import { idempotencyKeyFor } from "@/services/domain/identifiers";
 import { isTerminal } from "@/services/domain/records";
@@ -17,6 +17,7 @@ import type { HandoffService, RecordHandoffInput } from "@/services/ports/servic
 
 import { pause, requirePermission, type LocalServiceContext } from "./context";
 import { invalidTransition, notFound, serviceError, validationFailed } from "./errors";
+import { localTransferCode } from "./local-credentials";
 import { applyTransition, createEvidence, localQrPayload } from "./record-factory";
 
 const permission = PermissionSchema.enum;
@@ -86,7 +87,11 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
     }
     // An invalid credential is a not-found error, never a domain outcome, so it reveals
     // nothing about the record (HandoffResponse contract).
-    if (parsed.lookup_token !== localQrPayload(record).lookup_token) throw notFound();
+    const presentedValid =
+      parsed.lookup_token !== undefined
+        ? parsed.lookup_token === localQrPayload(record).lookup_token
+        : parsed.manual_transfer_code === (await localTransferCode(record));
+    if (!presentedValid) throw notFound();
 
     const settings = repository.getProgrammeSettings();
     const availableEvidence: ReadonlySet<EvidenceType> = new Set(
@@ -168,9 +173,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       const record = repository.findRecord(input.recordId);
       if (!record) throw notFound();
       requirePermission(context, permission["handoff:accept"], { record });
-      if (record.handoff) {
-        return recordHandoff(await buildRequest(input, localQrPayload(record).lookup_token));
-      }
+      if (record.handoff) return recordHandoff(await buildRequest(input));
       if (isTerminal(record)) {
         throw invalidTransition("A terminal record cannot receive a new handoff.");
       }
@@ -201,9 +204,14 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
           evidenceType: "handoff_qr_scan",
           capturedBy: actor,
           captureSource: "system_generated",
-          mimeType: "text/plain",
-          fileSizeBytes: Math.max(1, input.evidence.scannedPayload.length),
-          contentDigest: await sha256Text(input.evidence.scannedPayload),
+          mimeType: "application/json",
+          fileSizeBytes: 128,
+          // The scan document records which credential was presented, never its value.
+          contentDigest: await sha256Json({
+            record_id: record.record_id,
+            credential: input.credential.kind,
+            verified_at: capturedAt,
+          }),
           connectivity: input.offline ? "offline" : "online",
           capturedAt,
         }),
@@ -223,7 +231,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
             confirmed_category: input.confirmedCategory,
             confirmed_condition: input.confirmedCondition,
             recorded_at: capturedAt,
-            ...(input.evidence.notes ? { notes: input.evidence.notes } : {}),
+            ...(input.notes ? { notes: input.notes } : {}),
           }),
           connectivity: input.offline ? "offline" : "online",
           capturedAt,
@@ -258,7 +266,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
         input.evidence.weightPhotoPreview,
       );
 
-      const request = await buildRequest(input, localQrPayload(record).lookup_token, [
+      const request = await buildRequest(input, [
         scanEvidence.evidence_id,
         receiptEvidence.evidence_id,
         handoffPhoto.evidence_id,
@@ -270,9 +278,12 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
 
   async function buildRequest(
     input: RecordHandoffInput,
-    lookupToken: string,
     evidenceIds?: readonly string[],
   ): Promise<HandoffRequest> {
+    const credential =
+      input.credential.kind === "qr_token"
+        ? { lookup_token: input.credential.lookupToken }
+        : { manual_transfer_code: input.credential.code };
     const record = repository.findRecord(input.recordId);
     if (!record) throw notFound();
     const ids =
@@ -283,7 +294,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
         .map((item) => item.evidence_id);
     const digestPayload = {
       recovery_record_id: record.record_id,
-      lookup_token: lookupToken,
+      ...credential,
       receiving_location_id: input.receivingLocationId,
       confirmed_category: input.confirmedCategory,
       confirmed_condition: input.confirmedCondition,
@@ -294,7 +305,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
     };
     const payload = {
       recovery_record_id: record.record_id,
-      lookup_token: lookupToken,
+      ...credential,
       collector_reference: record.collector,
       recycler_reference: toActorReference(actor),
       receiving_location_id: input.receivingLocationId,
@@ -304,6 +315,7 @@ export const createHandoffService = (context: LocalServiceContext): HandoffServi
       measured_weight: input.measuredWeight,
       final_price: { amount: input.finalPriceAmount, currency: input.finalPriceCurrency },
       evidence_ids: ids,
+      ...(input.notes ? { notes: input.notes } : {}),
     };
     return HandoffRequestSchema.parse({
       ...payload,

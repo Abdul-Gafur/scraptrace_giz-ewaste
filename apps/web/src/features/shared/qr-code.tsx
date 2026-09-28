@@ -17,16 +17,20 @@ import { encodeQrPayload } from "@/services/domain/qr-payload";
  * a coordinate or any other personal data.
  *
  * The symbol is rendered as inline SVG, so it stays sharp when printed and needs no network
- * request. The visible human transfer code beneath it is the fallback a recycler can type.
+ * request. The manual transfer code beneath it is the fallback a recycler can type. It is a
+ * separate credential issued by the API (ADR-009), not the record's display reference.
  */
 export function RecordQrCode({
   payload,
   transferCode,
+  reference,
   className,
 }: {
   payload: QrPayload;
-  /** The record's human reference, shown and copyable as the manual fallback. */
+  /** The manual transfer code issued with this QR, shown and copyable as the typed fallback. */
   transferCode: string;
+  /** The record's display reference, used to name the downloaded symbol. */
+  reference: string;
   className?: string;
 }) {
   const translate = useTranslations("qr");
@@ -50,7 +54,7 @@ export function RecordQrCode({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${transferCode}-qr.svg`;
+    anchor.download = `${reference}-qr.svg`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -63,7 +67,7 @@ export function RecordQrCode({
     <div className={className}>
       <div className="flex flex-col items-center gap-3">
         <div
-          aria-label={translate("symbolAlternative", { code: transferCode })}
+          aria-label={translate("symbolAlternative", { code: reference })}
           className="bg-surface w-40 rounded-md border p-2 [&_svg]:h-auto [&_svg]:w-full"
           // The symbol is a static, locally generated SVG string from the library; it contains no
           // record content beyond the encoded payload and no scripting.

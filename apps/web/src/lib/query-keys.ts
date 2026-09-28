@@ -16,7 +16,17 @@ export const queryKeys = {
     detail: (recordId: string) => ["records", "detail", recordId] as const,
     events: (recordId: string) => ["records", "events", recordId] as const,
     evidence: (recordId: string) => ["records", "evidence", recordId] as const,
-    reviewQueue: ["records", "review-queue"] as const,
+    pages: (role: UserRole, filters: string) => ["records", "pages", role, filters] as const,
+    credentials: (recordId: string) => ["records", "credentials", recordId] as const,
+    processingQueue: ["records", "processing-queue"] as const,
+    processingDraft: (recordId: string) => ["records", "processing-draft", recordId] as const,
+    reviewCases: (filters: string) => ["records", "review-cases", filters] as const,
+    reviewCase: (recordId: string) => ["records", "review-case", recordId] as const,
+  },
+  reference: {
+    programme: ["reference", "programme"] as const,
+    destinations: ["reference", "destinations"] as const,
+    receivingLocations: ["reference", "receiving-locations"] as const,
   },
   locations: (category: string, area: string) => ["locations", category, area] as const,
   safetyGuidance: (category: string, language: string) =>

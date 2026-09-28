@@ -2,22 +2,27 @@
 
 import { useTranslations } from "next-intl";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ListItem, MetricCard, PageHeading, SectionLabel } from "@/components/ui/content";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AsyncPanel } from "@/features/shared/async-panel";
 import { useContractLabels } from "@/features/shared/contract-labels";
 import { useValueFormats } from "@/features/shared/formats";
-import { useOperationalRecords } from "@/hooks/use-records";
+import { useOperationalRecords, useProcessingQueue } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import { toKilograms } from "@/services/domain/flags";
 
-/** Records received at this facility that still need processing details recorded. */
+/**
+ * Records received at this facility that still need processing details recorded. The queue is
+ * the API's processing queue, oldest receipt first, paged by the server's cursor.
+ */
 export function ProcessingQueueScreen() {
   const translate = useTranslations("screens.recyclerProcessingQueue");
   const labels = useContractLabels();
   const formats = useValueFormats();
   const query = useOperationalRecords();
+  const queue = useProcessingQueue();
+  const awaiting = queue.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -25,7 +30,6 @@ export function ProcessingQueueScreen() {
 
       <AsyncPanel query={query}>
         {(records) => {
-          const awaiting = records.filter((record) => record.business_state === "received");
           const recorded = records.filter(
             (record) => record.processing !== undefined && record.business_state !== "received",
           );
@@ -57,7 +61,11 @@ export function ProcessingQueueScreen() {
                 <SectionLabel>
                   <span id="awaiting-heading">{translate("awaitingHeading")}</span>
                 </SectionLabel>
-                {awaiting.length === 0 ? (
+                {queue.isPending ? (
+                  <p aria-live="polite" className="text-muted-foreground text-xs">
+                    {translate("loadingQueue")}
+                  </p>
+                ) : awaiting.length === 0 ? (
                   <p className="bg-surface text-muted-foreground rounded-md border p-4 text-xs">
                     {translate("noneAwaiting")}
                   </p>
@@ -82,6 +90,16 @@ export function ProcessingQueueScreen() {
                     ))}
                   </ul>
                 )}
+                {queue.hasNextPage ? (
+                  <Button
+                    disabled={queue.isFetchingNextPage}
+                    loading={queue.isFetchingNextPage}
+                    onClick={() => void queue.fetchNextPage()}
+                    variant="secondary"
+                  >
+                    {translate("loadMore")}
+                  </Button>
+                ) : null}
               </section>
 
               <section aria-labelledby="recorded-heading" className="space-y-2">

@@ -2,14 +2,15 @@ import {
   PermissionSchema,
   ProcessingRequestSchema,
   ProcessingResponseSchema,
+  RecoveryRecordPageSchema,
   UserRoleSchema,
 } from "@scraptrace/contracts";
 import type { z } from "zod";
 
 import { toActorReference } from "@/auth/actors";
 import { sha256Blob, sha256Json } from "@/services/domain/digest";
-import { evaluateProcessingFlags } from "@/services/domain/flags";
-import { idempotencyKeyFor } from "@/services/domain/identifiers";
+import { evaluateProcessingFlags, toKilograms } from "@/services/domain/flags";
+import { idempotencyKeyFor, newUuid } from "@/services/domain/identifiers";
 import { isTerminal } from "@/services/domain/records";
 import { nowUtc } from "@/services/domain/time";
 import type { ProcessingService, RecordProcessingInput } from "@/services/ports/service-ports";
@@ -150,10 +151,106 @@ export const createProcessingService = (context: LocalServiceContext): Processin
     return response;
   };
 
+  const storeCompletionEvidence = async (
+    recordId: string,
+    image: Blob,
+    offline: boolean,
+    preview?: string,
+  ) =>
+    repository.putEvidence(
+      createEvidence({
+        recordId,
+        evidenceType: "processing_completion",
+        capturedBy: actor,
+        captureSource: offline ? "approved_demo_fixture" : "recycler_camera",
+        mimeType: image.type || "image/jpeg",
+        fileSizeBytes: image.size,
+        contentDigest: await sha256Blob(image),
+        connectivity: offline ? "offline" : "online",
+      }),
+      preview,
+    );
+
+  const receivedRecord = (recordId: string) => {
+    const record = repository.findRecord(recordId);
+    if (!record) throw notFound();
+    requirePermission(context, permission["processing:record"], { record });
+    return record;
+  };
+
   return {
     record: async (request) => {
       await pause(context.delayMilliseconds);
       return recordProcessing(request);
+    },
+
+    async listQueue(request) {
+      await pause(context.delayMilliseconds);
+      requirePermission(context, permission["processing:record"]);
+      const queue = repository
+        .listRecords()
+        .filter(
+          (record) =>
+            record.business_state === "received" &&
+            record.handoff !== undefined &&
+            actor.locationIds.includes(record.handoff.receiving_location_id),
+        )
+        .sort((left, right) =>
+          (left.handoff?.server_received_at ?? "").localeCompare(
+            right.handoff?.server_received_at ?? "",
+          ),
+        );
+      const limit = request.limit ?? 25;
+      const offset = request.cursor ? Number.parseInt(request.cursor, 10) || 0 : 0;
+      const next = offset + limit < queue.length ? String(offset + limit) : null;
+      return RecoveryRecordPageSchema.parse({
+        items: queue.slice(offset, offset + limit),
+        pagination: { next_cursor: next, has_more: next !== null },
+      });
+    },
+
+    async getDraft(recordId) {
+      await pause(context.delayMilliseconds);
+      receivedRecord(recordId);
+      return repository.getProcessingDraft(recordId);
+    },
+
+    async saveDraft(recordId, input) {
+      await pause(context.delayMilliseconds);
+      const record = receivedRecord(recordId);
+      if (record.business_state !== "received") {
+        throw invalidTransition("Processing can only be prepared after the handoff is received.");
+      }
+      const existing = repository.getProcessingDraft(recordId);
+      const evidence = input.completionEvidence
+        ? await storeCompletionEvidence(
+            recordId,
+            input.completionEvidence,
+            input.offline,
+            input.completionEvidencePreview,
+          )
+        : null;
+      const entries = input.materialEntries.map((entry) => ({
+        entry_id: entry.entryId ?? newUuid(),
+        material: entry.material.trim(),
+        weight: entry.weight,
+      }));
+      return repository.putProcessingDraft({
+        record_id: record.record_id,
+        status: "draft",
+        processing_method: input.method,
+        ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
+        ...(input.processedAt ? { processing_timestamp: input.processedAt } : {}),
+        completion_evidence_ids: evidence
+          ? [evidence.evidence_id]
+          : [...(existing?.completion_evidence_ids ?? [])],
+        material_entries: entries,
+        total_recovered_weight_kg: Number(
+          entries.reduce((total, entry) => total + toKilograms(entry.weight), 0).toFixed(4),
+        ),
+        version: (existing?.version ?? 0) + 1,
+        updated_at: nowUtc(),
+      });
     },
 
     async submitProcessing(input: RecordProcessingInput) {
@@ -181,21 +278,23 @@ export const createProcessingService = (context: LocalServiceContext): Processin
         ]);
       }
 
-      const capturedAt = nowUtc();
-      const completionEvidence = repository.putEvidence(
-        createEvidence({
-          recordId: record.record_id,
-          evidenceType: "processing_completion",
-          capturedBy: actor,
-          captureSource: input.offline ? "approved_demo_fixture" : "recycler_camera",
-          mimeType: input.completionEvidence.type || "image/jpeg",
-          fileSizeBytes: input.completionEvidence.size,
-          contentDigest: await sha256Blob(input.completionEvidence),
-          connectivity: input.offline ? "offline" : "online",
-          capturedAt,
-        }),
-        input.completionEvidencePreview,
-      );
+      const evidenceIds = input.completionEvidence
+        ? [
+            (
+              await storeCompletionEvidence(
+                record.record_id,
+                input.completionEvidence,
+                input.offline,
+                input.completionEvidencePreview,
+              )
+            ).evidence_id,
+          ]
+        : [...(input.completionEvidenceIds ?? [])];
+      if (evidenceIds.length === 0) {
+        throw validationFailed("A processing or completion photograph is required.", [
+          { field: "completionEvidence", reason: "required" },
+        ]);
+      }
 
       const payload = {
         recovery_record_id: record.record_id,
@@ -206,7 +305,7 @@ export const createProcessingService = (context: LocalServiceContext): Processin
           weight: entry.weight,
         })),
         processing_timestamp: input.processedAt,
-        completion_evidence_ids: [completionEvidence.evidence_id],
+        completion_evidence_ids: evidenceIds,
         notes: input.notes.trim().slice(0, 1_000),
       };
 

@@ -1,0 +1,198 @@
+{
+  "$comment": "Every API operation the web HTTP adapter calls. apps/api/tests/test_frontend_operations.py checks each one against the generated OpenAPI document (route, method, request contract, documented responses); src/test/consumed-operations.test.ts checks the adapter calls nothing else. Contract names are PUBLIC_SCHEMA_REGISTRY keys.",
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/v1/auth/sessions",
+      "request": "sign_in_request",
+      "response": "session_created",
+      "statuses": [201, 401, 422, 429]
+    },
+    { "method": "GET", "path": "/v1/auth/me", "response": "current_user", "statuses": [200, 401] },
+    { "method": "DELETE", "path": "/v1/auth/sessions/current", "statuses": [204, 401] },
+    {
+      "method": "GET",
+      "path": "/v1/auth/demo-accounts",
+      "response": "demo_account_list",
+      "statuses": [200, 404]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/programmes/{programme_id}",
+      "response": "programme_view",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/programmes/{programme_id}/receiving-locations",
+      "response": "receiving_location_list",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/facilities/{facility_id}/receiving-locations",
+      "response": "receiving_location_list",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records",
+      "response": "recovery_record_page",
+      "statuses": [200, 401, 422]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records",
+      "request": "multipart:recovery_record_draft_create",
+      "response": "recovery_record",
+      "statuses": [201, 401, 409, 413, 415, 422]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records/{record_id}",
+      "response": "recovery_record",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/recovery-records/{record_id}",
+      "request": "recovery_record_draft_update",
+      "response": "recovery_record",
+      "statuses": [200, 401, 404, 409, 422, 428]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records/{record_id}/category-confirmations",
+      "request": "category_confirmation_request",
+      "response": "recovery_record",
+      "statuses": [200, 401, 404, 409, 422, 428]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records/{record_id}/submissions",
+      "response": "record_submission_response",
+      "statuses": [200, 401, 404, 409]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records/{record_id}/qr-credentials",
+      "response": "qr_credentials",
+      "statuses": [200, 401, 403, 404]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records/{record_id}/qr-token-rotations",
+      "response": "qr_credentials",
+      "statuses": [201, 401, 404, 409]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records/{record_id}/events",
+      "response": "recovery_record_event_list",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records/{record_id}/evidence",
+      "response": "evidence_metadata_list",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records/{record_id}/evidence",
+      "request": "multipart:evidence_upload_request",
+      "response": "evidence_metadata",
+      "statuses": [201, 401, 404, 409, 413, 415, 422]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/evidence/{evidence_id}/content",
+      "statuses": [200, 401, 404, 409]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/vision/appraise",
+      "response": "vision_appraisal_response",
+      "statuses": [200, 401, 413, 415, 422, 503]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/handoff-lookups",
+      "request": "handoff_lookup_request",
+      "response": "handoff_lookup_response",
+      "statuses": [200, 401, 403, 404, 422, 429]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/handoffs",
+      "request": "handoff_request",
+      "response": "handoff_response",
+      "statuses": [200, 201, 401, 403, 404, 409, 422, 429]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/processing-queue",
+      "response": "recovery_record_page",
+      "statuses": [200, 401, 403]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/recovery-records/{record_id}/processing",
+      "response": "processing_detail",
+      "statuses": [200, 401, 404]
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/recovery-records/{record_id}/processing",
+      "request": "processing_draft_update",
+      "response": "processing_detail",
+      "statuses": [200, 401, 404, 409, 422, 428]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/recovery-records/{record_id}/processing/material-entries",
+      "request": "material_entry",
+      "response": "processing_detail",
+      "statuses": [201, 401, 404, 409, 422]
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/recovery-records/{record_id}/processing/material-entries/{entry_id}",
+      "request": "material_entry_update",
+      "response": "processing_detail",
+      "statuses": [200, 401, 404, 409, 422]
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/recovery-records/{record_id}/processing/material-entries/{entry_id}",
+      "response": "processing_detail",
+      "statuses": [200, 401, 404, 409]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/processing-submissions",
+      "request": "processing_request",
+      "response": "processing_response",
+      "statuses": [200, 201, 401, 403, 404, 409, 422]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/review-cases",
+      "response": "review_case_page",
+      "statuses": [200, 401, 403, 422]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/review-cases/{case_id}",
+      "response": "review_case_detail",
+      "statuses": [200, 401, 403, 404]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/review-decisions",
+      "request": "programme_review_request",
+      "response": "programme_review_response",
+      "statuses": [200, 201, 401, 403, 404, 409, 422]
+    }
+  ]
+}

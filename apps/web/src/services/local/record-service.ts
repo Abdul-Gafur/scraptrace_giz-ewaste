@@ -1,22 +1,30 @@
 import {
+  EvidenceMetadataSchema,
+  HandoffPreviewSchema,
   PermissionSchema,
+  RecoveryRecordListRequestSchema,
+  RecoveryRecordPageSchema,
   RecoveryRecordSchema,
   SafetyGuideReferenceSchema,
   UserRoleSchema,
+  type Evidence,
+  type EvidenceMetadata,
+  type HandoffPreview,
   type RecoveryRecord,
 } from "@scraptrace/contracts";
 
 import { recordLocationId, toActorReference } from "@/auth/actors";
 import { sha256Blob } from "@/services/domain/digest";
-import { newUuid } from "@/services/domain/identifiers";
+import { newLookupToken, newUuid } from "@/services/domain/identifiers";
 import {
   PredictionFeedbackSchema,
   type PredictionFeedback,
 } from "@/services/domain/model-administration";
-import { decodeQrPayload, normalizeTransferCode } from "@/services/domain/qr-payload";
+import { classifyPresentedCode, decodeQrPayload } from "@/services/domain/qr-payload";
 import { isTerminal } from "@/services/domain/records";
 import { nowUtc } from "@/services/domain/time";
 import type {
+  AddEvidenceInput,
   CaptureInput,
   HandoffLookupResult,
   RecoveryRecordService,
@@ -31,12 +39,49 @@ import {
   applyTransition,
   createDraftRecord,
   createEvidence,
+  localQrPayload,
   storeWithDigest,
 } from "./record-factory";
+import { localCredentials, localTransferCode } from "./local-credentials";
 import { findServableCard } from "./safety-service";
 
 const permission = PermissionSchema.enum;
 const role = UserRoleSchema.enum;
+
+/** Evidence as an API returns it: the private storage reference never leaves the store. */
+export const toEvidenceMetadata = (evidence: Evidence): EvidenceMetadata => {
+  const metadata = Object.fromEntries(
+    Object.entries(evidence).filter(([field]) => field !== "storage_reference"),
+  );
+  return EvidenceMetadataSchema.parse(metadata);
+};
+
+/** The minimised view a recycler receives before accepting an item (FR-HND-002). */
+export const toHandoffPreview = (record: RecoveryRecord): HandoffPreview =>
+  HandoffPreviewSchema.parse({
+    record_id: record.record_id,
+    human_reference: record.human_reference,
+    record_kind: record.record_kind,
+    category: record.category,
+    ...(record.item_count === undefined ? {} : { item_count: record.item_count }),
+    ...(record.approximate_weight ? { approximate_weight: record.approximate_weight } : {}),
+    condition: record.condition,
+    approximate_area: record.approximate_area,
+    captured_at: record.captured_at,
+    collector: record.collector,
+    original_image_evidence_id: record.original_image_evidence_id,
+    ...(record.destination ? { destination: record.destination } : {}),
+    business_state: record.business_state,
+    handoff_state: record.handoff_state,
+  });
+
+const RECYCLER_EVIDENCE_BY_STATE: Partial<
+  Record<RecoveryRecord["business_state"], readonly string[]>
+> = {
+  awaiting_handoff: ["handoff_photo", "weight_measurement"],
+  received: ["processing_completion"],
+  under_review: ["handoff_photo", "weight_measurement", "processing_completion"],
+};
 
 /**
  * Collector record service.
@@ -136,6 +181,36 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
       return operationalRecords();
     },
 
+    async listPage(request) {
+      await pause(context.delayMilliseconds);
+      const parsed = RecoveryRecordListRequestSchema.parse(request);
+      if (actor.role === role.collector) {
+        requirePermission(context, permission["recovery_record:view_own"], { ownsResource: true });
+      } else {
+        requirePermission(context, permission["recovery_record:view_operational"]);
+      }
+      const field = parsed.sort.replace(/^-/, "") as "created_at" | "updated_at" | "captured_at";
+      const direction = parsed.sort.startsWith("-") ? -1 : 1;
+      const filtered = [...operationalRecords()]
+        .filter((record) => !parsed.state || parsed.state.includes(record.business_state))
+        .filter((record) => !parsed.category || parsed.category.includes(record.category))
+        .filter(
+          (record) =>
+            !parsed.captured_from || record.captured_at.slice(0, 10) >= parsed.captured_from,
+        )
+        .filter(
+          (record) => !parsed.captured_to || record.captured_at.slice(0, 10) <= parsed.captured_to,
+        )
+        .sort((left, right) => direction * left[field].localeCompare(right[field]));
+      const offset = parsed.cursor ? Number.parseInt(parsed.cursor, 10) || 0 : 0;
+      const items = filtered.slice(offset, offset + parsed.limit);
+      const next = offset + parsed.limit < filtered.length ? String(offset + parsed.limit) : null;
+      return RecoveryRecordPageSchema.parse({
+        items,
+        pagination: { next_cursor: next, has_more: next !== null },
+      });
+    },
+
     async getById(recordId) {
       await pause(context.delayMilliseconds);
       const record = repository.findRecord(recordId);
@@ -146,12 +221,6 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
           : permission["recovery_record:view_operational"];
       requirePermission(context, scoped, { record });
       return record;
-    },
-
-    async saveDraft(record) {
-      await pause(context.delayMilliseconds);
-      requirePermission(context, permission["recovery_record:create"]);
-      return repository.putRecord(record);
     },
 
     async createDraft(input: CaptureInput) {
@@ -257,33 +326,21 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
         ]);
       }
 
-      const evidenceId = current.original_image_evidence_id;
       if (input.image) {
-        const existing = repository.findEvidence(evidenceId);
-        if (!existing) throw notFound();
-        const replacement = createEvidence({
-          recordId,
-          evidenceType: "original_item_photo",
-          capturedBy: actor,
-          captureSource: input.offline ? "approved_demo_fixture" : "in_app_camera",
-          mimeType: input.image.type || "image/jpeg",
-          fileSizeBytes: input.image.size,
-          contentDigest: await sha256Blob(input.image),
-          ...(input.capturedAt ? { capturedAt: input.capturedAt } : {}),
-          ...(input.captureLocation ? { coordinates: input.captureLocation } : {}),
-          connectivity: input.offline ? "offline" : "online",
-          ...(input.visionResult
-            ? {
-                aiObservation: {
-                  model_name: input.visionResult.model_name,
-                  model_version: input.visionResult.model_version,
-                  original_prediction: input.visionResult.suggested_category,
-                  confidence: input.visionResult.confidence,
-                },
-              }
-            : {}),
-        });
-        repository.putEvidence({ ...replacement, evidence_id: evidenceId }, input.imagePreview);
+        // The original photograph is never replaced; a new one is additional evidence.
+        repository.putEvidence(
+          createEvidence({
+            recordId,
+            evidenceType: "additional_item_photo",
+            capturedBy: actor,
+            captureSource: input.offline ? "approved_demo_fixture" : "in_app_camera",
+            mimeType: input.image.type || "image/jpeg",
+            fileSizeBytes: input.image.size,
+            contentDigest: await sha256Blob(input.image),
+            connectivity: input.offline ? "offline" : "online",
+          }),
+          input.imagePreview,
+        );
       }
 
       const { safetyGuide, destination } = referencesFor(input);
@@ -314,7 +371,10 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
           label: input.areaLabel,
           ...(input.administrativeArea ? { administrative_area: input.administrativeArea } : {}),
         },
-        ...(input.visionResult ? { vision_result: input.visionResult } : {}),
+        // The original prediction is kept as received: associated once, never replaced.
+        ...((current.vision_result ?? input.visionResult)
+          ? { vision_result: current.vision_result ?? input.visionResult }
+          : {}),
         category_confirmation: {
           confirmed_category: input.category,
           confirmed_by: toActorReference(actor),
@@ -400,14 +460,41 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
       } satisfies SubmitOutcome;
     },
 
+    async getQrCredentials(recordId) {
+      await pause(context.delayMilliseconds);
+      const record = repository.findRecord(recordId);
+      if (!record || record.collector.actor_id !== actor.actorId) throw notFound();
+      requirePermission(context, permission["recovery_record:correct_own"], { record });
+      return localCredentials(record);
+    },
+
+    async reissueQrCredentials(recordId) {
+      await pause(context.delayMilliseconds);
+      const record = repository.findRecord(recordId);
+      if (!record || record.collector.actor_id !== actor.actorId) throw notFound();
+      requirePermission(context, permission["recovery_record:correct_own"], { record });
+      if (record.business_state !== "awaiting_handoff") {
+        throw invalidTransition("A QR code can be reissued only while the record awaits handoff.");
+      }
+      const reissued = repository.putRecord(
+        RecoveryRecordSchema.parse({
+          ...record,
+          qr_payload: { ...localQrPayload(record), lookup_token: newLookupToken() },
+        }),
+      );
+      return localCredentials(reissued);
+    },
+
     async lookupForHandoff(scannedTextOrCode) {
       await pause(context.delayMilliseconds);
-      requirePermission(context, permission["recovery_record:view_operational"]);
+      requirePermission(context, permission["handoff:accept"]);
 
-      const trimmed = scannedTextOrCode.trim();
+      const presented = classifyPresentedCode(scannedTextOrCode);
       let record: RecoveryRecord | null = null;
-      if (trimmed.includes(":")) {
-        const decoded = decodeQrPayload(trimmed);
+      let credential: Extract<HandoffLookupResult, { outcome: "ready" }>["credential"] | null =
+        null;
+      if (presented.kind === "qr_text") {
+        const decoded = decodeQrPayload(presented.text);
         if (!decoded.ok) {
           return decoded.reason === "unsupported_contract_version"
             ? { outcome: "unsupported_contract_version" }
@@ -415,27 +502,34 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
         }
         record = repository.findRecordByLookupToken(decoded.payload.lookup_token);
         if (record && record.record_id !== decoded.payload.record_id) record = null;
-      } else {
-        record = repository.findRecordByHumanReference(normalizeTransferCode(trimmed));
+        credential = { kind: "qr_token", lookupToken: decoded.payload.lookup_token };
+      } else if (presented.kind === "manual_transfer_code") {
+        for (const candidate of repository.listRecords()) {
+          if (!candidate.qr_payload || candidate.business_state === "draft") continue;
+          if ((await localTransferCode(candidate)) === presented.code) record = candidate;
+        }
+        credential = { kind: "manual_transfer_code", code: presented.code };
       }
 
-      if (!record) return { outcome: "not_found" } satisfies HandoffLookupResult;
-
+      if (!record || !credential || record.business_state === "draft") {
+        return { outcome: "not_found" } satisfies HandoffLookupResult;
+      }
       const locationId = recordLocationId(record);
       if (locationId !== undefined && !actor.locationIds.includes(locationId)) {
-        return { outcome: "other_facility", record };
+        return { outcome: "other_facility" };
       }
+      const preview = toHandoffPreview(record);
       if (record.handoff) {
         return {
           outcome: "already_received",
-          record,
+          record: preview,
           receivedAt: record.handoff.server_received_at,
         };
       }
       if (record.business_state !== "awaiting_handoff" || isTerminal(record)) {
-        return { outcome: "not_ready", record };
+        return { outcome: "not_ready", record: preview };
       }
-      return { outcome: "ready", record };
+      return { outcome: "ready", record: preview, credential };
     },
 
     async listEvents(recordId) {
@@ -463,7 +557,44 @@ export const createRecordService = (context: LocalServiceContext): RecoveryRecor
           : permission["recovery_record:view_operational"],
         { record },
       );
-      return repository.listEvidence(recordId);
+      return repository.listEvidence(recordId).map(toEvidenceMetadata);
+    },
+
+    async addEvidence(recordId, input: AddEvidenceInput) {
+      await pause(context.delayMilliseconds);
+      const record = repository.findRecord(recordId);
+      if (!record) throw notFound();
+      if (actor.role === role.collector) {
+        requirePermission(context, permission["recovery_record:correct_own"], { record });
+        if (record.business_state !== "draft" || input.evidenceType !== "additional_item_photo") {
+          throw invalidTransition("Photographs can be added only while the record is a draft.");
+        }
+      } else {
+        requirePermission(context, permission["handoff:record"], { record });
+        const allowed = RECYCLER_EVIDENCE_BY_STATE[record.business_state] ?? [];
+        if (!allowed.includes(input.evidenceType)) {
+          throw invalidTransition("Evidence cannot be added in the record's current state.");
+        }
+      }
+      const stored = repository.putEvidence(
+        createEvidence({
+          recordId,
+          evidenceType: input.evidenceType,
+          capturedBy: actor,
+          captureSource:
+            actor.role === role.collector
+              ? "in_app_camera"
+              : input.offline
+                ? "approved_demo_fixture"
+                : "recycler_camera",
+          mimeType: input.image.type || "image/jpeg",
+          fileSizeBytes: input.image.size,
+          contentDigest: await sha256Blob(input.image),
+          connectivity: input.offline ? "offline" : "online",
+        }),
+        input.preview,
+      );
+      return toEvidenceMetadata(stored);
     },
 
     async getEvidenceImage(evidenceId) {

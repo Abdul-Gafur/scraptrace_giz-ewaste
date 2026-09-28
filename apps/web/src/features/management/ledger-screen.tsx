@@ -15,13 +15,14 @@ import { useContractLabels } from "@/features/shared/contract-labels";
 import { useValueFormats } from "@/features/shared/formats";
 import { useOperationalRecords } from "@/hooks/use-records";
 import { toKilograms } from "@/services/domain/flags";
-import { findLocationName } from "@/services/local/location-directory";
+import { useLocationNames } from "@/hooks/use-reference";
 
 const PAGE_SIZE = 15;
 
 /** Every record in the programme, in one read-only ledger. */
 export function LedgerScreen() {
   const translate = useTranslations("screens.ledger");
+  const locationName = useLocationNames();
   const translateStatus = useTranslations("status");
   const labels = useContractLabels();
   const formats = useValueFormats();
@@ -76,7 +77,7 @@ export function LedgerScreen() {
     {
       key: "facility",
       header: translate("colFacility"),
-      cell: (row) => findLocationName(row.handoff?.receiving_location_id) ?? "—",
+      cell: (row) => locationName(row.handoff?.receiving_location_id) ?? "—",
     },
     {
       key: "digest",

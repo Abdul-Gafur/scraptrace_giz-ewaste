@@ -91,30 +91,35 @@ describe("recycler dashboard", () => {
 });
 
 describe("review queue", () => {
-  it("lists only records that are reviewable, and filters by reason", async () => {
+  it("lists unresolved cases and sends the reason filter to the service", async () => {
     const harness = await createScreenHarness("programme_reviewer");
+    const listCases = vi.spyOn(harness.services.reviews, "listCases");
     renderScreen(<ReviewQueue />, { role: "programme_reviewer", services: harness.services });
-    await waitFor(() => expect(screen.getByText(/\d+ record\(s\)/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/cases on page 1/)).toBeInTheDocument());
 
-    const reviewable = harness.repository
+    const unresolved = harness.repository
       .listRecords()
-      .filter(
-        (record) =>
-          record.business_state === "under_review" ||
-          (record.review.flag_codes.length > 0 && record.review.review_state !== "not_required"),
-      );
-    expect(screen.getByText(`${reviewable.length} record(s)`)).toBeInTheDocument();
-    for (const record of reviewable) {
+      .filter((record) => ["open", "awaiting_information"].includes(record.review.review_state));
+    expect(screen.getByText(`${unresolved.length} cases on page 1`)).toBeInTheDocument();
+    for (const record of unresolved) {
       expect(screen.getAllByText(record.human_reference).length).toBeGreaterThan(0);
     }
+    expect(listCases).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: ["open", "awaiting_information"] }),
+    );
 
     await userEvent.selectOptions(screen.getByLabelText("Reason"), "CATEGORY_DISAGREEMENT");
-    await waitFor(() => {
-      const count = reviewable.filter((record) =>
-        record.review.flag_codes.includes("CATEGORY_DISAGREEMENT"),
-      ).length;
-      expect(screen.getByText(`${count} record(s)`)).toBeInTheDocument();
-    });
+    await waitFor(() =>
+      expect(listCases).toHaveBeenLastCalledWith(
+        expect.objectContaining({ flag_code: "CATEGORY_DISAGREEMENT" }),
+      ),
+    );
+    const matching = unresolved.filter((record) =>
+      record.review.flag_codes.includes("CATEGORY_DISAGREEMENT"),
+    ).length;
+    await waitFor(() =>
+      expect(screen.getByText(`${matching} cases on page 1`)).toBeInTheDocument(),
+    );
   });
 
   it("does not show a collector identifier in the queue", async () => {
@@ -123,7 +128,7 @@ describe("review queue", () => {
       role: "programme_reviewer",
       services: harness.services,
     });
-    await waitFor(() => expect(screen.getByText(/\d+ record\(s\)/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/cases on page 1/)).toBeInTheDocument());
     const collectorId = harness.repository.listRecords()[0]?.collector.actor_id ?? "";
     expect(container.textContent).not.toContain(collectorId);
   });

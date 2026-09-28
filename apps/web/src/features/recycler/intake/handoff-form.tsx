@@ -4,7 +4,7 @@ import {
   EwasteCategorySchema,
   ItemConditionSchema,
   type EwasteCategory,
-  type RecoveryRecord,
+  type HandoffPreview,
 } from "@scraptrace/contracts";
 import { CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -24,32 +24,33 @@ import { EvidencePanel } from "@/features/shared/evidence-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { prepareImage, type AcceptedImage } from "@/features/shared/image-capture";
 import { RecordIdentity } from "@/features/shared/record-identity";
+import { useActingIdentity } from "@/hooks/use-identity";
+import { useLocationNames, useProgramme, useReceivingLocations } from "@/hooks/use-reference";
 import { useRecordEvidence } from "@/hooks/use-records";
-import { useProgrammeSettings } from "@/hooks/use-programme";
-import { DEMO_ACTORS, DEMO_FACILITY_LOCATION_IDS } from "@/auth/actors";
 import { weightDifferenceRatio } from "@/services/domain/flags";
-import { findLocationName } from "@/services/local/location-directory";
 import type { HandoffResponse } from "@/features/recycler/intake/types";
-import type { RecordHandoffInput } from "@/services/ports/service-ports";
+import type { PresentedCredential, RecordHandoffInput } from "@/services/ports/service-ports";
 
 /**
  * Handoff confirmation (FR-HND-002 to FR-HND-007).
  *
- * The recycler sees what the collector submitted before confirming anything, confirms the category
- * and condition independently, records a positive weight and a non-negative final price, and
- * attaches the handoff and scale photographs the transition requires. Receipt is an explicit,
- * confirmed action, and the button is disabled while the call is in flight so a double tap cannot
- * create a second handoff.
+ * The recycler sees the minimised preview of what the collector submitted before confirming
+ * anything, confirms the category and condition independently, records a positive weight and a
+ * non-negative final price, and attaches the handoff and scale photographs the transition
+ * requires. The programme currency, the discrepancy threshold and the receiving locations come
+ * from the API. Receipt is an explicit, confirmed action, and the button is disabled while the
+ * call is in flight so a double tap cannot create a second handoff.
  */
 export function HandoffForm({
   record,
-  scannedPayload,
+  credential,
   onSubmit,
   pending,
   response,
 }: {
-  record: RecoveryRecord;
-  scannedPayload: string;
+  record: HandoffPreview;
+  /** The credential presented at lookup, relayed unchanged into the handoff request. */
+  credential: PresentedCredential;
   onSubmit: (input: RecordHandoffInput) => void;
   pending: boolean;
   response: HandoffResponse | null;
@@ -57,25 +58,33 @@ export function HandoffForm({
   const translate = useTranslations("screens.recyclerIntake");
   const labels = useContractLabels();
   const formats = useValueFormats();
-  const settingsQuery = useProgrammeSettings();
-  const evidenceQuery = useRecordEvidence(record.record_id);
+  const identity = useActingIdentity();
+  const programmeQuery = useProgramme();
+  const locationsQuery = useReceivingLocations();
+  const locationName = useLocationNames();
+  // Comparison photographs are readable only when the record is destined for this facility.
+  const evidenceQuery = useRecordEvidence(record.destination ? record.record_id : undefined);
 
   const [category, setCategory] = useState<EwasteCategory>(record.category);
   const [condition, setCondition] = useState<z.infer<typeof ItemConditionSchema>>(record.condition);
   const [weightValue, setWeightValue] = useState("");
   const [weightUnit, setWeightUnit] = useState<"kg" | "g">("kg");
   const [price, setPrice] = useState("0");
-  const [locationId, setLocationId] = useState(
-    record.destination?.location_id ?? DEMO_FACILITY_LOCATION_IDS[0] ?? "",
-  );
+  const [chosenLocationId, setLocationId] = useState<string | null>(null);
+  const locations = locationsQuery.data ?? [];
+  const locationId =
+    chosenLocationId ??
+    (locations.some((location) => location.location_id === record.destination?.location_id)
+      ? (record.destination?.location_id ?? "")
+      : (locations[0]?.location_id ?? ""));
   const [notes, setNotes] = useState("");
   const [handoffPhoto, setHandoffPhoto] = useState<AcceptedImage | null>(null);
   const [weightPhoto, setWeightPhoto] = useState<AcceptedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
 
-  const threshold = settingsQuery.data?.weight_discrepancy_threshold_percentage ?? 15;
-  const currency = settingsQuery.data?.currency ?? "GHS";
+  const threshold = programmeQuery.data?.weight_discrepancy_threshold_percentage;
+  const currency = programmeQuery.data?.currency;
   const parsedWeight = Number.parseFloat(weightValue);
   const ratio =
     Number.isFinite(parsedWeight) && parsedWeight > 0
@@ -84,7 +93,7 @@ export function HandoffForm({
           unit: weightUnit,
         })
       : null;
-  const wouldFlag = ratio !== null && ratio * 100 > threshold;
+  const wouldFlag = ratio !== null && threshold !== undefined && ratio * 100 > threshold;
 
   const pickImage = async (
     file: File,
@@ -128,8 +137,14 @@ export function HandoffForm({
       setFormError(translate("fixErrors"));
       return;
     }
+    if (!currency) {
+      setFormError(translate("programmeUnavailable"));
+      return;
+    }
     onSubmit({
       recordId: record.record_id,
+      collectorReference: record.collector,
+      credential,
       confirmedCategory: category,
       confirmedCondition: condition,
       measuredWeight: { value: parsedWeight, unit: weightUnit },
@@ -141,10 +156,9 @@ export function HandoffForm({
         ...(handoffPhoto.preview ? { handoffPhotoPreview: handoffPhoto.preview } : {}),
         weightPhoto: weightPhoto.blob,
         ...(weightPhoto.preview ? { weightPhotoPreview: weightPhoto.preview } : {}),
-        scannedPayload,
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
       },
-      offline: false,
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
+      offline: typeof navigator !== "undefined" && !navigator.onLine,
     });
   };
 
@@ -188,11 +202,10 @@ export function HandoffForm({
         <CardContent className="space-y-3">
           <RecordIdentity record={record} showSync={false} />
           <DefinitionList>
-            <DefinitionRow term={translate("collectorSubmittedAt")}>
-              {formats.dateTime(record.created_at)}
-            </DefinitionRow>
             <DefinitionRow term={translate("intendedDestination")}>
-              {findLocationName(record.destination?.location_id) ?? translate("noDestination")}
+              {record.destination
+                ? (locationName(record.destination.location_id) ?? translate("unknownLocation"))
+                : translate("noDestination")}
             </DefinitionRow>
           </DefinitionList>
           {/* Comparison evidence only: the recycler sees no collector contact detail and no
@@ -217,7 +230,7 @@ export function HandoffForm({
         <CardContent className="space-y-4">
           <DefinitionList>
             <DefinitionRow term={translate("recyclerIdentity")}>
-              <span className="font-mono text-xs">{DEMO_ACTORS.recycler.actorId}</span>
+              <span className="font-mono text-xs">{identity.actorId}</span>
             </DefinitionRow>
           </DefinitionList>
 
@@ -303,14 +316,14 @@ export function HandoffForm({
             <Alert title={translate("discrepancyWarningTitle")} tone="warning">
               {translate("discrepancyWarning", {
                 difference: formats.percent(ratio),
-                threshold: formats.number(threshold, 0),
+                threshold: formats.number(threshold ?? 0, 0),
               })}
             </Alert>
           ) : null}
 
           <Field
             error={errors["price"]}
-            hint={translate("priceHint", { currency })}
+            hint={translate("priceHint", { currency: currency ?? "—" })}
             label={translate("finalPrice")}
             required
           >
@@ -334,9 +347,9 @@ export function HandoffForm({
                 value={locationId}
                 {...control}
               >
-                {DEMO_FACILITY_LOCATION_IDS.map((id) => (
-                  <option key={id} value={id}>
-                    {findLocationName(id) ?? id}
+                {locations.map((location) => (
+                  <option key={location.location_id} value={location.location_id}>
+                    {location.name}
                   </option>
                 ))}
               </Select>
@@ -346,7 +359,7 @@ export function HandoffForm({
           <Field hint={translate("notesHint")} label={translate("notes")}>
             {(control) => (
               <Input
-                maxLength={500}
+                maxLength={1000}
                 onChange={(event) => setNotes(event.target.value)}
                 value={notes}
                 {...control}

@@ -13,11 +13,11 @@ import { FlagPanel } from "@/features/shared/flag-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { RecordIdentity } from "@/features/shared/record-identity";
 import { RecordTimeline } from "@/features/shared/record-timeline";
+import { useLocationNames } from "@/hooks/use-reference";
 import { useRecord, useRecordEvents, useRecordEvidence } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import { toKilograms } from "@/services/domain/flags";
 import { isTerminal } from "@/services/domain/records";
-import { findLocationName } from "@/services/local/location-directory";
 
 /**
  * One record as the receiving facility sees it.
@@ -33,6 +33,7 @@ export function RecyclerRecordDetail({ recordId }: { recordId: string }) {
   const recordQuery = useRecord(recordId);
   const eventsQuery = useRecordEvents(recordId);
   const evidenceQuery = useRecordEvidence(recordId);
+  const locationName = useLocationNames();
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -86,7 +87,7 @@ export function RecyclerRecordDetail({ recordId }: { recordId: string }) {
                                 {formats.dateTime(record.handoff.server_received_at)}
                               </DefinitionRow>
                               <DefinitionRow term={translate("receivingLocation")}>
-                                {findLocationName(record.handoff.receiving_location_id) ??
+                                {locationName(record.handoff.receiving_location_id) ??
                                   translate("unknownLocation")}
                               </DefinitionRow>
                               <DefinitionRow term={translate("confirmedCategory")}>

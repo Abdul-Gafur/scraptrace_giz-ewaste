@@ -1,50 +1,32 @@
 # Frontend integration
 
-How `apps/web`'s HTTP service adapter (`src/services/http/http-services.ts`) maps onto this API. The frontend is not changed in this phase.
+How `apps/web`'s HTTP adapter (`src/services/http/http-services.ts`) uses this API. The screen-by-screen route list is in [docs/frontend/screen-endpoint-matrix.md](../../../docs/frontend/screen-endpoint-matrix.md). The operations the web consumes are listed in `apps/web/src/services/http/consumed-operations.json` and checked against the OpenAPI document by `tests/test_frontend_operations.py`.
 
 ## Transport rules
 
-- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (for example `http://localhost:8000`). All application routes are under `/v1`.
-- **Envelopes:** success bodies are `{success: true, contract_version: "1.0.0", data, meta: {correlation_id, timestamp}}` (`serviceSuccessSchema`). Failures are `ErrorEnvelopeSchema`, so `HttpClient.request` + `normalizeServiceError` work unchanged; parse `payload.data` for successes. The existing vision endpoint still returns the bare `VisionAppraisalResponse`.
-- **Authentication:** the browser keeps the HttpOnly `scraptrace_session` cookie set by sign-in. `HttpClient` already sends `credentials: "include"`. Do not store the `access_token` from the sign-in body in browser storage. Cookie-authenticated `POST/PUT/PATCH/DELETE` requests must come from an origin listed in `SCRAPTRACE_ALLOWED_ORIGINS`; browsers add `Origin` automatically.
-- **Correlation:** send `X-Request-ID` (8–128 of `[A-Za-z0-9._:-]`) to correlate; it is echoed in `meta.correlation_id` and the `X-Request-ID` header.
-- **Concurrency:** record responses carry `ETag: "<revision>"`. Send it back as `If-Match` on draft edits and category confirmations. `409 VERSION_CONFLICT` means refresh and show `Action required` (FR-OFF-006).
-- **Idempotency:** draft creation needs an `Idempotency-Key` header (16–128 of `[A-Za-z0-9._:-]`) that stays stable across retries of one draft; `idempotencyKeyFor("create_record", recordId, actorId)` fits. Contract commands (handoff, processing, review) carry `idempotency` inside the body as the contracts define. A replay returns the first result, with `Idempotent-Replayed: true` where there is no `replayed` field.
-- **Errors:** `401` → sign in again (`/session-expired`). `403` → access denied. `404` also covers "exists but not yours". `422` has `field_issues[{field, reason}]`. `429` has `Retry-After`.
+- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (for example `http://localhost:8000`). Application routes are under `/v1`.
+- **Contracts:** every request and response body is a generated `@scraptrace/contracts` schema, published as an OpenAPI component of the same name. The API validates requests against these schemas and checks its own responses before sending them. The web parses every response with the same schema.
+- **Envelopes:** success bodies are `{success: true, contract_version: "1.0.0", data, meta}`; failures are `ErrorEnvelope`. Only `POST /v1/vision/appraise` returns a bare `VisionAppraisalResponse`.
+- **Authentication:** `POST /v1/auth/sessions` sets the HttpOnly, `SameSite=Lax` `scraptrace_session` cookie. The body (`SessionCreated`) carries no credential. Browsers send the cookie with `credentials: "include"`. Cookie-authenticated `POST/PUT/PATCH/DELETE` requests must come from an origin in `SCRAPTRACE_ALLOWED_ORIGINS`. Non-browser clients may send the cookie value as `Authorization: Bearer`.
+- **CORS:** credentialed, explicit origins only. The API exposes `X-Request-ID`, `ETag`, `Idempotent-Replayed`, `Retry-After` and `X-Content-Digest` to the browser.
+- **Correlation:** `X-Request-ID` (8–128 of `[A-Za-z0-9._:-]`) is echoed in `meta.correlation_id` and the response header.
+- **Concurrency:** records carry `revision` (and `ETag`), and processing drafts carry `version`. Send it as `If-Match` on draft edits, category confirmations and processing-draft changes. A stale value returns `409 VERSION_CONFLICT`; a missing required `If-Match` returns `428`.
+- **Idempotency:** draft creation takes an `Idempotency-Key` header. Handoff, processing and review commands carry `idempotency` in the body, with one operation name each (`IDEMPOTENT_OPERATIONS`). The web derives each key from the request digest, so an identical retry replays the first result.
+- **Errors:** `401` → sign in again. `403` → the role may not act. `404` also covers resources outside the caller's scope. `422` has allow-listed `field_issues`. `429` has `Retry-After`. `503` is retryable.
 
-## Service-port mapping
+## Handoff credentials (ADR-009)
 
-| Web port method | HTTP | Notes |
-|---|---|---|
-| `authentication.getSession()` | `GET /v1/auth/me` | Map `CurrentUser` → `Session` (`actorId = user_id`, `role`, `preferredLanguage`, `displayLabel = display_name`, `developmentOnly = false`). `401` → `null`. |
-| `authentication.signOut()` | `DELETE /v1/auth/sessions/current` | `204`; the cookie is cleared and earlier tokens are revoked. |
-| Sign-in form | `POST /v1/auth/sessions` `{username, password}` | `201`; sets the cookie. `GET /v1/auth/demo-accounts` (development only) lists demo usernames and roles for the role picker. |
-| `vision.appraise()` | `POST /v1/vision/appraise` (unchanged) | Now requires the session cookie. |
-| `recoveryRecords.createDraft(input)` | `POST /v1/recovery-records` multipart | `record` = JSON built from `CaptureInput`: `category`, `condition`, `item_count`, `approximate_weight`, `captured_at`, `capture_location`, `approximate_area {label, administrative_area, country_code}`, `vision_result`, `category_confirmation {confirmed_category, confirmed_by: session actor reference, confirmed_at, source, correction_reason}`, `estimated_price`, `safety_guide`, `destination_location_id`, `device_instance_id`, `original_image {captured_at, capture_source, connectivity, application_version}`, optional `record_id` and `original_image.evidence_id` for offline-created IDs. `original_image` = the `Blob`. |
-| `recoveryRecords.saveDraft(record)` | `PATCH /v1/recovery-records/{id}` + `If-Match` | Send only changed fields. |
-| `recoveryRecords.submit(id)` | `POST /v1/recovery-records/{id}/submissions` | `data = {outcome: "submitted" \| "duplicate_image", record, replayed, flag_codes}`, which matches `SubmitOutcome`. |
-| `recoveryRecords.getById(id)` | `GET /v1/recovery-records/{id}` | `404` → `null`. |
-| `recoveryRecords.listOwn()` / `listOperational()` | `GET /v1/recovery-records?limit=100` | Scoped server-side by role; follow `pagination.next_cursor`. Filters: `state`, `category`, `captured_from`, `captured_to`, `sort`. |
-| `recoveryRecords.listEvents(id)` | `GET /v1/recovery-records/{id}/events` | `RecoveryRecordEvent[]`. |
-| `recoveryRecords.listEvidence(id)` | `GET /v1/recovery-records/{id}/evidence` | `Evidence[]`. |
-| `recoveryRecords.getEvidenceImage(evidenceId)` | `GET /v1/evidence/{id}/content` | Fetch with credentials and use `URL.createObjectURL(blob)`; the response is `no-store`. |
-| Category correction (capture screen) | `POST /v1/recovery-records/{id}/category-confirmations` + `If-Match` | Body = `CategoryConfirmation` (`VisionHumanCorrectionSchema`). |
-| Extra photographs | `POST /v1/recovery-records/{id}/evidence` multipart | `image` + `evidence_type`, `captured_at`, `capture_source`, `device_instance_id`, `connectivity`, `application_version`, optional `evidence_id`. |
-| `recoveryRecords.lookupForHandoff(text)` | `POST /v1/handoff-lookups` | Send `{qr_text}` for scanned text or `{transfer_code}` for a typed code. `200` outcomes `ready` / `not_ready` / `already_received` / `other_facility`; `404` → `not_found`; `422 UNSUPPORTED_CONTRACT_VERSION` → `unsupported_contract_version`. `record` is a `HandoffPreview`, not a full `RecoveryRecord`. Keep `lookup_token` for the handoff request. |
-| `handoffs.record(request)` | `POST /v1/handoffs` with the contract `HandoffRequest` | `201` created (`accepted` / `discrepancy`), `200` for `duplicate_scan`, `rejected` and replays. `idempotency.scope` must be `{actor_id: session actor, operation: "record_handoff", resource_id: record id}`. |
-| `handoffs.confirmReceipt(input)` | Upload `handoff_photo` and `weight_measurement` via `POST /v1/recovery-records/{id}/evidence` (recycler), then `POST /v1/handoffs` with their IDs | Do not send QR-scan or receipt evidence; the server generates both. `final_price.currency` must be the programme currency (`GET /v1/programmes/{id}`). Receiving locations come from `GET /v1/facilities/{facility_id}/receiving-locations` or `receiving_location_ids` in `/auth/me`. |
-| `processing.submitProcessing(input)` | Upload `processing_completion` via `POST /v1/recovery-records/{id}/evidence`, then `POST /v1/processing-submissions` with the contract `ProcessingRequest` | `notes` is required (it becomes the recorded result). `review_required` means the record is now `under_review`. |
-| `processing.record(request)` | `POST /v1/processing-submissions` | `201` on first submission, `200` on replay or `rejected`. Scope operation `record_processing`. |
-| Processing screen (draft) | `GET/PUT /v1/recovery-records/{id}/processing`, `POST/PATCH/DELETE …/processing/material-entries[/{entry_id}]` | `ETag` carries the processing version; send `If-Match` on `PUT` of an existing draft. |
-| Processing queue | `GET /v1/processing-queue` | Received records at the recycler's locations, oldest first. |
-| `reviews.listQueue()` | `GET /v1/review-cases` | Returns `ReviewCaseSummary` items; call `GET /v1/review-cases/{case_id}` for the record, evidence, timeline and earlier decisions. Only `decision_eligible` cases can be decided. |
-| `reviews.decide(request)` / `submitDecision(input)` | `POST /v1/review-decisions` with the contract `ProgrammeReviewRequest` | `reason_code` from `REASON_CODES_BY_DECISION`; `review_reason_codes` from the case flags or `MANUAL_REVIEW`; `previous_*_state` from the case detail; scope operation `review_<decision>`. Do not create `reviewer_decision` evidence; the server generates it. |
-| Reissue a QR (collector) | `POST /v1/recovery-records/{id}/qr-token-rotations` | Returns the new `QrPayload`; the old QR stops resolving. |
+- A record resource never contains a QR credential. The owning collector reads `QrCredentials` from `GET /v1/recovery-records/{id}/qr-credentials` and reissues both credentials with `POST …/qr-token-rotations`.
+- A recycler looks up exactly one presented credential: `{qr_text}` (scanned symbol text), `{qr_payload}` or `{manual_transfer_code}` (canonical form from `normalizeManualTransferCode`). The response is a `HandoffPreview` and never contains either credential. Unknown, revoked, expired and malformed credentials all return `404`.
+- `HandoffRequest` repeats the credential the recycler presented (`lookup_token` or `manual_transfer_code`) and is verified again. The client never derives or generates a credential.
+- Failed manual codes are throttled per user (`SCRAPTRACE_MANUAL_CODE_FAILURE_LIMIT_*`) in addition to the lookup limit.
 
 ## Rules the frontend must respect
 
-- `category_confirmation.confirmed_by.actor_id` must be the signed-in collector.
-- `source: "accepted_prediction"` requires a non-low-confidence `vision_result` whose `suggested_category` equals the category. Low-confidence results need `manual_selection` or `human_correction`.
+- `category_confirmation.confirmed_by` is the signed-in collector's `actor_reference` from `CurrentUser`.
+- `source: "accepted_prediction"` needs a non-low-confidence `vision_result` suggesting the same category. A low-confidence result needs `manual_selection` or `human_correction`.
 - Mixed scrap is a batch with an approximate weight.
-- A draft's existing `vision_result` cannot be replaced.
-- Timestamps must be contract UTC strings and not in the future beyond `SCRAPTRACE_CLOCK_SKEW_SECONDS`.
+- A draft's existing `vision_result` is never replaced; a further photograph is `additional_item_photo` evidence.
+- `final_price.currency` is the programme currency (`ProgrammeView.currency`).
+- A review decision uses the case's flags (or `MANUAL_REVIEW`) as `review_reason_codes` and the case's `status` and `record_business_state` as the previous states; the reason code must suit the decision.
+- Timestamps are UTC with a `Z` suffix and must not lie in the future beyond `SCRAPTRACE_CLOCK_SKEW_SECONDS`.

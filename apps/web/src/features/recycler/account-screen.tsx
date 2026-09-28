@@ -9,13 +9,15 @@ import { AsyncPanel } from "@/features/shared/async-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { useOperationalRecords } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
-import { DEMO_ACTORS, DEMO_FACILITY_ID, DEMO_FACILITY_LOCATION_IDS } from "@/auth/actors";
 import { toKilograms } from "@/services/domain/flags";
-import { findLocationName } from "@/services/local/location-directory";
+import { useActingIdentity } from "@/hooks/use-identity";
+import { useReceivingLocations } from "@/hooks/use-reference";
 
 /** Facility identity and the receiving locations this account may act on. */
 export function RecyclerAccountScreen() {
   const translate = useTranslations("screens.recyclerAccount");
+  const identity = useActingIdentity();
+  const locations = useReceivingLocations();
   const translateRoles = useTranslations("roles");
   const formats = useValueFormats();
   const query = useOperationalRecords();
@@ -34,10 +36,10 @@ export function RecyclerAccountScreen() {
               {translateRoles(UserRoleSchema.enum.recycler)}
             </DefinitionRow>
             <DefinitionRow term={translate("actorId")}>
-              <span className="font-mono text-xs">{DEMO_ACTORS.recycler.actorId}</span>
+              <span className="font-mono text-xs">{identity.actorId}</span>
             </DefinitionRow>
             <DefinitionRow term={translate("facilityId")}>
-              <span className="font-mono text-xs">{DEMO_FACILITY_ID}</span>
+              <span className="font-mono text-xs">{identity.facilityIds.join(", ")}</span>
             </DefinitionRow>
           </DefinitionList>
         </div>
@@ -48,9 +50,9 @@ export function RecyclerAccountScreen() {
           <span id="locations">{translate("assignedLocations")}</span>
         </SectionLabel>
         <ul className="space-y-2">
-          {DEMO_FACILITY_LOCATION_IDS.map((id) => (
-            <li className="bg-surface rounded-md border p-3 text-sm" key={id}>
-              {findLocationName(id) ?? id}
+          {(locations.data ?? []).map((location) => (
+            <li className="bg-surface rounded-md border p-3 text-sm" key={location.location_id}>
+              {location.name}
             </li>
           ))}
         </ul>

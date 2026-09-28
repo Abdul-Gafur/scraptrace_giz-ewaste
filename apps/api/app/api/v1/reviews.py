@@ -42,8 +42,9 @@ assert get_args(FlagCode) == REVIEW_FLAG_CODES
     summary="Review queue",
     description=(
         "Review cases in the reviewer's programme that are unassigned or assigned to them. "
-        "Defaults to `open` and `awaiting_information`. Filter by status, flag, opening date "
-        "and facility. `decision_eligible` marks cases whose record is `under_review`."
+        "Defaults to `open` and `awaiting_information`. Filter by status, flag, opening date, "
+        "facility and record, all applied by the server before pagination. "
+        "`decision_eligible` marks cases whose record is `under_review`."
     ),
     response_model=None,
     responses={
@@ -62,6 +63,9 @@ async def review_queue(
     opened_from: Annotated[date | None, Query(description="Opening date, inclusive")] = None,
     opened_to: Annotated[date | None, Query(description="Opening date, inclusive")] = None,
     facility_id: uuid.UUID | None = None,
+    record_id: Annotated[
+        uuid.UUID | None, Query(description="The case of one recovery record")
+    ] = None,
     sort: Literal["opened_at", "-opened_at"] = "opened_at",
     cursor: Annotated[str | None, Query(max_length=512)] = None,
     limit: Annotated[int, Query(ge=1, le=MAXIMUM_LIMIT)] = 25,
@@ -72,6 +76,7 @@ async def review_queue(
         opened_from=opened_from,
         opened_to=opened_to,
         facility_id=facility_id,
+        record_id=record_id,
         sort=sort,
         cursor=cursor,
         limit=limit,

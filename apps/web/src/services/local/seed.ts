@@ -1,4 +1,5 @@
 import {
+  ReviewReasonCodeSchema,
   SupportedLanguageSchema,
   type EwasteCategory,
   type SupportedLanguage,
@@ -357,6 +358,8 @@ const runPlan = async (repository: ScrapTraceRepository, plan: SeedRecordPlan): 
 
   await recycler.handoffs.confirmReceipt({
     recordId: draft.record_id,
+    collectorReference: draft.collector,
+    credential: { kind: "qr_token", lookupToken: localQrPayload(draft).lookup_token },
     confirmedCategory: plan.confirmedCategory ?? plan.category,
     confirmedCondition: plan.condition,
     measuredWeight: { value: plan.measuredWeightKg ?? plan.declaredWeightKg ?? 1, unit: "kg" },
@@ -366,9 +369,8 @@ const runPlan = async (repository: ScrapTraceRepository, plan: SeedRecordPlan): 
     evidence: {
       handoffPhoto: seedImage(`${plan.label}-handoff`),
       weightPhoto: seedImage(`${plan.label}-weight`),
-      scannedPayload: `SCRAPTRACE:1.0.0:${draft.record_id}:${localQrPayload(draft).lookup_token}`,
-      notes: "Received at the programme intake bay.",
     },
+    notes: "Received at the programme intake bay.",
     offline: false,
   });
   if (plan.stage === "received") return;
@@ -387,11 +389,19 @@ const runPlan = async (repository: ScrapTraceRepository, plan: SeedRecordPlan): 
   });
   if (plan.stage === "processed" || !plan.decision) return;
 
+  const underReview = await reviewer.records.getById(draft.record_id);
+  if (!underReview) return;
+  const evidence = await reviewer.records.listEvidence(draft.record_id);
   await reviewer.reviews.submitDecision({
     recordId: draft.record_id,
     decision: plan.decision,
-    reasonCode: plan.reasonCode ?? "EVIDENCE_SUFFICIENT",
+    reasonCode: ReviewReasonCodeSchema.parse(plan.reasonCode ?? "EVIDENCE_SUFFICIENT"),
     reviewerNote: plan.reviewerNote ?? "Decision recorded.",
+    reviewReasonCodes:
+      underReview.review.flag_codes.length > 0 ? underReview.review.flag_codes : ["MANUAL_REVIEW"],
+    evidenceConsidered: evidence.map((item) => item.evidence_id),
+    previousReviewState: underReview.review.review_state,
+    previousRecordState: underReview.business_state,
   });
 };
 

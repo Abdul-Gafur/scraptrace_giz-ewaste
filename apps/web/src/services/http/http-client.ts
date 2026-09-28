@@ -38,6 +38,7 @@ const STATUS_ERROR: Readonly<Record<number, { code: ErrorCode; retryable: boolea
   413: { code: "VALIDATION_FAILED", retryable: false },
   415: { code: "VALIDATION_FAILED", retryable: false },
   422: { code: "VALIDATION_FAILED", retryable: false },
+  428: { code: "VALIDATION_FAILED", retryable: false },
   429: { code: "RATE_LIMIT_REACHED", retryable: true },
   503: { code: "DEPENDENCY_UNAVAILABLE", retryable: true },
 };
@@ -50,6 +51,7 @@ const statusMessage = (status: number): string => {
   if (status === 413) return "The selected file is too large.";
   if (status === 415) return "The selected file type is not supported.";
   if (status === 422) return "Some submitted information is invalid.";
+  if (status === 428) return "Reload the record and try again.";
   if (status === 429) return "Too many requests were made. Try again later.";
   if (status === 503) return "The service is temporarily unavailable.";
   return "The service request could not be completed.";
@@ -89,6 +91,13 @@ export interface HttpRequestOptions extends Omit<RequestInit, "body"> {
   readonly idempotencyKey?: string;
   /** Invalid credentials are not an expired browser session. */
   readonly suppressSessionExpiry?: boolean;
+}
+
+/** A parsed successful response together with the headers a caller may need (ETag, digest). */
+export interface ParsedResponse<T> {
+  readonly body: T;
+  readonly headers: Headers;
+  readonly status: number;
 }
 
 export class HttpClient {
@@ -155,8 +164,26 @@ export class HttpClient {
     return payload;
   }
 
-  async requestBlob(path: string, init: HttpRequestOptions = {}): Promise<Blob> {
-    return (await this.send(path, init)).blob();
+  async requestBlob(
+    path: string,
+    init: HttpRequestOptions = {},
+  ): Promise<{ readonly blob: Blob; readonly headers: Headers }> {
+    const response = await this.send(path, init);
+    return { blob: await response.blob(), headers: response.headers };
+  }
+
+  async requestWithHeaders<Schema extends z.ZodType>(
+    path: string,
+    schema: Schema,
+    init?: HttpRequestOptions,
+  ): Promise<ParsedResponse<z.infer<Schema>>> {
+    const response = await this.send(path, init);
+    const contentType = response.headers.get("content-type") ?? "";
+    const payload: unknown =
+      response.status !== 204 && contentType.includes("application/json")
+        ? await response.json().catch(() => undefined)
+        : undefined;
+    return { body: schema.parse(payload), headers: response.headers, status: response.status };
   }
 
   async requestParsed<Schema extends z.ZodType>(

@@ -9,7 +9,7 @@ import { AsyncPanel } from "@/features/shared/async-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { useLocalDataSummary } from "@/hooks/use-local-data";
 import { Link } from "@/i18n/navigation";
-import { DEMO_ACTORS } from "@/auth/actors";
+import { useActingIdentity } from "@/hooks/use-identity";
 
 const NATIVE_NAMES: Record<string, string> = {
   en: "English",
@@ -21,6 +21,7 @@ const NATIVE_NAMES: Record<string, string> = {
 /** Collector account, language and device-data controls (Figma: account-privacy). */
 export function AccountScreen() {
   const translate = useTranslations("screens.account");
+  const identity = useActingIdentity();
   const translatePages = useTranslations("pages");
   const translateRoles = useTranslations("roles");
   const formats = useValueFormats();
@@ -41,7 +42,7 @@ export function AccountScreen() {
               {translateRoles(UserRoleSchema.enum.collector)}
             </DefinitionRow>
             <DefinitionRow term={translate("nodeId")}>
-              <span className="font-mono text-xs">{DEMO_ACTORS.collector.actorId}</span>
+              <span className="font-mono text-xs">{identity.actorId}</span>
             </DefinitionRow>
           </DefinitionList>
         </div>

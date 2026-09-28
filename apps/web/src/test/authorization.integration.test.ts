@@ -59,6 +59,11 @@ const receivedId = () =>
 
 const handoffInput = (recordId: string) => ({
   recordId,
+  collectorReference: { actor_id: DEMO_ACTORS.collector.actorId },
+  credential: {
+    kind: "qr_token" as const,
+    lookupToken: repository.findRecord(recordId)?.qr_payload?.lookup_token ?? "",
+  },
   confirmedCategory: "televisions" as const,
   confirmedCondition: "damaged" as const,
   measuredWeight: { value: 10, unit: "kg" as const },
@@ -68,7 +73,6 @@ const handoffInput = (recordId: string) => ({
   evidence: {
     handoffPhoto: image("handoff"),
     weightPhoto: image("weight"),
-    scannedPayload: "scanned",
   },
   offline: false,
 });
@@ -86,8 +90,12 @@ const processingInput = (recordId: string) => ({
 const decisionInput = (recordId: string) => ({
   recordId,
   decision: "approve" as const,
-  reasonCode: "EVIDENCE_SUFFICIENT",
+  reasonCode: "EVIDENCE_SUFFICIENT" as const,
   reviewerNote: "Looks fine to me.",
+  reviewReasonCodes: ["MANUAL_REVIEW"],
+  evidenceConsidered: repository.listEvidence(recordId).map((item) => item.evidence_id),
+  previousReviewState: "open" as const,
+  previousRecordState: "under_review" as const,
 });
 
 const captureInput = () => ({
@@ -132,7 +140,7 @@ describe("a collector is denied every other role's action", () => {
     await expectDenied(() => collector.handoffs.confirmReceipt(handoffInput(awaitingHandoffId())));
     await expectDenied(() => collector.processing.submitProcessing(processingInput(receivedId())));
     await expectDenied(() => collector.reviews.submitDecision(decisionInput(underReviewId())));
-    await expectDenied(() => collector.reviews.listQueue());
+    await expectDenied(() => collector.reviews.listCases({}));
     await expectDenied(() =>
       collector.reporting.summarize(ReportingFiltersSchema.parse({ pagination: { limit: 10 } })),
     );
@@ -161,7 +169,7 @@ describe("a recycler is denied the reviewer's, manager's and administrators' act
   it("cannot decide a review, report, export, manage safety content or change the model", async () => {
     const recycler = services.recycler;
     await expectDenied(() => recycler.reviews.submitDecision(decisionInput(underReviewId())));
-    await expectDenied(() => recycler.reviews.listQueue());
+    await expectDenied(() => recycler.reviews.listCases({}));
     await expectDenied(() =>
       recycler.reporting.summarize(ReportingFiltersSchema.parse({ pagination: { limit: 10 } })),
     );
@@ -219,7 +227,7 @@ describe("a manager is denied the operational and administrative actions", () =>
     await expectDenied(() => manager.handoffs.confirmReceipt(handoffInput(awaitingHandoffId())));
     await expectDenied(() => manager.processing.submitProcessing(processingInput(receivedId())));
     await expectDenied(() => manager.reviews.submitDecision(decisionInput(underReviewId())));
-    await expectDenied(() => manager.reviews.listQueue());
+    await expectDenied(() => manager.reviews.listCases({}));
     await expectDenied(() => manager.safetyContent.createDraft(cardInput()));
     await expectDenied(() => manager.modelAdministration.listFeedback());
     await expectDenied(() => manager.recoveryRecords.createDraft(captureInput()));

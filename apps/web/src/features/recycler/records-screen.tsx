@@ -4,6 +4,7 @@ import { RecoveryRecordStateSchema } from "@scraptrace/contracts";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { DataTable, type DataColumn } from "@/components/ui/data-table";
 import { PageHeading } from "@/components/ui/content";
 import { FilterControl } from "@/components/ui/filter-control";
@@ -12,29 +13,34 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { AsyncPanel } from "@/features/shared/async-panel";
 import { useContractLabels } from "@/features/shared/contract-labels";
 import { useValueFormats } from "@/features/shared/formats";
-import { useOperationalRecords } from "@/hooks/use-records";
+import { useRecordPages } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import { toKilograms } from "@/services/domain/flags";
 import type { RecoveryRecord } from "@scraptrace/contracts";
 
-/** Records this facility may act on, filterable by lifecycle state and searchable by reference. */
+/**
+ * Records this facility may act on. The lifecycle-state filter and paging are applied by the API;
+ * the reference search narrows the rows already loaded.
+ */
 export function RecyclerRecordsScreen() {
   const translate = useTranslations("screens.recyclerRecords");
   const translateStatus = useTranslations("status");
   const labels = useContractLabels();
   const formats = useValueFormats();
-  const query = useOperationalRecords();
   const [state, setState] = useState("all");
   const [search, setSearch] = useState("");
+  const stateFilter = RecoveryRecordStateSchema.safeParse(state);
+  const query = useRecordPages({
+    limit: 25,
+    ...(stateFilter.success ? { state: [stateFilter.data] } : {}),
+  });
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (state === "all" || record.business_state === state) &&
-        (term.length === 0 || record.human_reference.toLowerCase().includes(term)),
+    return (query.data?.pages.flatMap((page) => page.items) ?? []).filter(
+      (record) => term.length === 0 || record.human_reference.toLowerCase().includes(term),
     );
-  }, [query.data, search, state]);
+  }, [query.data, search]);
 
   const columns: DataColumn<RecoveryRecord>[] = [
     {
@@ -131,6 +137,16 @@ export function RecyclerRecordsScreen() {
           />
         )}
       </AsyncPanel>
+      {query.hasNextPage ? (
+        <Button
+          disabled={query.isFetchingNextPage}
+          loading={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+          variant="secondary"
+        >
+          {translate("loadMore")}
+        </Button>
+      ) : null}
     </div>
   );
 }

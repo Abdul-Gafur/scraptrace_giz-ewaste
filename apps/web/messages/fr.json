@@ -135,11 +135,13 @@
     "success": "Le formulaire de démonstration est valide."
   },
   "authentication": {
-    "emailLabel": "Adresse e-mail",
-    "emailInvalid": "Saisissez une adresse e-mail valide.",
     "passwordLabel": "Mot de passe",
     "passwordRequired": "Saisissez votre mot de passe.",
-    "submit": "Se connecter"
+    "submit": "Se connecter",
+    "usernameLabel": "Nom d'utilisateur",
+    "usernameRequired": "Saisissez votre nom d'utilisateur.",
+    "demoAccountsTitle": "Comptes de démonstration",
+    "demoAccountsHint": "Développement uniquement. Choisir un compte remplit son nom d'utilisateur ; le mot de passe reste requis."
   },
   "states": {
     "emptyTitle": "Rien pour le moment",
@@ -273,7 +275,8 @@
       "filterState": "Statut",
       "allStates": "Tous les statuts",
       "search": "Rechercher par référence",
-      "emptyDescription": "Aucun enregistrement ne correspond aux filtres actuels."
+      "emptyDescription": "Aucun enregistrement ne correspond aux filtres actuels.",
+      "loadMore": "Charger plus d'enregistrements"
     },
     "capture": {
       "stepImage": "1. Photographier l'article",
@@ -484,7 +487,15 @@
       "flaggedNextStep": "Vous pouvez tout de même enregistrer les détails du traitement. L'enregistrement ne comptera pas dans la récupération vérifiée avant l'approbation d'un examinateur.",
       "duplicateTitle": "Ce code a déjà été scanné",
       "duplicateToast": "Déjà reçu. La première réception est affichée.",
-      "duplicateNotice": "Aucune seconde remise n'a été créée. La réception initiale reste valable."
+      "duplicateNotice": "Aucune seconde remise n'a été créée. La réception initiale reste valable.",
+      "unknownLocation": "Un site hors de cet annuaire",
+      "programmeUnavailable": "Les paramètres du programme n'ont pas pu être chargés. Réessayez.",
+      "originalOutcome": "Premier résultat",
+      "originalOutcomes": {
+        "accepted": "Accepté",
+        "rejected": "Rejeté",
+        "discrepancy": "Accepté avec un signalement pour examen"
+      }
     },
     "reviewer": {
       "awaiting": "En attente de décision",
@@ -511,7 +522,15 @@
       "colUpdated": "Mis à jour",
       "colStatus": "Statut",
       "manualReview": "Examen manuel",
-      "noFacility": "Pas encore reçu"
+      "noFacility": "Pas encore reçu",
+      "filterStatus": "État du dossier",
+      "unresolvedCases": "Ouverts et en attente d'informations",
+      "colOpened": "Ouvert le",
+      "filterDateTo": "Ouvert au plus tard le",
+      "pageCount": "{count} dossiers sur la page {page}",
+      "pagination": "Pages de la file d'examen",
+      "previousPage": "Page précédente",
+      "nextPage": "Page suivante"
     },
     "manager": {
       "totalRecords": "Enregistrements",
@@ -632,7 +651,8 @@
       "colFlags": "Signalements",
       "colState": "Statut",
       "noFlags": "Aucun",
-      "recordProcessing": "Enregistrer le traitement"
+      "recordProcessing": "Enregistrer le traitement",
+      "loadMore": "Charger plus d'enregistrements"
     },
     "recyclerProcessing": {
       "title": "Enregistrer le traitement",
@@ -682,7 +702,12 @@
       "alreadyRecordedTitle": "Le traitement a déjà été enregistré",
       "alreadyRecordedNotice": "Cet enregistrement contient déjà des détails de traitement. Ouvrez-le pour les consulter.",
       "notReceivedTitle": "Cet enregistrement n'a pas encore été reçu",
-      "notReceivedNotice": "Enregistrez d'abord la réception. Le traitement ne peut être enregistré qu'après la remise."
+      "notReceivedNotice": "Enregistrez d'abord la réception. Le traitement ne peut être enregistré qu'après la remise.",
+      "loadingDraft": "Chargement du brouillon de traitement…",
+      "saveDraft": "Enregistrer le brouillon",
+      "draftSaved": "Brouillon de traitement enregistré.",
+      "draftSavedAt": "Brouillon enregistré pour la dernière fois le {when}.",
+      "evidenceAttached": "Une photo d'achèvement est jointe au brouillon."
     },
     "recyclerProcessingQueue": {
       "title": "Traitement",
@@ -694,7 +719,9 @@
       "recordedHeading": "Traitement enregistré",
       "noneAwaiting": "Chaque enregistrement reçu possède ses détails de traitement.",
       "noneRecorded": "Aucun traitement n'a encore été enregistré sur ce site.",
-      "backToIntake": "Retour à la réception"
+      "backToIntake": "Retour à la réception",
+      "loadingQueue": "Chargement de la file de traitement…",
+      "loadMore": "Charger plus"
     },
     "recyclerAccount": {
       "title": "Compte du site",
@@ -768,7 +795,8 @@
       "notReviewableTitle": "Cet enregistrement n'attend pas de décision",
       "notReviewableNotice": "Seul un enregistrement en examen peut recevoir une décision. Cette vue est en lecture seule.",
       "backToQueue": "Retour à la file",
-      "unknownLocation": "Site absent de l'annuaire vérifié"
+      "unknownLocation": "Site absent de l'annuaire vérifié",
+      "decisionsHeading": "Décisions précédentes"
     },
     "reviewAssigned": {
       "title": "Enregistrements assignés",
@@ -1395,10 +1423,10 @@
     "digestNotice": "Une empreinte détecte une modification ultérieure du contenu enregistré. Elle ne prouve pas que l'événement a eu lieu et ne rend pas le contenu véridique."
   },
   "qr": {
-    "symbolAlternative": "Code QR pour le code de transfert {code}",
+    "symbolAlternative": "Code QR de l'enregistrement {code}",
     "presentHint": "Présentez ce code au site de réception, ou dictez le code de transfert ci-dessous.",
-    "transferCode": "Code de transfert",
-    "copyCode": "Copier le code de transfert",
+    "transferCode": "Code de transfert manuel",
+    "copyCode": "Copier le code de transfert manuel",
     "copied": "Copié",
     "download": "Télécharger le code",
     "payloadSummary": "Ce que contient ce code",
@@ -1417,10 +1445,30 @@
     "imageErrorTitle": "Cette image n'a pas pu être utilisée",
     "imageNoSymbol": "Aucun code QR n'a été trouvé dans cette image. Essayez une photographie plus nette et plus proche.",
     "imageUnreadable": "Ce fichier n'a pas pu être lu comme une image.",
-    "codeLabel": "Code de transfert",
-    "codeHint": "Huit caractères après ST-, comme imprimé sous le code QR.",
+    "codeLabel": "Code de transfert manuel",
+    "codeHint": "Douze caractères en trois groupes, tels que lus par le collecteur.",
     "codeRequired": "Saisissez le code de transfert.",
-    "lookUp": "Rechercher ce code"
+    "lookUp": "Rechercher ce code",
+    "codeInvalid": "Saisissez le code de douze caractères, par exemple 7K3Q-M9XD-2HVT.",
+    "statusLabel": "État du code",
+    "status": {
+      "inactive": "Pas encore actif",
+      "active": "Actif",
+      "expired": "Expiré",
+      "used": "Utilisé lors de la remise"
+    },
+    "expiresAt": "Expire le",
+    "inactiveTitle": "Ce code fonctionne après la soumission",
+    "inactiveNotice": "Soumettez l'enregistrement pour activer le code QR et le code de transfert manuel.",
+    "manualCodeNotice": "Ne communiquez le code manuel qu'au site de réception. Il fonctionne comme le code QR et cesse de fonctionner après la remise, l'expiration ou la réémission.",
+    "expiredTitle": "Ce code a expiré",
+    "expiredNotice": "Réémettez le code pour remettre cet article.",
+    "usedTitle": "Ce code a été utilisé",
+    "usedNotice": "La remise est enregistrée ; le code ne fonctionne plus.",
+    "reissue": "Réémettre les codes",
+    "reissueTitle": "Réémettre les codes QR et manuel ?",
+    "reissueDescription": "Le code QR et le code manuel actuels cessent immédiatement de fonctionner. Utilisez cette option si un code a été perdu, partagé ou a expiré.",
+    "reissued": "Nouveaux codes émis. Les anciens codes ne fonctionnent plus."
   },
   "register": {
     "boundaryTitle": "L'inscription autonome sort du cadre de cette démonstration",

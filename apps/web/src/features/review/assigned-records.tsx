@@ -7,8 +7,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { AsyncPanel } from "@/features/shared/async-panel";
 import { useContractLabels } from "@/features/shared/contract-labels";
 import { useValueFormats } from "@/features/shared/formats";
-import { useReviewQueue } from "@/hooks/use-records";
-import { DEMO_ACTORS } from "@/auth/actors";
+import { useActingIdentity } from "@/hooks/use-identity";
+import { useReviewCases } from "@/hooks/use-records";
 
 /**
  * Records assigned to the acting reviewer: everything they have already touched, plus the records
@@ -18,25 +18,26 @@ export function AssignedRecords() {
   const translate = useTranslations("screens.reviewAssigned");
   const labels = useContractLabels();
   const formats = useValueFormats();
-  const query = useReviewQueue();
+  const identity = useActingIdentity();
+  // The first page of every case in the reviewer's scope, open or decided.
+  const query = useReviewCases({
+    status: ["open", "awaiting_information", "approved", "rejected"],
+    limit: 100,
+  });
 
   return (
     <div className="max-w-3xl space-y-5">
       <PageHeading description={translate("description")}>{translate("title")}</PageHeading>
 
       <AsyncPanel query={query}>
-        {(records) => {
-          const mine = records.filter(
-            (record) =>
-              record.review.assigned_reviewer?.actor_id === DEMO_ACTORS.programme_reviewer.actorId,
-          );
+        {(page) => {
+          const records = page.items;
+          const mine = records.filter((record) => record.assigned_reviewer_id === identity.actorId);
           const awaitingInformation = mine.filter(
-            (record) => record.review.review_state === "awaiting_information",
+            (record) => record.status === "awaiting_information",
           );
           const unassigned = records.filter(
-            (record) =>
-              record.review.assigned_reviewer === undefined &&
-              record.business_state === "under_review",
+            (record) => record.assigned_reviewer_id === undefined && record.decision_eligible,
           );
 
           const list = (heading: string, id: string, rows: typeof records) => (
@@ -56,10 +57,10 @@ export function AssignedRecords() {
                     <ListItem
                       href={`/review/queue/${record.record_id}`}
                       key={record.record_id}
-                      status={<StatusBadge status={record.business_state} />}
+                      status={<StatusBadge status={record.record_business_state} />}
                       subtitle={record.human_reference}
                       title={labels.category(record.category)}
-                      value={labels.reviewState(record.review.review_state)}
+                      value={labels.reviewState(record.status)}
                     />
                   ))}
                 </ul>

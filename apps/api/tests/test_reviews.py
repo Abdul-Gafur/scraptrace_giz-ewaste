@@ -75,6 +75,10 @@ def test_queue_filters_and_pagination(api: TestClient) -> None:
     decided = api.get("/v1/review-cases?status=approved", headers=reviewer)
     assert decided.json()["data"]["items"] == []
     assert api.get("/v1/review-cases?flag_code=FRAUD", headers=reviewer).status_code == 422
+    # A record's own case is found by the server, which is how a record opens its case detail.
+    only = api.get(f"/v1/review-cases?record_id={second['record_id']}", headers=reviewer)
+    assert [item["record_id"] for item in only.json()["data"]["items"]] == [second["record_id"]]
+    REGISTRY.check_response("review_case_page", only.json()["data"])
 
 
 @pytest.mark.parametrize(

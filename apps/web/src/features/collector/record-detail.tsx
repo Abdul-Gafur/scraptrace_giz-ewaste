@@ -19,10 +19,11 @@ import { FlagPanel } from "@/features/shared/flag-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { RecordIdentity } from "@/features/shared/record-identity";
 import { RecordTimeline } from "@/features/shared/record-timeline";
-import { RecordQrCode } from "@/features/shared/qr-code";
+import { useLocationNames } from "@/hooks/use-reference";
 import { useRecord, useRecordEvents, useRecordEvidence } from "@/hooks/use-records";
-import { findLocationName } from "@/services/local/location-directory";
 import { Link } from "@/i18n/navigation";
+
+import { QrCredentialsPanel } from "./qr-credentials-panel";
 
 /**
  * One record as its collector sees it (FR-REC-004, FR-DSH-001, FR-DSH-002).
@@ -39,6 +40,7 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
   const recordQuery = useRecord(recordId);
   const eventsQuery = useRecordEvents(recordId);
   const evidenceQuery = useRecordEvidence(recordId);
+  const locationName = useLocationNames();
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -59,15 +61,15 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                 {translate(`nextStep.${record.business_state}`)}
               </Alert>
 
-              {showQr && record.qr_payload ? (
+              {showQr ? (
                 <Card>
                   <CardHeader>
                     <SectionHeading as="h2">{translate("qrHeading")}</SectionHeading>
                   </CardHeader>
                   <CardContent>
-                    <RecordQrCode
-                      payload={record.qr_payload}
-                      transferCode={record.human_reference}
+                    <QrCredentialsPanel
+                      recordId={record.record_id}
+                      reference={record.human_reference}
                     />
                   </CardContent>
                 </Card>
@@ -175,7 +177,7 @@ export function CollectorRecordDetail({ recordId }: { recordId: string }) {
                                 {formats.dateTime(record.handoff.server_received_at)}
                               </DefinitionRow>
                               <DefinitionRow term={translate("receivingLocation")}>
-                                {findLocationName(record.handoff.receiving_location_id) ??
+                                {locationName(record.handoff.receiving_location_id) ??
                                   translate("unknownLocation")}
                               </DefinitionRow>
                               <DefinitionRow term={translate("measuredWeight")} tone="success">

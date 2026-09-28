@@ -38,8 +38,10 @@
       "$ref": "#/$defs/__schema1"
     },
     "facility_id": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+      "$ref": "#/$defs/__schema2"
+    },
+    "record_id": {
+      "$ref": "#/$defs/__schema2"
     },
     "sort": {
       "default": "opened_at",
@@ -64,6 +66,10 @@
     "__schema1": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
     }
   },
   "$id": "https://schemas.scraptrace.local/contracts/1.0.0/review_queue_filters.schema.json",

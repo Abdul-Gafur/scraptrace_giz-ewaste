@@ -1,6 +1,6 @@
 "use client";
 
-import type { Evidence } from "@scraptrace/contracts";
+import type { EvidenceMetadata as Evidence } from "@scraptrace/contracts";
 import { useTranslations } from "next-intl";
 
 import { Alert } from "@/components/ui/alert";

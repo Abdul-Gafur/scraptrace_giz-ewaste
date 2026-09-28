@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeManualTransferCode } from "@scraptrace/contracts";
 import jsQR from "jsqr";
 import { Camera, CameraOff, Keyboard, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -9,7 +10,6 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { normalizeTransferCode } from "@/services/domain/qr-payload";
 
 type CameraState = "idle" | "starting" | "running" | "denied" | "unsupported" | "failed";
 
@@ -128,9 +128,13 @@ export function QrScanner({ onResult, busy = false }: QrScannerProps) {
 
   const submitManual = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const normalized = normalizeTransferCode(manualCode);
-    if (normalized.length === 0) {
+    if (manualCode.trim().length === 0) {
       setManualError(translate("codeRequired"));
+      return;
+    }
+    const normalized = normalizeManualTransferCode(manualCode);
+    if (!normalized) {
+      setManualError(translate("codeInvalid"));
       return;
     }
     setManualError(undefined);
@@ -230,7 +234,7 @@ export function QrScanner({ onResult, busy = false }: QrScannerProps) {
               autoComplete="off"
               className="font-mono"
               onChange={(event) => setManualCode(event.target.value)}
-              placeholder="ST-XXXXXXXX"
+              placeholder="XXXX-XXXX-XXXX"
               spellCheck={false}
               value={manualCode}
               {...control}

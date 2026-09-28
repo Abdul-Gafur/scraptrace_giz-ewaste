@@ -1,44 +1,52 @@
 # Frontend screen-to-endpoint matrix
 
-The HTTP adapter is selected with `NEXT_PUBLIC_API_MODE=http`; the browser-backed implementation remains available with `NEXT_PUBLIC_API_MODE=mock`. All HTTP calls use secure-cookie credentials, a request ID and runtime response validation. Mutation routes also receive an idempotency key.
+`NEXT_PUBLIC_API_MODE=http` selects the HTTP adapter (`apps/web/src/services/http/http-services.ts`). `NEXT_PUBLIC_API_MODE=mock` keeps the browser-backed demonstration services for isolated tests. Every Phase 1 screen works in HTTP mode against `apps/api`.
 
-The endpoint paths below are the frontend integration contract for Phase 1. As of 2026-09-28, only `POST /v1/vision/appraise` exists in `apps/api`; every other row is implemented in the frontend adapter but remains a backend integration dependency.
+## How every call behaves
 
-| Screen or flow                  | Method and endpoint                                    | Request                                                    | Validated response                                               |
-| ------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| Sign in                         | `POST /v1/auth/sign-in`                                | JSON credentials                                           | Frontend session transport schema                                |
-| Session restoration             | `GET /v1/auth/session`                                 | Secure cookie                                              | Frontend session transport schema                                |
-| Sign out                        | `POST /v1/auth/sign-out`                               | Secure cookie                                              | Signed-out acknowledgement                                       |
-| Collector dashboard and records | `GET /v1/recovery-records?scope=own`                   | Query scope                                                | `RecoveryRecordSchema[]`                                         |
-| Operational record lists        | `GET /v1/recovery-records?scope=operational`           | Query scope                                                | `RecoveryRecordSchema[]`                                         |
-| Record detail                   | `GET /v1/recovery-records/:recordId`                   | Path identifier                                            | `RecoveryRecordSchema`                                           |
-| New collector draft             | `POST /v1/recovery-records`                            | Multipart metadata and image                               | `RecoveryRecordSchema`                                           |
-| Resume collector draft          | `PATCH /v1/recovery-records/:recordId/draft`           | Multipart metadata, optional replacement image, `If-Match` | `RecoveryRecordSchema`                                           |
-| Contract-shaped draft update    | `PUT /v1/recovery-records/:recordId/draft`             | JSON record, `If-Match`                                    | `RecoveryRecordSchema`                                           |
-| Submit collector record         | `POST /v1/recovery-records/:recordId/submissions`      | Empty JSON                                                 | Frontend submit outcome schema containing `RecoveryRecordSchema` |
-| Vision appraisal                | `POST /v1/vision/appraise`                             | Multipart image and evidence identifier                    | `VisionAppraisalResponseSchema`                                  |
-| Record evidence list            | `GET /v1/recovery-records/:recordId/evidence`          | Authorized request                                         | `EvidenceSchema[]`                                               |
-| Protected evidence bytes        | `GET /v1/evidence/:evidenceId/content`                 | Authorized request, `Accept: image/*`                      | Image bytes                                                      |
-| Record history                  | `GET /v1/recovery-records/:recordId/events`            | Authorized request                                         | `RecoveryRecordEventSchema[]`                                    |
-| Recycler QR/manual lookup       | `POST /v1/handoff-lookups`                             | JSON transfer code or encoded QR payload                   | Frontend handoff lookup outcome schema                           |
-| Recycler handoff                | `POST /v1/recovery-records/:recordId/handoffs`         | Multipart handoff metadata and two evidence images         | `HandoffResponseSchema`                                          |
-| Contract-shaped handoff         | `POST /v1/recovery-records/:recordId/handoffs`         | `HandoffRequestSchema` JSON                                | `HandoffResponseSchema`                                          |
-| Recycler processing             | `POST /v1/recovery-records/:recordId/processing`       | Multipart processing metadata and completion evidence      | `ProcessingResponseSchema`                                       |
-| Contract-shaped processing      | `POST /v1/recovery-records/:recordId/processing`       | `ProcessingRequestSchema` JSON                             | `ProcessingResponseSchema`                                       |
-| Reviewer queue                  | `GET /v1/reviews?status=open`                          | Authorized request                                         | `RecoveryRecordSchema[]`                                         |
-| Review decision                 | `POST /v1/recovery-records/:recordId/review-decisions` | JSON decision, reason, note and optional correction        | `ProgrammeReviewResponseSchema`                                  |
-| Contract-shaped review decision | `POST /v1/recovery-records/:recordId/review-decisions` | `ProgrammeReviewRequestSchema` JSON                        | `ProgrammeReviewResponseSchema`                                  |
+- Calls go to `NEXT_PUBLIC_API_BASE_URL` with `credentials: "include"`, an `X-Request-ID`, and `Accept: application/json`.
+- The session is the API's HttpOnly `scraptrace_session` cookie. No credential is readable by JavaScript or kept in browser storage. A `401` from any call other than session restoration dispatches the session-expired event.
+- Successful JSON bodies are the standard success envelope. Each `data` is parsed with the named `@scraptrace/contracts` schema, and a contract-invalid response is rejected. Errors are parsed as `ErrorEnvelope`; an empty error body becomes a safe fallback envelope for its status.
+- Contract commands carry `idempotency` in the body. The key is derived from the request digest, so a retried identical request replays and a changed request is a new command. Operation names come from `IDEMPOTENT_OPERATIONS`.
+- `consumed-operations.json` lists every operation below. The API test `test_frontend_operations.py` checks each one against the generated OpenAPI document, and the adapter tests fail if the adapter calls anything not listed or stops calling something listed.
 
-## Integration gaps for the integration branch
+## Matrix
 
-- The API currently has no authentication, recovery-record, evidence, event, handoff, processing or review routes. Those backend routes, persistence, authorization and secure-cookie session behavior must be implemented before HTTP-mode end-to-end verification is possible.
-- Shared contracts do not define authentication payloads, record create/update/submit payloads, list or pagination envelopes, handoff lookup outcomes, protected evidence delivery, or the multipart orchestration requests used by the screens. The frontend validates these transport shapes locally without changing `packages/contracts`.
-- `RecoveryRecordEventSchema` cannot represent draft creation, evidence addition, appraisal completion, category confirmation/correction or QR issuance. The timeline therefore renders only persisted lifecycle events defined by the contract and never synthesizes the missing events.
-- `VisionResultSchema` includes `inferred_at` but no inference-duration field. The UI displays the recorded inference timestamp, not a fabricated duration.
-- `QrPayloadSchema` has no expiry, revoked or availability fields. Eligibility is inferred from the record lifecycle; token expiry/revocation cannot be displayed until the backend and shared contract expose it.
-- The shared contracts do not define a persisted processing-draft resource. Material rows are editable before final submit, but a processing draft cannot survive navigation or refresh in HTTP mode.
-- Review contracts do not define queue pagination, search or filter parameters/envelopes. The existing queue provides pagination, search, status, reason, date and facility filters over the authorized result set in the browser. Server-side filtering remains a backend contract gap.
-- The Fetch API provides no portable upload-progress events. The UI exposes pending/loading state, prevents repeated submission and maps `413`/`415` errors, but cannot show byte-level upload progress without an agreed upload transport.
-- Programme currency is carried from the configured programme setting into handoff metadata. The API must remain authoritative for allowed currency and receiving-location assignment.
+| Screen or flow | Method and endpoint | Request | Response contract |
+| --- | --- | --- | --- |
+| Sign in | `POST /v1/auth/sessions` | `SignInRequest` (username, password) | `SessionCreated` (no credential in the body) |
+| Session restore, identity, scope | `GET /v1/auth/me` | cookie | `CurrentUser` |
+| Sign out | `DELETE /v1/auth/sessions/current` | cookie, allowed `Origin` | `204` |
+| Development demo accounts | `GET /v1/auth/demo-accounts` | — | `DemoAccountList` (usernames only; `404` when disabled) |
+| Handoff currency and threshold | `GET /v1/programmes/{programme_id}` | — | `ProgrammeView` |
+| Capture destination picker, location names | `GET /v1/programmes/{programme_id}/receiving-locations` | — | `ReceivingLocationList` |
+| Recycler receiving locations | `GET /v1/facilities/{facility_id}/receiving-locations` | — | `ReceivingLocationList` |
+| Collector and recycler record lists, dashboards | `GET /v1/recovery-records` | `RecoveryRecordListRequest` query (`state`, `category`, dates, `sort`, `cursor`, `limit`) | `RecoveryRecordPage` |
+| Record detail | `GET /v1/recovery-records/{record_id}` | — | `RecoveryRecord` (never embeds a QR credential) |
+| New draft (capture) | `POST /v1/recovery-records` | multipart `record` = `RecoveryRecordDraftCreate`, `original_image`; `Idempotency-Key` | `RecoveryRecord` |
+| Resume draft | `PATCH /v1/recovery-records/{record_id}` | `RecoveryRecordDraftUpdate`, `If-Match` | `RecoveryRecord` |
+| Confirm or correct category | `POST /v1/recovery-records/{record_id}/category-confirmations` | `CategoryConfirmationRequest`, `If-Match` | `RecoveryRecord` |
+| Further draft photograph | `POST /v1/recovery-records/{record_id}/evidence` | multipart `EvidenceUploadRequest` + `image` | `EvidenceMetadata` |
+| Submit | `POST /v1/recovery-records/{record_id}/submissions` | — | `RecordSubmissionResponse` |
+| Collector QR and manual code | `GET /v1/recovery-records/{record_id}/qr-credentials` | owner only | `QrCredentials` |
+| Reissue QR and manual code | `POST /v1/recovery-records/{record_id}/qr-token-rotations` | owner only | `QrCredentials` |
+| Timeline | `GET /v1/recovery-records/{record_id}/events` | — | `RecoveryRecordEventList` |
+| Evidence list | `GET /v1/recovery-records/{record_id}/evidence` | — | `EvidenceMetadataList` (no storage paths) |
+| Evidence image | `GET /v1/evidence/{evidence_id}/content` | `Accept: image/*` | bytes; `ProtectedEvidenceDelivery` headers, digest verified in the browser |
+| Vision appraisal | `POST /v1/vision/appraise` | multipart `image`, `evidence_id` | `VisionAppraisalResponse` (bare) |
+| Recycler QR or manual lookup | `POST /v1/handoff-lookups` | `HandoffLookupRequest` (`qr_text` or `manual_transfer_code`) | `HandoffLookupResponse` (preview only; `404` → not found) |
+| Handoff photographs | `POST /v1/recovery-records/{record_id}/evidence` | `handoff_photo`, `weight_measurement` | `EvidenceMetadata` |
+| Confirm handoff | `POST /v1/handoffs` | `HandoffRequest` with the presented credential | `HandoffResponse` (incl. `duplicate_scan`, `discrepancy`) |
+| Processing queue | `GET /v1/processing-queue` | `cursor`, `limit` | `RecoveryRecordPage` |
+| Load processing draft | `GET /v1/recovery-records/{record_id}/processing` | — | `ProcessingDetail` (`404` → none) |
+| Save processing draft | `PUT /v1/recovery-records/{record_id}/processing` | `ProcessingDraftUpdate`, `If-Match` | `ProcessingDetail` |
+| Material rows | `POST`, `PATCH`, `DELETE` `/v1/recovery-records/{record_id}/processing/material-entries[/{entry_id}]` | `MaterialEntry` / `MaterialEntryUpdate`, `If-Match` | `ProcessingDetail` |
+| Completion photograph | `POST /v1/recovery-records/{record_id}/evidence` | `processing_completion` | `EvidenceMetadata` |
+| Submit processing | `POST /v1/processing-submissions` | `ProcessingRequest` | `ProcessingResponse` |
+| Review queue, assigned cases | `GET /v1/review-cases` | `ReviewQueueFilters` query (`status`, `flag_code`, dates, `facility_id`, `record_id`, `cursor`) | `ReviewCasePage` |
+| Review detail | `GET /v1/review-cases` (`record_id`) then `GET /v1/review-cases/{case_id}` | — | `ReviewCaseDetail` |
+| Review decision | `POST /v1/review-decisions` | `ProgrammeReviewRequest` built from the case detail | `ProgrammeReviewResponse` |
 
-These are integration dependencies, not claims that offline synchronization, token revocation, server-side queue pagination or upload-byte progress already work.
+## Deliberately unavailable in HTTP mode (Phase 2)
+
+Safety guidance, nearby-location search, reporting and exports, safety-content administration, model administration, programme-settings editing, offline synchronization and local-device data controls have no Phase 1 API. In HTTP mode their services fail immediately with a non-retryable `DEPENDENCY_UNAVAILABLE` ("not available in this release") and make no network call. Phase 1 screens that show these features (for example the safety-guide panel on the capture screen) display the unavailable state and continue working.

@@ -135,11 +135,13 @@
     "success": "O formulário de demonstração é válido."
   },
   "authentication": {
-    "emailLabel": "Endereço de e-mail",
-    "emailInvalid": "Introduza um endereço de e-mail válido.",
     "passwordLabel": "Palavra-passe",
     "passwordRequired": "Introduza a sua palavra-passe.",
-    "submit": "Iniciar sessão"
+    "submit": "Iniciar sessão",
+    "usernameLabel": "Nome de utilizador",
+    "usernameRequired": "Introduza o seu nome de utilizador.",
+    "demoAccountsTitle": "Contas de demonstração",
+    "demoAccountsHint": "Apenas para desenvolvimento. Escolher uma conta preenche o nome de utilizador; a palavra-passe continua a ser necessária."
   },
   "states": {
     "emptyTitle": "Ainda não há conteúdo",
@@ -273,7 +275,8 @@
       "filterState": "Estado",
       "allStates": "Todos os estados",
       "search": "Pesquisar por referência",
-      "emptyDescription": "Nenhum registo corresponde aos filtros atuais."
+      "emptyDescription": "Nenhum registo corresponde aos filtros atuais.",
+      "loadMore": "Carregar mais registos"
     },
     "capture": {
       "stepImage": "1. Fotografar o item",
@@ -484,7 +487,15 @@
       "flaggedNextStep": "Pode ainda registar os detalhes de processamento. O registo não pode contar para a recuperação verificada até um revisor o aprovar.",
       "duplicateTitle": "Este código já foi lido",
       "duplicateToast": "Já recebido. É mostrada a primeira receção.",
-      "duplicateNotice": "Não foi criada uma segunda entrega. A receção original mantém-se."
+      "duplicateNotice": "Não foi criada uma segunda entrega. A receção original mantém-se.",
+      "unknownLocation": "Um local fora deste diretório",
+      "programmeUnavailable": "Não foi possível carregar as definições do programa. Tente novamente.",
+      "originalOutcome": "Primeiro resultado",
+      "originalOutcomes": {
+        "accepted": "Aceite",
+        "rejected": "Rejeitado",
+        "discrepancy": "Aceite com sinalização para revisão"
+      }
     },
     "reviewer": {
       "awaiting": "A aguardar decisão",
@@ -511,7 +522,15 @@
       "colUpdated": "Atualizado",
       "colStatus": "Estado",
       "manualReview": "Revisão manual",
-      "noFacility": "Ainda não recebido"
+      "noFacility": "Ainda não recebido",
+      "filterStatus": "Estado do caso",
+      "unresolvedCases": "Abertos e a aguardar informação",
+      "colOpened": "Aberto",
+      "filterDateTo": "Aberto até",
+      "pageCount": "{count} casos na página {page}",
+      "pagination": "Páginas da fila de revisão",
+      "previousPage": "Página anterior",
+      "nextPage": "Página seguinte"
     },
     "manager": {
       "totalRecords": "Registos",
@@ -632,7 +651,8 @@
       "colFlags": "Sinalizações",
       "colState": "Estado",
       "noFlags": "Nenhuma",
-      "recordProcessing": "Registar processamento"
+      "recordProcessing": "Registar processamento",
+      "loadMore": "Carregar mais registos"
     },
     "recyclerProcessing": {
       "title": "Registar processamento",
@@ -682,7 +702,12 @@
       "alreadyRecordedTitle": "O processamento já foi registado",
       "alreadyRecordedNotice": "Este registo já tem detalhes de processamento. Abra o registo para os consultar.",
       "notReceivedTitle": "Este registo ainda não foi recebido",
-      "notReceivedNotice": "Registe primeiro a receção. O processamento só pode ser registado após a entrega."
+      "notReceivedNotice": "Registe primeiro a receção. O processamento só pode ser registado após a entrega.",
+      "loadingDraft": "A carregar o rascunho de processamento…",
+      "saveDraft": "Guardar rascunho",
+      "draftSaved": "Rascunho de processamento guardado.",
+      "draftSavedAt": "Rascunho guardado pela última vez em {when}.",
+      "evidenceAttached": "Está anexada ao rascunho uma fotografia de conclusão."
     },
     "recyclerProcessingQueue": {
       "title": "Processamento",
@@ -694,7 +719,9 @@
       "recordedHeading": "Processamento registado",
       "noneAwaiting": "Todos os registos recebidos têm os seus detalhes de processamento.",
       "noneRecorded": "Ainda não foi registado processamento nesta instalação.",
-      "backToIntake": "Voltar à receção"
+      "backToIntake": "Voltar à receção",
+      "loadingQueue": "A carregar a fila de processamento…",
+      "loadMore": "Carregar mais"
     },
     "recyclerAccount": {
       "title": "Conta da instalação",
@@ -768,7 +795,8 @@
       "notReviewableTitle": "Este registo não está a aguardar decisão",
       "notReviewableNotice": "Apenas um registo em revisão pode receber uma decisão. Esta vista é apenas de leitura.",
       "backToQueue": "Voltar à fila",
-      "unknownLocation": "Local ausente do diretório revisto"
+      "unknownLocation": "Local ausente do diretório revisto",
+      "decisionsHeading": "Decisões anteriores"
     },
     "reviewAssigned": {
       "title": "Registos atribuídos",
@@ -1395,10 +1423,10 @@
     "digestNotice": "Um resumo deteta alterações posteriores ao conteúdo registado. Não prova que o evento aconteceu nem torna o conteúdo verdadeiro."
   },
   "qr": {
-    "symbolAlternative": "Código QR para o código de transferência {code}",
+    "symbolAlternative": "Código QR do registo {code}",
     "presentHint": "Mostre este código na instalação recetora, ou leia em voz alta o código de transferência abaixo.",
-    "transferCode": "Código de transferência",
-    "copyCode": "Copiar o código de transferência",
+    "transferCode": "Código de transferência manual",
+    "copyCode": "Copiar o código de transferência manual",
     "copied": "Copiado",
     "download": "Descarregar o código",
     "payloadSummary": "O que este código contém",
@@ -1417,10 +1445,30 @@
     "imageErrorTitle": "Não foi possível usar essa imagem",
     "imageNoSymbol": "Não foi encontrado nenhum código QR nessa imagem. Tente uma fotografia mais próxima e nítida.",
     "imageUnreadable": "Não foi possível ler esse ficheiro como imagem.",
-    "codeLabel": "Código de transferência",
-    "codeHint": "Oito caracteres após ST-, como impresso sob o código QR.",
+    "codeLabel": "Código de transferência manual",
+    "codeHint": "Doze caracteres em três grupos, tal como lidos pelo recolhedor.",
     "codeRequired": "Introduza o código de transferência.",
-    "lookUp": "Consultar este código"
+    "lookUp": "Consultar este código",
+    "codeInvalid": "Introduza o código de doze caracteres, por exemplo 7K3Q-M9XD-2HVT.",
+    "statusLabel": "Estado do código",
+    "status": {
+      "inactive": "Ainda não ativo",
+      "active": "Ativo",
+      "expired": "Expirado",
+      "used": "Utilizado na entrega"
+    },
+    "expiresAt": "Expira",
+    "inactiveTitle": "Este código funciona após a submissão",
+    "inactiveNotice": "Submeta o registo para ativar o código QR e o código de transferência manual.",
+    "manualCodeNotice": "Partilhe o código manual apenas com a instalação recetora. Funciona como o código QR e deixa de funcionar após a entrega, a expiração ou a reemissão.",
+    "expiredTitle": "Este código expirou",
+    "expiredNotice": "Reemita o código para entregar este artigo.",
+    "usedTitle": "Este código foi utilizado",
+    "usedNotice": "A entrega está registada, pelo que o código já não funciona.",
+    "reissue": "Reemitir os códigos",
+    "reissueTitle": "Reemitir os códigos QR e manual?",
+    "reissueDescription": "O código QR e o código manual atuais deixam de funcionar imediatamente. Use esta opção se um código foi perdido, partilhado ou expirou.",
+    "reissued": "Novos códigos emitidos. Os códigos anteriores já não funcionam."
   },
   "register": {
     "boundaryTitle": "O registo autónomo está fora desta demonstração",

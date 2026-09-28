@@ -1,10 +1,12 @@
 import {
   EvidenceSchema,
+  ProcessingDetailSchema,
   RecoveryRecordEventSchema,
   RecoveryRecordSchema,
   compareIdempotencyRequest,
   type Evidence,
   type IdempotencyMetadata,
+  type ProcessingDetail,
   type RecoveryRecord,
   type RecoveryRecordEvent,
 } from "@scraptrace/contracts";
@@ -123,6 +125,22 @@ const readState = (store: PersistentStore): RepositoryState => {
 export type StorageWarning = "storage_full" | "storage_unavailable" | "serialization_failed";
 
 export class ScrapTraceRepository {
+  /**
+   * Processing drafts by record identifier. They are working copies, so they live for the
+   * session only; the API persists them server-side.
+   */
+  private readonly processingDrafts = new Map<string, ProcessingDetail>();
+
+  getProcessingDraft(recordId: string): ProcessingDetail | null {
+    return this.processingDrafts.get(recordId) ?? null;
+  }
+
+  putProcessingDraft(detail: ProcessingDetail): ProcessingDetail {
+    const parsed = ProcessingDetailSchema.parse(detail);
+    this.processingDrafts.set(parsed.record_id, parsed);
+    return parsed;
+  }
+
   private state: RepositoryState;
   private readonly listeners = new Set<() => void>();
   private lastStorageWarning: StorageWarning | null = null;

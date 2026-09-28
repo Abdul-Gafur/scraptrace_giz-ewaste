@@ -1,8 +1,8 @@
 "use client";
 
-import type { RecoveryRecord } from "@scraptrace/contracts";
+import type { HandoffPreview } from "@scraptrace/contracts";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { useContractLabels } from "@/features/shared/contract-labels";
 import { FlagPanel } from "@/features/shared/flag-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { QrScanner } from "@/features/shared/qr-scanner";
-import { useConfirmHandoff, useLookupForHandoff } from "@/hooks/use-records";
+import { useConfirmHandoff, useLookupForHandoff, useRecord } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import type { HandoffLookupResult, RecordHandoffInput } from "@/services/ports/service-ports";
 
@@ -29,10 +29,12 @@ import type { HandoffResponse } from "./intake/types";
 /**
  * Recycler intake (FR-HND-001).
  *
- * A scan, a decoded image or a typed transfer code all reach the same lookup. Every outcome the
- * lookup can return has its own state: not found, not yet published for handoff, already received,
- * belonging to another facility, or an unsupported contract version. A record already received
- * shows its first receipt instead of offering to record a second one.
+ * A scan, a decoded image or a typed manual transfer code all reach the same lookup. Every
+ * outcome the lookup can return has its own state: not found, not yet published for handoff,
+ * already received, belonging to another facility, or an unsupported contract version. A record
+ * already received shows its first receipt instead of offering to record a second one. The
+ * lookup returns a minimised preview and never a credential; the handoff carries the credential
+ * the recycler presented (ADR-009).
  */
 export function IntakeScreen() {
   const translate = useTranslations("screens.recyclerIntake");
@@ -44,7 +46,6 @@ export function IntakeScreen() {
 
   const lookup = useLookupForHandoff();
   const confirm = useConfirmHandoff();
-  const [scannedPayload, setScannedPayload] = useState("");
   const [result, setResult] = useState<HandoffLookupResult | null>(null);
   const [response, setResponse] = useState<HandoffResponse | null>(null);
   const [lookupError, setLookupError] = useState<string | undefined>();
@@ -52,7 +53,6 @@ export function IntakeScreen() {
   const onScanned = (value: string) => {
     setLookupError(undefined);
     setResponse(null);
-    setScannedPayload(value);
     lookup.mutate(value, {
       onSuccess: setResult,
       onError: (error) => {
@@ -83,10 +83,9 @@ export function IntakeScreen() {
   const reset = () => {
     setResult(null);
     setResponse(null);
-    setScannedPayload("");
   };
 
-  const recordSummary = (record: RecoveryRecord) => (
+  const recordSummary = (record: HandoffPreview) => (
     <DefinitionList>
       <DefinitionRow term={translate("reference")}>
         <span className="font-mono">{record.human_reference}</span>
@@ -150,52 +149,21 @@ export function IntakeScreen() {
       ) : null}
 
       {result?.outcome === "already_received" ? (
-        <Card>
-          <CardHeader>
-            <SectionHeading as="h2">{translate("alreadyReceivedTitle")}</SectionHeading>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Alert title={translate("alreadyReceivedNoticeTitle")} tone="info">
-              {translate("alreadyReceivedNotice")}
-            </Alert>
-            {recordSummary(result.record)}
-            <DefinitionList>
-              <DefinitionRow term={translate("originalReceivedAt")}>
-                {formats.dateTime(result.receivedAt)}
-              </DefinitionRow>
-              {result.record.handoff ? (
-                <DefinitionRow term={translate("originalWeight")}>
-                  {formats.weight(result.record.handoff.measured_weight)}
-                </DefinitionRow>
-              ) : null}
-            </DefinitionList>
-            <FlagPanel flagCodes={result.record.review.flag_codes} />
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Link
-                className={buttonVariants({ block: true })}
-                href={`/recycler/records/${result.record.record_id}`}
-              >
-                {translate("openRecord")}
-              </Link>
-              <button
-                className={buttonVariants({ variant: "secondary", block: true })}
-                onClick={reset}
-                type="button"
-              >
-                {translate("scanAnother")}
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+        <AlreadyReceived
+          onReset={reset}
+          receivedAt={result.receivedAt}
+          summary={recordSummary(result.record)}
+          recordId={result.record.record_id}
+        />
       ) : null}
 
       {result?.outcome === "ready" && response === null ? (
         <HandoffForm
+          credential={result.credential}
           onSubmit={onConfirm}
           pending={confirm.isPending}
           record={result.record}
           response={response}
-          scannedPayload={scannedPayload}
         />
       ) : null}
 
@@ -274,8 +242,76 @@ export function IntakeScreen() {
           <p className="mt-1">
             {translate("originalReceivedAt")}: {formats.dateTime(response.original_received_at)}
           </p>
+          <p className="mt-1">
+            {translate("originalOutcome")}:{" "}
+            {translate(`originalOutcomes.${response.original_logical_result}`)}
+          </p>
+          <button
+            className={buttonVariants({ variant: "secondary", block: true, className: "mt-3" })}
+            onClick={reset}
+            type="button"
+          >
+            {translate("scanAnother")}
+          </button>
         </Alert>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * A second scan of a received record: the first receipt is shown, never overwritten. The full
+ * record is read only if this recycler's facility received it; the preview is enough otherwise.
+ */
+function AlreadyReceived({
+  recordId,
+  receivedAt,
+  summary,
+  onReset,
+}: {
+  readonly recordId: string;
+  readonly receivedAt: string;
+  readonly summary: ReactNode;
+  readonly onReset: () => void;
+}) {
+  const translate = useTranslations("screens.recyclerIntake");
+  const formats = useValueFormats();
+  const recordQuery = useRecord(recordId);
+  const handoff = recordQuery.data?.handoff;
+  return (
+    <Card>
+      <CardHeader>
+        <SectionHeading as="h2">{translate("alreadyReceivedTitle")}</SectionHeading>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Alert title={translate("alreadyReceivedNoticeTitle")} tone="info">
+          {translate("alreadyReceivedNotice")}
+        </Alert>
+        {summary}
+        <DefinitionList>
+          <DefinitionRow term={translate("originalReceivedAt")}>
+            {formats.dateTime(receivedAt)}
+          </DefinitionRow>
+          {handoff ? (
+            <DefinitionRow term={translate("originalWeight")}>
+              {formats.weight(handoff.measured_weight)}
+            </DefinitionRow>
+          ) : null}
+        </DefinitionList>
+        {recordQuery.data ? <FlagPanel flagCodes={recordQuery.data.review.flag_codes} /> : null}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link className={buttonVariants({ block: true })} href={`/recycler/records/${recordId}`}>
+            {translate("openRecord")}
+          </Link>
+          <button
+            className={buttonVariants({ variant: "secondary", block: true })}
+            onClick={onReset}
+            type="button"
+          >
+            {translate("scanAnother")}
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

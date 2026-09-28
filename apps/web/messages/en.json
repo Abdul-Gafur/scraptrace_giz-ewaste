@@ -135,11 +135,13 @@
     "success": "The demonstration form is valid."
   },
   "authentication": {
-    "emailLabel": "Email address",
-    "emailInvalid": "Enter a valid email address.",
     "passwordLabel": "Password",
     "passwordRequired": "Enter your password.",
-    "submit": "Sign in"
+    "submit": "Sign in",
+    "usernameLabel": "Username",
+    "usernameRequired": "Enter your username.",
+    "demoAccountsTitle": "Demonstration accounts",
+    "demoAccountsHint": "Development only. Choosing an account fills in its username; the password is still required."
   },
   "states": {
     "emptyTitle": "Nothing here yet",
@@ -273,7 +275,8 @@
       "filterState": "Status",
       "allStates": "All statuses",
       "search": "Search by reference",
-      "emptyDescription": "No record matches the current filters."
+      "emptyDescription": "No record matches the current filters.",
+      "loadMore": "Load more records"
     },
     "capture": {
       "stepImage": "1. Photograph the item",
@@ -484,7 +487,15 @@
       "flaggedNextStep": "You can still record the processing details. The record cannot count towards verified recovery until a reviewer approves it.",
       "duplicateTitle": "This code was already scanned",
       "duplicateToast": "Already received. The first receipt is shown.",
-      "duplicateNotice": "No second handoff was created. The original receipt stands."
+      "duplicateNotice": "No second handoff was created. The original receipt stands.",
+      "unknownLocation": "A location outside this directory",
+      "programmeUnavailable": "Programme settings could not be loaded. Try again.",
+      "originalOutcome": "First outcome",
+      "originalOutcomes": {
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "discrepancy": "Accepted with a flag for review"
+      }
     },
     "reviewer": {
       "awaiting": "Awaiting a decision",
@@ -511,7 +522,15 @@
       "colUpdated": "Updated",
       "colStatus": "Status",
       "manualReview": "Manual review",
-      "noFacility": "Not yet received"
+      "noFacility": "Not yet received",
+      "filterStatus": "Case status",
+      "unresolvedCases": "Open and awaiting information",
+      "colOpened": "Opened",
+      "filterDateTo": "Opened on or before",
+      "pageCount": "{count} cases on page {page}",
+      "pagination": "Review queue pages",
+      "previousPage": "Previous page",
+      "nextPage": "Next page"
     },
     "manager": {
       "totalRecords": "Records",
@@ -632,7 +651,8 @@
       "colFlags": "Flags",
       "colState": "Status",
       "noFlags": "None",
-      "recordProcessing": "Record processing details"
+      "recordProcessing": "Record processing details",
+      "loadMore": "Load more records"
     },
     "recyclerProcessing": {
       "title": "Record processing",
@@ -682,7 +702,12 @@
       "alreadyRecordedTitle": "Processing was already recorded",
       "alreadyRecordedNotice": "This record already holds processing details. Open the record to review them.",
       "notReceivedTitle": "This record has not been received yet",
-      "notReceivedNotice": "Record receipt at intake first. Processing can only be recorded after handoff."
+      "notReceivedNotice": "Record receipt at intake first. Processing can only be recorded after handoff.",
+      "loadingDraft": "Loading the processing draft…",
+      "saveDraft": "Save draft",
+      "draftSaved": "Processing draft saved.",
+      "draftSavedAt": "Draft last saved {when}.",
+      "evidenceAttached": "A completion photograph is attached to the draft."
     },
     "recyclerProcessingQueue": {
       "title": "Processing",
@@ -694,7 +719,9 @@
       "recordedHeading": "Processing recorded",
       "noneAwaiting": "Every received record has its processing details.",
       "noneRecorded": "No processing has been recorded at this facility yet.",
-      "backToIntake": "Back to intake"
+      "backToIntake": "Back to intake",
+      "loadingQueue": "Loading the processing queue…",
+      "loadMore": "Load more"
     },
     "recyclerAccount": {
       "title": "Facility account",
@@ -768,7 +795,8 @@
       "notReviewableTitle": "This record is not awaiting a decision",
       "notReviewableNotice": "Only a record under review can receive a decision. This view is read-only.",
       "backToQueue": "Back to the queue",
-      "unknownLocation": "Location not in the reviewed directory"
+      "unknownLocation": "Location not in the reviewed directory",
+      "decisionsHeading": "Earlier decisions"
     },
     "reviewAssigned": {
       "title": "Assigned records",
@@ -1395,10 +1423,10 @@
     "digestNotice": "A digest detects later change to the recorded content. It does not prove that the recorded event happened, and it does not make the content truthful."
   },
   "qr": {
-    "symbolAlternative": "QR code for transfer code {code}",
+    "symbolAlternative": "QR code for record {code}",
     "presentHint": "Show this code to the receiving facility, or read out the transfer code below.",
-    "transferCode": "Transfer code",
-    "copyCode": "Copy the transfer code",
+    "transferCode": "Manual transfer code",
+    "copyCode": "Copy the manual transfer code",
     "copied": "Copied",
     "download": "Download the code",
     "payloadSummary": "What this code contains",
@@ -1417,10 +1445,30 @@
     "imageErrorTitle": "That image could not be used",
     "imageNoSymbol": "No QR code was found in that image. Try a closer, sharper photograph.",
     "imageUnreadable": "That file could not be read as an image.",
-    "codeLabel": "Transfer code",
-    "codeHint": "Eight characters after ST-, as printed under the QR code.",
+    "codeLabel": "Manual transfer code",
+    "codeHint": "Twelve characters in three groups, as read out by the collector.",
     "codeRequired": "Enter the transfer code.",
-    "lookUp": "Look up this code"
+    "lookUp": "Look up this code",
+    "codeInvalid": "Enter the twelve-character code, for example 7K3Q-M9XD-2HVT.",
+    "statusLabel": "Code status",
+    "status": {
+      "inactive": "Not active yet",
+      "active": "Active",
+      "expired": "Expired",
+      "used": "Used at handoff"
+    },
+    "expiresAt": "Expires",
+    "inactiveTitle": "This code works after submission",
+    "inactiveNotice": "Submit the record to activate the QR code and the manual transfer code.",
+    "manualCodeNotice": "Share the manual code only with the receiving facility. It works like the QR code and stops working after handoff, expiry or reissue.",
+    "expiredTitle": "This code has expired",
+    "expiredNotice": "Reissue the code to hand this item over.",
+    "usedTitle": "This code was used",
+    "usedNotice": "The handoff is recorded, so the code no longer works.",
+    "reissue": "Reissue the codes",
+    "reissueTitle": "Reissue the QR and manual codes?",
+    "reissueDescription": "The current QR code and manual code stop working immediately. Use this if a code was lost, shared or expired.",
+    "reissued": "New codes issued. The previous codes no longer work."
   },
   "register": {
     "boundaryTitle": "Self-registration is outside this demonstration",

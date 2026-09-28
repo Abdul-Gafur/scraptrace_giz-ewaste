@@ -7,12 +7,13 @@ import {
   type UserRole,
 } from "@scraptrace/contracts";
 
-import { demoActorFor, type ActorContext } from "@/auth/actors";
+import { demoActorFor, toActorReference, type ActorContext } from "@/auth/actors";
 import { nowUtc } from "@/services/domain/time";
 import type {
   AuthenticationService,
   FrontendServices,
   LocalDataService,
+  Session,
   SynchronizationService,
 } from "@/services/ports/service-ports";
 
@@ -26,6 +27,7 @@ import { createHandoffService } from "./handoff-service";
 import { createLocationService } from "./location-service";
 import { createProcessingService } from "./processing-service";
 import { createRecordService } from "./record-service";
+import { createReferenceService } from "./reference-service";
 import { ScrapTraceRepository } from "./repository";
 import { createReportingService, createDataExportService } from "./reporting-service";
 import { createReviewService } from "./review-service";
@@ -66,7 +68,7 @@ const readDemoRole = (): UserRole | null => {
   return parsed.success ? parsed.data : null;
 };
 
-const sessionFor = (role: UserRole, preferredLanguage: SupportedLanguage) => {
+const sessionFor = (role: UserRole, preferredLanguage: SupportedLanguage): Session => {
   const actor = demoActorFor(role);
   return {
     actorId: actor.actorId,
@@ -74,7 +76,11 @@ const sessionFor = (role: UserRole, preferredLanguage: SupportedLanguage) => {
     preferredLanguage,
     displayLabel: actor.displayLabelKey,
     developmentOnly: true,
-  } as const;
+    actorReference: toActorReference(actor),
+    programmeIds: actor.programmeId ? [actor.programmeId] : [],
+    facilityIds: actor.facilityId ? [actor.facilityId] : [],
+    receivingLocationIds: actor.locationIds,
+  };
 };
 
 const createAuthenticationService = (
@@ -94,6 +100,10 @@ const createAuthenticationService = (
     // Signing out ends the session without deleting device records. Clearing locally held data is
     // a separate, explicitly confirmed account action.
     if (typeof window !== "undefined") window.localStorage.removeItem(DEMO_SESSION_KEY);
+  },
+  // The mock adapter offers the development role preview instead of account discovery.
+  async listDemoAccounts() {
+    return [];
   },
 });
 
@@ -163,6 +173,7 @@ export const createLocalServices = ({
   const context: LocalServiceContext = { repository, actor, delayMilliseconds };
   return {
     authentication: createAuthenticationService(context, preferredLanguage),
+    reference: createReferenceService(context),
     recoveryRecords: createRecordService(context),
     vision: createVisionService(context),
     safetyGuidance: createSafetyGuidanceService(context),

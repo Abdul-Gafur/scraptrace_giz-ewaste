@@ -5,7 +5,7 @@ import { Camera } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ListItem, SectionHeading } from "@/components/ui/content";
 import { FilterControl } from "@/components/ui/filter-control";
 import { SearchInput } from "@/components/ui/input";
@@ -13,11 +13,14 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { AsyncPanel } from "@/features/shared/async-panel";
 import { useContractLabels } from "@/features/shared/contract-labels";
 import { useValueFormats } from "@/features/shared/formats";
-import { useOwnRecords } from "@/hooks/use-records";
+import { useRecordPages } from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import { toKilograms } from "@/services/domain/flags";
 
-/** The collector's own records, searchable and filterable by lifecycle state (Figma: mobile-collector-en). */
+/**
+ * The collector's own records (Figma: mobile-collector-en). The API filters by lifecycle state
+ * and pages the result; the search narrows the records already loaded.
+ */
 export function RecordsScreen() {
   const translate = useTranslations("screens.records");
   const translatePages = useTranslations("pages");
@@ -25,24 +28,26 @@ export function RecordsScreen() {
   const translateHome = useTranslations("screens.collectorHome");
   const labels = useContractLabels();
   const formats = useValueFormats();
-  const query = useOwnRecords();
   const [state, setState] = useState("all");
   const [search, setSearch] = useState("");
+  const stateFilter = RecoveryRecordStateSchema.safeParse(state);
+  const query = useRecordPages({
+    limit: 25,
+    ...(stateFilter.success ? { state: [stateFilter.data] } : {}),
+  });
+  const loaded = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
 
   const records = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
+    return loaded.filter(
       (record) =>
-        (state === "all" || record.business_state === state) &&
-        (term.length === 0 ||
-          record.human_reference.toLowerCase().includes(term) ||
-          record.category.includes(term)),
+        term.length === 0 ||
+        record.human_reference.toLowerCase().includes(term) ||
+        record.category.includes(term),
     );
-  }, [query.data, search, state]);
+  }, [loaded, search]);
 
-  const pending = (query.data ?? []).filter(
-    (record) => record.sync.sync_state !== "synchronized",
-  ).length;
+  const pending = loaded.filter((record) => record.sync.sync_state !== "synchronized").length;
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -108,6 +113,17 @@ export function RecordsScreen() {
           </ul>
         )}
       </AsyncPanel>
+      {query.hasNextPage ? (
+        <Button
+          block
+          disabled={query.isFetchingNextPage}
+          loading={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+          variant="secondary"
+        >
+          {translate("loadMore")}
+        </Button>
+      ) : null}
 
       <Link className={buttonVariants({ size: "large", block: true })} href="/collector/capture">
         <Camera aria-hidden="true" className="size-5" />

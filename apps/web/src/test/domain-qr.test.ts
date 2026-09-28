@@ -2,9 +2,9 @@ import { CONTRACT_SCHEMA_VERSION, QrPayloadSchema } from "@scraptrace/contracts"
 
 import {
   QR_PREFIX,
+  classifyPresentedCode,
   decodeQrPayload,
   encodeQrPayload,
-  normalizeTransferCode,
 } from "@/services/domain/qr-payload";
 import { newLookupToken, newRecoveryRecordId } from "@/services/domain/identifiers";
 
@@ -77,7 +77,24 @@ describe("QR payload", () => {
     for (const part of encoded.split(":")) expect(allowed.has(part)).toBe(true);
   });
 
-  it("normalises a typed transfer code", () => {
-    expect(normalizeTransferCode(" st-ab12 cd34 ")).toBe("ST-AB12CD34");
+  it("classifies a typed manual transfer code, normalised, without deriving anything", () => {
+    expect(classifyPresentedCode(" 7k3q m9xd 2hvt ")).toEqual({
+      kind: "manual_transfer_code",
+      code: "7K3Q-M9XD-2HVT",
+    });
+  });
+
+  it("classifies scanned QR text and keeps the presented token", () => {
+    const value = payload();
+    expect(classifyPresentedCode(encodeQrPayload(value))).toEqual({
+      kind: "qr_text",
+      text: encodeQrPayload(value),
+      payload: value,
+    });
+  });
+
+  it("never treats the display reference as a credential", () => {
+    expect(classifyPresentedCode("ST-AB12CD34")).toEqual({ kind: "unrecognised" });
+    expect(classifyPresentedCode("")).toEqual({ kind: "unrecognised" });
   });
 });

@@ -135,11 +135,13 @@
     "success": "نموذج العرض صالح."
   },
   "authentication": {
-    "emailLabel": "عنوان البريد الإلكتروني",
-    "emailInvalid": "أدخل عنوان بريد إلكتروني صالحًا.",
     "passwordLabel": "كلمة المرور",
     "passwordRequired": "أدخل كلمة المرور.",
-    "submit": "تسجيل الدخول"
+    "submit": "تسجيل الدخول",
+    "usernameLabel": "اسم المستخدم",
+    "usernameRequired": "أدخل اسم المستخدم.",
+    "demoAccountsTitle": "حسابات العرض التوضيحي",
+    "demoAccountsHint": "للتطوير فقط. اختيار حساب يملأ اسم المستخدم؛ وتظل كلمة المرور مطلوبة."
   },
   "states": {
     "emptyTitle": "لا يوجد شيء بعد",
@@ -273,7 +275,8 @@
       "filterState": "الحالة",
       "allStates": "كل الحالات",
       "search": "البحث بالمرجع",
-      "emptyDescription": "لا يوجد سجل مطابق للمرشّحات الحالية."
+      "emptyDescription": "لا يوجد سجل مطابق للمرشّحات الحالية.",
+      "loadMore": "تحميل المزيد من السجلات"
     },
     "capture": {
       "stepImage": "١. صوّر القطعة",
@@ -484,7 +487,15 @@
       "flaggedNextStep": "يمكنك تسجيل تفاصيل المعالجة مع ذلك. لن يُحسب السجل في الاستعادة المتحقَّقة حتى يعتمده مراجع.",
       "duplicateTitle": "تم مسح هذا الرمز سابقًا",
       "duplicateToast": "مستلَم سابقًا. يُعرض الاستلام الأول.",
-      "duplicateNotice": "لم يُنشأ تسليم ثانٍ. الاستلام الأصلي قائم."
+      "duplicateNotice": "لم يُنشأ تسليم ثانٍ. الاستلام الأصلي قائم.",
+      "unknownLocation": "موقع خارج هذا الدليل",
+      "programmeUnavailable": "تعذّر تحميل إعدادات البرنامج. حاول مرة أخرى.",
+      "originalOutcome": "النتيجة الأولى",
+      "originalOutcomes": {
+        "accepted": "مقبول",
+        "rejected": "مرفوض",
+        "discrepancy": "مقبول مع وسم للمراجعة"
+      }
     },
     "reviewer": {
       "awaiting": "في انتظار قرار",
@@ -511,7 +522,15 @@
       "colUpdated": "آخر تحديث",
       "colStatus": "الحالة",
       "manualReview": "مراجعة يدوية",
-      "noFacility": "لم يُستلم بعد"
+      "noFacility": "لم يُستلم بعد",
+      "filterStatus": "حالة الحالة",
+      "unresolvedCases": "مفتوحة وبانتظار معلومات",
+      "colOpened": "فُتحت",
+      "filterDateTo": "فُتحت في أو قبل",
+      "pageCount": "{count} حالات في الصفحة {page}",
+      "pagination": "صفحات قائمة المراجعة",
+      "previousPage": "الصفحة السابقة",
+      "nextPage": "الصفحة التالية"
     },
     "manager": {
       "totalRecords": "السجلات",
@@ -632,7 +651,8 @@
       "colFlags": "الأعلام",
       "colState": "الحالة",
       "noFlags": "لا شيء",
-      "recordProcessing": "تسجيل المعالجة"
+      "recordProcessing": "تسجيل المعالجة",
+      "loadMore": "تحميل المزيد من السجلات"
     },
     "recyclerProcessing": {
       "title": "تسجيل المعالجة",
@@ -682,7 +702,12 @@
       "alreadyRecordedTitle": "سُجّلت المعالجة سابقًا",
       "alreadyRecordedNotice": "هذا السجل يحتوي بالفعل على تفاصيل معالجة. افتح السجل لمراجعتها.",
       "notReceivedTitle": "لم يُستلَم هذا السجل بعد",
-      "notReceivedNotice": "سجّل الاستلام في الاستلام أولاً. لا يمكن تسجيل المعالجة إلا بعد التسليم."
+      "notReceivedNotice": "سجّل الاستلام في الاستلام أولاً. لا يمكن تسجيل المعالجة إلا بعد التسليم.",
+      "loadingDraft": "جارٍ تحميل مسودة المعالجة…",
+      "saveDraft": "حفظ المسودة",
+      "draftSaved": "تم حفظ مسودة المعالجة.",
+      "draftSavedAt": "آخر حفظ للمسودة {when}.",
+      "evidenceAttached": "صورة الإنجاز مرفقة بالمسودة."
     },
     "recyclerProcessingQueue": {
       "title": "المعالجة",
@@ -694,7 +719,9 @@
       "recordedHeading": "المعالجة مُسجَّلة",
       "noneAwaiting": "كل سجل مستلَم لديه تفاصيل معالجته.",
       "noneRecorded": "لم تُسجَّل أي معالجة في هذا المرفق بعد.",
-      "backToIntake": "العودة إلى الاستلام"
+      "backToIntake": "العودة إلى الاستلام",
+      "loadingQueue": "جارٍ تحميل قائمة المعالجة…",
+      "loadMore": "تحميل المزيد"
     },
     "recyclerAccount": {
       "title": "حساب المرفق",
@@ -768,7 +795,8 @@
       "notReviewableTitle": "هذا السجل لا ينتظر قرارًا",
       "notReviewableNotice": "السجل قيد المراجعة فقط يمكن أن يتلقى قرارًا. هذا العرض للقراءة فقط.",
       "backToQueue": "العودة إلى قائمة المراجعة",
-      "unknownLocation": "الموقع غير موجود في الدليل المراجَع"
+      "unknownLocation": "الموقع غير موجود في الدليل المراجَع",
+      "decisionsHeading": "القرارات السابقة"
     },
     "reviewAssigned": {
       "title": "السجلات المخصَّصة",
@@ -1395,10 +1423,10 @@
     "digestNotice": "البصمة تكشف أي تغيير لاحق في المحتوى المسجّل. وهي لا تثبت وقوع الحدث ولا تجعل المحتوى صحيحًا."
   },
   "qr": {
-    "symbolAlternative": "رمز QR لرمز النقل {code}",
+    "symbolAlternative": "رمز QR للسجل {code}",
     "presentHint": "اعرض هذا الرمز على مرفق الاستلام، أو اقرأ رمز النقل الموضّح أدناه.",
-    "transferCode": "رمز النقل",
-    "copyCode": "نسخ رمز النقل",
+    "transferCode": "رمز النقل اليدوي",
+    "copyCode": "انسخ رمز النقل اليدوي",
     "copied": "تم النسخ",
     "download": "تنزيل الرمز",
     "payloadSummary": "ما يحتويه هذا الرمز",
@@ -1417,10 +1445,30 @@
     "imageErrorTitle": "لم يتم استخدام هذه الصورة",
     "imageNoSymbol": "لم يُعثر على رمز QR في هذه الصورة. جرّب صورة أقرب وأوضح.",
     "imageUnreadable": "لم تتم قراءة هذا الملف كصورة.",
-    "codeLabel": "رمز النقل",
-    "codeHint": "ثمانية أحرف بعد ST-، كما هي مطبوعة تحت رمز QR.",
+    "codeLabel": "رمز النقل اليدوي",
+    "codeHint": "اثنا عشر حرفًا في ثلاث مجموعات، كما يقرؤها الجامع.",
     "codeRequired": "أدخل رمز النقل.",
-    "lookUp": "البحث عن هذا الرمز"
+    "lookUp": "البحث عن هذا الرمز",
+    "codeInvalid": "أدخل الرمز المكوّن من اثني عشر حرفًا، مثل 7K3Q-M9XD-2HVT.",
+    "statusLabel": "حالة الرمز",
+    "status": {
+      "inactive": "غير مفعّل بعد",
+      "active": "مفعّل",
+      "expired": "منتهي الصلاحية",
+      "used": "استُخدم عند التسليم"
+    },
+    "expiresAt": "تنتهي صلاحيته",
+    "inactiveTitle": "يعمل هذا الرمز بعد الإرسال",
+    "inactiveNotice": "أرسل السجل لتفعيل رمز QR ورمز النقل اليدوي.",
+    "manualCodeNotice": "شارك الرمز اليدوي مع منشأة الاستلام فقط. يعمل مثل رمز QR ويتوقف بعد التسليم أو انتهاء الصلاحية أو إعادة الإصدار.",
+    "expiredTitle": "انتهت صلاحية هذا الرمز",
+    "expiredNotice": "أعد إصدار الرمز لتسليم هذا العنصر.",
+    "usedTitle": "تم استخدام هذا الرمز",
+    "usedNotice": "تم تسجيل التسليم، لذا لم يعد الرمز يعمل.",
+    "reissue": "إعادة إصدار الرموز",
+    "reissueTitle": "إعادة إصدار رمز QR والرمز اليدوي؟",
+    "reissueDescription": "يتوقف رمز QR والرمز اليدوي الحاليان فورًا. استخدم ذلك إذا فُقد رمز أو تمت مشاركته أو انتهت صلاحيته.",
+    "reissued": "صدرت رموز جديدة. لم تعد الرموز السابقة تعمل."
   },
   "register": {
     "boundaryTitle": "التسجيل الذاتي خارج نطاق هذا العرض",

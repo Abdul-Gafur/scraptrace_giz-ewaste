@@ -1,10 +1,26 @@
 import type {
-  Evidence,
+  ActorReference,
+  DemoAccount,
+  EvidenceMetadata,
   EwasteCategory,
   GeoCoordinates,
+  HandoffPreview,
+  ManualTransferCode,
   Permission,
+  ProcessingDetail,
+  ProgrammeView,
+  QrCredentials,
+  ReceivingLocationView,
   RecoveryRecord,
   RecoveryRecordEvent,
+  RecoveryRecordListRequest,
+  RecoveryRecordPage,
+  ReviewCaseDetail,
+  ReviewCasePage,
+  ReviewQueueFilters,
+  ReviewReasonCode,
+  ReviewState,
+  RecoveryRecordState,
   SupportedLanguage,
   UserRole,
   VisionResult,
@@ -42,7 +58,8 @@ import type { SafetyCard, SafetyCardStatus } from "@/services/domain/safety-cont
  *
  * Every implementation is bound to one acting session, so a service enforces the contract
  * permission rules for its own actor. Screens never pass a role, and hiding a control is never
- * the only thing standing between a user and a restricted mutation.
+ * the only thing standing between a user and a restricted mutation. Request and response shapes
+ * come from `@scraptrace/contracts`; the HTTP adapter validates every response against them.
  */
 
 export interface Session {
@@ -51,10 +68,16 @@ export interface Session {
   readonly preferredLanguage: SupportedLanguage;
   readonly displayLabel: string;
   readonly developmentOnly: boolean;
+  /** The reference to copy into contract requests; its scope fields are omitted when absent. */
+  readonly actorReference: ActorReference;
+  readonly programmeIds: readonly string[];
+  readonly facilityIds: readonly string[];
+  /** Locations where this user may record a handoff (recyclers only). */
+  readonly receivingLocationIds: readonly string[];
 }
 
 export interface SignInInput {
-  readonly email?: string;
+  readonly username?: string;
   readonly password?: string;
   /** Available only from the explicitly selected non-production mock adapter. */
   readonly demoRole?: UserRole;
@@ -64,6 +87,17 @@ export interface AuthenticationService {
   getSession(): Promise<Session | null>;
   signIn(input: SignInInput): Promise<Session>;
   signOut(): Promise<void>;
+  /** Development-only demonstration usernames and roles; empty when discovery is disabled. */
+  listDemoAccounts(): Promise<readonly DemoAccount[]>;
+}
+
+/** Programme reference data a form needs; the API remains authoritative for every value. */
+export interface ReferenceDataService {
+  getProgramme(): Promise<ProgrammeView>;
+  /** The programme's participating receiving locations, for choosing a destination. */
+  listDestinations(): Promise<readonly ReceivingLocationView[]>;
+  /** Locations where the signed-in recycler may record a handoff. */
+  listReceivingLocations(): Promise<readonly ReceivingLocationView[]>;
 }
 
 /** Capture input for a new collector record, before any lifecycle transition. */
@@ -91,45 +125,83 @@ export interface CaptureInput {
 }
 
 export type UpdateDraftInput = Omit<CaptureInput, "image"> & {
-  /** Omit to retain the already persisted original evidence. */
+  /**
+   * A further photograph for the draft. The original photograph and its prediction are never
+   * replaced; an API stores this as additional item evidence.
+   */
   readonly image?: Blob;
+  /** The revision the edit was based on; a stale value is a `VERSION_CONFLICT`. */
   readonly baseRevision?: number;
 };
 
 export type SubmitOutcome =
-  | { readonly outcome: "submitted"; readonly record: RecoveryRecord; readonly replayed: boolean }
+  | {
+      readonly outcome: "submitted";
+      readonly record: RecoveryRecord;
+      readonly replayed: boolean;
+    }
   | {
       readonly outcome: "duplicate_image";
       readonly record: RecoveryRecord;
       readonly flagCodes: readonly string[];
     };
 
-/** Result of resolving a scanned QR payload or a typed transfer code. */
+/**
+ * The credential a recycler presented, relayed unchanged into the handoff request. The client
+ * never generates or derives a credential (ADR-009).
+ */
+export type PresentedCredential =
+  | { readonly kind: "qr_token"; readonly lookupToken: string }
+  | { readonly kind: "manual_transfer_code"; readonly code: ManualTransferCode };
+
+/** Result of resolving a scanned QR payload or a typed manual transfer code. */
 export type HandoffLookupResult =
-  | { readonly outcome: "ready"; readonly record: RecoveryRecord }
+  | {
+      readonly outcome: "ready";
+      readonly record: HandoffPreview;
+      readonly credential: PresentedCredential;
+    }
   | { readonly outcome: "not_found" }
-  | { readonly outcome: "not_ready"; readonly record: RecoveryRecord }
+  | { readonly outcome: "not_ready"; readonly record: HandoffPreview }
   | {
       readonly outcome: "already_received";
-      readonly record: RecoveryRecord;
+      readonly record: HandoffPreview;
       readonly receivedAt: string;
     }
-  | { readonly outcome: "other_facility"; readonly record: RecoveryRecord }
+  | { readonly outcome: "other_facility" }
   | { readonly outcome: "unsupported_contract_version" };
 
+export interface AddEvidenceInput {
+  readonly evidenceType:
+    | "additional_item_photo"
+    | "handoff_photo"
+    | "weight_measurement"
+    | "processing_completion";
+  readonly image: Blob;
+  readonly preview?: string;
+  readonly offline: boolean;
+}
+
 export interface RecoveryRecordService {
-  /** Records owned by the acting collector. */
+  /** Every record the collector owns (bounded aggregation for dashboards). */
   listOwn(): Promise<readonly RecoveryRecord[]>;
-  /** Records the acting role may see operationally, already scoped. */
+  /** Every record the acting role may see operationally (bounded aggregation). */
   listOperational(): Promise<readonly RecoveryRecord[]>;
+  /** One server-driven page of the caller's records, filtered by the server. */
+  listPage(request: RecoveryRecordListRequest): Promise<RecoveryRecordPage>;
   getById(recordId: string): Promise<RecoveryRecord | null>;
-  saveDraft(record: unknown): Promise<RecoveryRecord>;
   createDraft(input: CaptureInput): Promise<RecoveryRecord>;
   updateDraft(recordId: string, input: UpdateDraftInput): Promise<RecoveryRecord>;
   submit(recordId: string): Promise<SubmitOutcome>;
+  /** The owning collector's QR payload and manual transfer code. */
+  getQrCredentials(recordId: string): Promise<QrCredentials>;
+  /** Revokes both credentials and issues new ones (lost, shared or expired QR). */
+  reissueQrCredentials(recordId: string): Promise<QrCredentials>;
   lookupForHandoff(scannedTextOrCode: string): Promise<HandoffLookupResult>;
   listEvents(recordId: string): Promise<readonly RecoveryRecordEvent[]>;
-  listEvidence(recordId: string): Promise<readonly Evidence[]>;
+  listEvidence(recordId: string): Promise<readonly EvidenceMetadata[]>;
+  addEvidence(recordId: string, input: AddEvidenceInput): Promise<EvidenceMetadata>;
+  /** Protected content as a component-local data URL; never a permanent or public URL. */
   getEvidenceImage(evidenceId: string): Promise<string | null>;
 }
 
@@ -159,13 +231,14 @@ export interface HandoffEvidenceInput {
   readonly handoffPhotoPreview?: string;
   readonly weightPhoto: Blob;
   readonly weightPhotoPreview?: string;
-  /** Text of the scanned QR symbol, kept as the scan evidence for the handoff. */
-  readonly scannedPayload: string;
-  readonly notes?: string;
 }
 
 export interface RecordHandoffInput {
   readonly recordId: string;
+  /** The collector reference from the lookup preview. */
+  readonly collectorReference: ActorReference;
+  /** The credential the recycler presented at lookup. */
+  readonly credential: PresentedCredential;
   readonly confirmedCategory: EwasteCategory;
   readonly confirmedCondition: "working" | "repairable" | "damaged" | "unknown";
   readonly measuredWeight: { readonly value: number; readonly unit: "kg" | "g" };
@@ -173,6 +246,7 @@ export interface RecordHandoffInput {
   readonly finalPriceCurrency: string;
   readonly receivingLocationId: string;
   readonly evidence: HandoffEvidenceInput;
+  readonly notes?: string;
   readonly offline: boolean;
 }
 
@@ -181,23 +255,39 @@ export interface HandoffService {
   record(
     request: z.infer<typeof HandoffRequestSchema>,
   ): Promise<z.infer<typeof HandoffResponseSchema>>;
-  /** Prepares evidence, builds the contract request and calls `record`. */
+  /** Uploads the handoff evidence, builds the contract request and calls `record`. */
   confirmReceipt(input: RecordHandoffInput): Promise<z.infer<typeof HandoffResponseSchema>>;
 }
 
 export interface MaterialEntryInput {
+  /** The server identifier of a persisted draft entry; absent for a new row. */
+  readonly entryId?: string;
   readonly material: string;
   readonly weight: { readonly value: number; readonly unit: "kg" | "g" };
 }
 
+export type ProcessingMethod =
+  | "reuse_referral"
+  | "repair_referral"
+  | "material_recovery"
+  | "safe_storage"
+  | "other_reviewed";
+
+/** Editable processing information, persisted so it survives a refresh (FR-REV-001). */
+export interface ProcessingDraftInput {
+  readonly method: ProcessingMethod;
+  readonly notes?: string;
+  readonly processedAt?: string;
+  readonly materialEntries: readonly MaterialEntryInput[];
+  /** A newly chosen completion photograph; uploaded before the draft is saved. */
+  readonly completionEvidence?: Blob;
+  readonly completionEvidencePreview?: string;
+  readonly offline: boolean;
+}
+
 export interface RecordProcessingInput {
   readonly recordId: string;
-  readonly method:
-    | "reuse_referral"
-    | "repair_referral"
-    | "material_recovery"
-    | "safe_storage"
-    | "other_reviewed";
+  readonly method: ProcessingMethod;
   readonly materialEntries: readonly MaterialEntryInput[];
   readonly processedAt: string;
   /**
@@ -205,8 +295,10 @@ export interface RecordProcessingInput {
    * it as `ProcessingInformationSchema.result`, so it is required rather than optional.
    */
   readonly notes: string;
-  readonly completionEvidence: Blob;
+  /** A new completion photograph, or `completionEvidenceIds` already attached to the draft. */
+  readonly completionEvidence?: Blob;
   readonly completionEvidencePreview?: string;
+  readonly completionEvidenceIds?: readonly string[];
   readonly offline: boolean;
 }
 
@@ -215,14 +307,29 @@ export interface ProcessingService {
     request: z.infer<typeof ProcessingRequestSchema>,
   ): Promise<z.infer<typeof ProcessingResponseSchema>>;
   submitProcessing(input: RecordProcessingInput): Promise<z.infer<typeof ProcessingResponseSchema>>;
+  /** Received records awaiting processing at the recycler's locations, oldest first. */
+  listQueue(request: {
+    readonly cursor?: string;
+    readonly limit?: number;
+  }): Promise<RecoveryRecordPage>;
+  /** The persisted processing draft, or `null` when none has been started. */
+  getDraft(recordId: string): Promise<ProcessingDetail | null>;
+  saveDraft(recordId: string, input: ProcessingDraftInput): Promise<ProcessingDetail>;
 }
 
 export interface ReviewDecisionInput {
   readonly recordId: string;
   readonly decision: "approve" | "reject" | "request_correction";
-  readonly reasonCode: string;
+  readonly reasonCode: ReviewReasonCode;
   readonly reviewerNote: string;
   readonly requestedCorrection?: string;
+  /** The case flags the decision addresses, or `MANUAL_REVIEW`. */
+  readonly reviewReasonCodes: readonly string[];
+  /** Evidence the reviewer inspected; at least one item. */
+  readonly evidenceConsidered: readonly string[];
+  /** The states the reviewer read; a stale pair is a `VERSION_CONFLICT`. */
+  readonly previousReviewState: ReviewState;
+  readonly previousRecordState: RecoveryRecordState;
 }
 
 export interface ReviewService {
@@ -232,8 +339,11 @@ export interface ReviewService {
   submitDecision(
     input: ReviewDecisionInput,
   ): Promise<z.infer<typeof ProgrammeReviewResponseSchema>>;
-  /** Records eligible for review, already scoped to the acting reviewer. */
-  listQueue(): Promise<readonly RecoveryRecord[]>;
+  /** One server-filtered, server-paginated page of review cases in the reviewer's scope. */
+  listCases(filters: ReviewQueueFilters): Promise<ReviewCasePage>;
+  getCase(caseId: string): Promise<ReviewCaseDetail>;
+  /** The review case of a record, or `null` when the record has none. */
+  findCaseForRecord(recordId: string): Promise<ReviewCaseDetail | null>;
 }
 
 export interface ReportingService {
@@ -325,6 +435,7 @@ export interface LocalDataService {
 
 export interface FrontendServices {
   readonly authentication: AuthenticationService;
+  readonly reference: ReferenceDataService;
   readonly recoveryRecords: RecoveryRecordService;
   readonly vision: VisionService;
   readonly safetyGuidance: SafetyGuidanceService;

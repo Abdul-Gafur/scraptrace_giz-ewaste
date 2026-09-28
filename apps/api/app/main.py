@@ -95,7 +95,13 @@ def create_app(
             "Idempotency-Key",
             "If-Match",
         ],
-        expose_headers=["X-Request-ID", "ETag", "Idempotent-Replayed", "Retry-After"],
+        expose_headers=[
+            "X-Request-ID",
+            "ETag",
+            "Idempotent-Replayed",
+            "Retry-After",
+            "X-Content-Digest",
+        ],
     )
     application.add_middleware(RequestLoggingMiddleware)
     application.add_middleware(RequestIdMiddleware)

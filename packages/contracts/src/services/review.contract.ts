@@ -80,6 +80,8 @@ export const ReviewQueueFiltersSchema = CursorPaginationRequestSchema.extend({
   opened_from: IsoDateSchema.optional(),
   opened_to: IsoDateSchema.optional(),
   facility_id: UuidV7Schema.optional(),
+  /** Restricts the queue to the case of one record (used to open a record's case). */
+  record_id: RecoveryRecordIdSchema.optional(),
   sort: z.enum(["opened_at", "-opened_at"]).default("opened_at"),
 });
 

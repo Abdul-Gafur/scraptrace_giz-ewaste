@@ -1,6 +1,6 @@
 "use client";
 
-import type { RecoveryRecord } from "@scraptrace/contracts";
+import type { HandoffPreview, RecoveryRecord } from "@scraptrace/contracts";
 import { useTranslations } from "next-intl";
 
 import { DefinitionList, DefinitionRow } from "@/components/ui/content";
@@ -17,7 +17,8 @@ export function RecordIdentity({
   record,
   showSync = true,
 }: {
-  record: RecoveryRecord;
+  /** A full record, or the minimised preview a recycler sees before accepting it. */
+  record: RecoveryRecord | HandoffPreview;
   showSync?: boolean;
 }) {
   const translate = useTranslations("record");
@@ -47,7 +48,7 @@ export function RecordIdentity({
       <DefinitionRow term={translate("state")}>
         <RecordStatus
           state={record.business_state}
-          {...(showSync ? { synchronization: record.sync.sync_state } : {})}
+          {...(showSync && "sync" in record ? { synchronization: record.sync.sync_state } : {})}
         />
       </DefinitionRow>
     </DefinitionList>

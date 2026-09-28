@@ -35,11 +35,10 @@ import {
   useSubmitRecord,
   useUpdateDraft,
 } from "@/hooks/use-records";
-import { useProgrammeSettings } from "@/hooks/use-programme";
+import { useDestinations } from "@/hooks/use-reference";
 import { useModelConfiguration } from "@/hooks/use-administration";
 import { Link, useRouter } from "@/i18n/navigation";
 import { newEvidenceId, newUuid } from "@/services/domain/identifiers";
-import { ALL_DIRECTORY_LOCATIONS } from "@/services/local/location-directory";
 import { useServices } from "@/services/service-provider";
 import type { CaptureInput, UpdateDraftInput } from "@/services/ports/service-ports";
 
@@ -125,7 +124,7 @@ function CaptureEditor({
   const services = useServices();
   const safeMessage = useSafeErrorMessage();
 
-  const settingsQuery = useProgrammeSettings();
+  const destinationsQuery = useDestinations();
   const configurationQuery = useModelConfiguration();
   const createDraft = useCreateDraft();
   const updateDraft = useUpdateDraft();
@@ -340,11 +339,9 @@ function CaptureEditor({
 
   const busy =
     appraising || createDraft.isPending || updateDraft.isPending || submitRecord.isPending;
-  const compatibleDestinations = ALL_DIRECTORY_LOCATIONS.filter(
-    (entry) =>
-      category === "" ||
-      entry.accepted_categories.includes(category) ||
-      (settingsQuery.data?.show_unverified_facilities ?? true),
+  // The programme directory from the API; only locations accepting the category are offered.
+  const compatibleDestinations = (destinationsQuery.data ?? []).filter(
+    (entry) => category === "" || entry.accepted_categories.includes(category),
   );
   const preview = image?.preview ?? persistedPreview;
 

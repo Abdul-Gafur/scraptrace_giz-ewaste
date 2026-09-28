@@ -1,13 +1,20 @@
 "use client";
 
-import type { UserRole } from "@scraptrace/contracts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {
+  EvidenceMetadata,
+  RecoveryRecordListRequest,
+  ReviewQueueFilters,
+  UserRole,
+} from "@scraptrace/contracts";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useDevelopmentSession } from "@/auth/session";
 import { queryKeys } from "@/lib/query-keys";
 import { useServices } from "@/services/service-provider";
 import type {
+  AddEvidenceInput,
   CaptureInput,
+  ProcessingDraftInput,
   RecordHandoffInput,
   RecordProcessingInput,
   ReviewDecisionInput,
@@ -92,11 +99,120 @@ export function useRecordEvidence(recordId: string | undefined) {
   });
 }
 
-export function useReviewQueue() {
+/**
+ * Server-driven record pages. Filters are applied by the server and each further page follows
+ * the server's cursor; nothing is filtered or paginated in the browser.
+ */
+export function useRecordPages(filters: Omit<RecoveryRecordListRequest, "cursor">) {
+  const services = useServices();
+  const role = useRole();
+  return useInfiniteQuery({
+    queryKey: queryKeys.records.pages(role, JSON.stringify(filters)),
+    queryFn: ({ pageParam }) =>
+      services.recoveryRecords.listPage({
+        ...filters,
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) =>
+      page.pagination.has_more ? (page.pagination.next_cursor ?? undefined) : undefined,
+  });
+}
+
+export function useQrCredentials(recordId: string | undefined, enabled = true) {
   const services = useServices();
   return useQuery({
-    queryKey: queryKeys.records.reviewQueue,
-    queryFn: () => services.reviews.listQueue(),
+    queryKey: queryKeys.records.credentials(recordId ?? "none"),
+    queryFn: () => services.recoveryRecords.getQrCredentials(recordId ?? ""),
+    enabled: Boolean(recordId) && enabled,
+    // Credentials are sensitive: never kept after the screen that showed them is gone.
+    gcTime: 0,
+  });
+}
+
+export function useReissueQrCredentials() {
+  const services = useServices();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recordId: string) => services.recoveryRecords.reissueQrCredentials(recordId),
+    onSuccess: (credentials) =>
+      queryClient.setQueryData(queryKeys.records.credentials(credentials.record_id), credentials),
+  });
+}
+
+export function useAddEvidence() {
+  const services = useServices();
+  const invalidate = useInvalidateRecords();
+  return useMutation({
+    mutationFn: ({ recordId, input }: { recordId: string; input: AddEvidenceInput }) =>
+      services.recoveryRecords.addEvidence(recordId, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useProcessingQueue() {
+  const services = useServices();
+  return useInfiniteQuery({
+    queryKey: queryKeys.records.processingQueue,
+    queryFn: ({ pageParam }) =>
+      services.processing.listQueue(pageParam ? { cursor: pageParam } : {}),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) =>
+      page.pagination.has_more ? (page.pagination.next_cursor ?? undefined) : undefined,
+  });
+}
+
+export function useProcessingDraft(recordId: string) {
+  const services = useServices();
+  return useQuery({
+    queryKey: queryKeys.records.processingDraft(recordId),
+    queryFn: () => services.processing.getDraft(recordId),
+  });
+}
+
+export function useSaveProcessingDraft() {
+  const services = useServices();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recordId, input }: { recordId: string; input: ProcessingDraftInput }) =>
+      services.processing.saveDraft(recordId, input),
+    onSuccess: (detail) =>
+      queryClient.setQueryData(queryKeys.records.processingDraft(detail.record_id), detail),
+  });
+}
+
+/** Protected evidence images for already-loaded evidence metadata, keyed by evidence ID. */
+export function useEvidenceImages(evidence: readonly EvidenceMetadata[] | undefined) {
+  const services = useServices();
+  const ids = (evidence ?? []).map((item) => item.evidence_id);
+  return useQuery({
+    queryKey: ["records", "evidence-images", ...ids],
+    queryFn: async () =>
+      Object.fromEntries(
+        await Promise.all(
+          ids.map(async (id) => [id, await services.recoveryRecords.getEvidenceImage(id)] as const),
+        ),
+      ) as Record<string, string | null>,
+    enabled: evidence !== undefined,
+  });
+}
+
+/** One server-filtered page of review cases; `cursor` selects the page. */
+export function useReviewCases(filters: ReviewQueueFilters) {
+  const services = useServices();
+  return useQuery({
+    queryKey: queryKeys.records.reviewCases(JSON.stringify(filters)),
+    queryFn: () => services.reviews.listCases(filters),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** The review case of a record: flags, record, evidence, timeline and earlier decisions. */
+export function useReviewCase(recordId: string) {
+  const services = useServices();
+  return useQuery({
+    queryKey: queryKeys.records.reviewCase(recordId),
+    queryFn: () => services.reviews.findCaseForRecord(recordId),
   });
 }
 

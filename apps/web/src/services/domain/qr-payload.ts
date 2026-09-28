@@ -1,4 +1,10 @@
-import { CONTRACT_SCHEMA_VERSION, QrPayloadSchema, type QrPayload } from "@scraptrace/contracts";
+import {
+  CONTRACT_SCHEMA_VERSION,
+  QrPayloadSchema,
+  normalizeManualTransferCode,
+  type ManualTransferCode,
+  type QrPayload,
+} from "@scraptrace/contracts";
 
 /**
  * QR symbol text. The symbol carries exactly the three fields of `QrPayloadSchema`:
@@ -37,8 +43,22 @@ export const decodeQrPayload = (text: string): QrDecodeResult => {
 };
 
 /**
- * Human transfer code. A recycler can type this instead of scanning; it is the record's
- * `human_reference` (`ST-XXXXXXXX`) and is matched case-insensitively with spaces removed.
+ * What a recycler presented at intake: the text of a scanned QR symbol, or a typed manual
+ * transfer code (ADR-009). The manual code is a separate credential from the QR token; the
+ * human reference (`ST-…`) is display data and never a credential. Nothing here derives or
+ * generates a credential: the value is relayed exactly as presented, after normalisation.
  */
-export const normalizeTransferCode = (value: string): string =>
-  value.replace(/\s+/g, "").toUpperCase();
+export type PresentedCode =
+  | { readonly kind: "qr_text"; readonly text: string; readonly payload: QrPayload | null }
+  | { readonly kind: "manual_transfer_code"; readonly code: ManualTransferCode }
+  | { readonly kind: "unrecognised" };
+
+export const classifyPresentedCode = (value: string): PresentedCode => {
+  const text = value.trim();
+  if (text.toUpperCase().startsWith(`${QR_PREFIX}:`)) {
+    const decoded = decodeQrPayload(text);
+    return { kind: "qr_text", text, payload: decoded.ok ? decoded.payload : null };
+  }
+  const code = normalizeManualTransferCode(text);
+  return code ? { kind: "manual_transfer_code", code } : { kind: "unrecognised" };
+};

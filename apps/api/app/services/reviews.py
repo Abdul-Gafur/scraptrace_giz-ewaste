@@ -75,6 +75,7 @@ class ReviewQuery:
     opened_from: date | None = None
     opened_to: date | None = None
     facility_id: uuid.UUID | None = None
+    record_id: uuid.UUID | None = None
     sort: str = "opened_at"
     cursor: str | None = None
     limit: int = 25
@@ -172,6 +173,8 @@ class ReviewService:
         )
         if query.facility_id is not None:
             statement = statement.where(ReviewCase.facility_id == query.facility_id)
+        if query.record_id is not None:
+            statement = statement.where(ReviewCase.record_id == query.record_id)
         if query.flag_code is not None:
             statement = statement.where(self._has_flag(query.flag_code))
         if query.opened_from is not None:

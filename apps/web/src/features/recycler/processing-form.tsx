@@ -1,6 +1,6 @@
 "use client";
 
-import { ProcessingRequestSchema } from "@scraptrace/contracts";
+import { ProcessingRequestSchema, type ProcessingDetail } from "@scraptrace/contracts";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -27,7 +27,13 @@ import { FlagPanel } from "@/features/shared/flag-panel";
 import { useValueFormats } from "@/features/shared/formats";
 import { prepareImage, type AcceptedImage } from "@/features/shared/image-capture";
 import { RecordIdentity } from "@/features/shared/record-identity";
-import { useRecord, useSubmitProcessing } from "@/hooks/use-records";
+import { PageLoading } from "@/components/feedback/page-loading";
+import {
+  useProcessingDraft,
+  useRecord,
+  useSaveProcessingDraft,
+  useSubmitProcessing,
+} from "@/hooks/use-records";
 import { Link } from "@/i18n/navigation";
 import { toKilograms } from "@/services/domain/flags";
 import { isTerminal } from "@/services/domain/records";
@@ -35,6 +41,8 @@ import { nowUtc } from "@/services/domain/time";
 
 interface MaterialRow {
   readonly id: string;
+  /** The server identifier of a saved draft entry. */
+  readonly entryId?: string;
   material: string;
   value: string;
   unit: "kg" | "g";
@@ -52,11 +60,45 @@ const newRow = (): MaterialRow => ({
 /**
  * Processing record (FR-REV-001, FR-REV-002, FR-REV-007).
  *
- * Material rows can be added, edited and removed until submission. On submission the record moves
- * through the contract transitions: an unflagged record completes and becomes approved, while a
- * flagged record goes to review. A record that already holds a final decision is read-only.
+ * Material rows can be added, edited and removed until submission. The draft — method, result,
+ * time, material rows and completion photograph — is saved to the API, so it survives a refresh
+ * or another device. On submission the record moves through the contract transitions: an
+ * unflagged record completes and becomes approved, while a flagged record goes to review. A
+ * record that already holds a final decision is read-only.
  */
 export function ProcessingForm({ recordId }: { recordId: string }) {
+  const translate = useTranslations("screens.recyclerProcessing");
+  const draftQuery = useProcessingDraft(recordId);
+  if (draftQuery.isPending) return <PageLoading label={translate("loadingDraft")} />;
+  const draft = draftQuery.data ?? null;
+  return <ProcessingEditor draft={draft} key={draft?.version ?? 0} recordId={recordId} />;
+}
+
+const rowsFrom = (draft: ProcessingDetail | null): readonly MaterialRow[] =>
+  draft && draft.material_entries.length > 0
+    ? draft.material_entries.map((entry) => ({
+        id: entry.entry_id,
+        entryId: entry.entry_id,
+        material: entry.material,
+        value: String(entry.weight.value),
+        unit: entry.weight.unit,
+      }))
+    : [newRow()];
+
+/** `datetime-local` input value for a UTC timestamp, in the browser's time zone. */
+const localDateTime = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
+function ProcessingEditor({
+  recordId,
+  draft,
+}: {
+  recordId: string;
+  draft: ProcessingDetail | null;
+}) {
   const translate = useTranslations("screens.recyclerProcessing");
   const labels = useContractLabels();
   const formats = useValueFormats();
@@ -64,11 +106,17 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
   const safeMessage = useSafeErrorMessage();
   const recordQuery = useRecord(recordId);
   const submit = useSubmitProcessing();
+  const saveDraft = useSaveProcessingDraft();
 
-  const [method, setMethod] = useState<(typeof PROCESSING_METHODS)[number]>("material_recovery");
-  const [notes, setNotes] = useState("");
-  const [processedAt, setProcessedAt] = useState(() => nowUtc().slice(0, 16));
-  const [rows, setRows] = useState<readonly MaterialRow[]>([newRow()]);
+  const [method, setMethod] = useState<(typeof PROCESSING_METHODS)[number]>(
+    draft?.processing_method ?? "material_recovery",
+  );
+  const [notes, setNotes] = useState(draft?.notes ?? "");
+  const [processedAt, setProcessedAt] = useState(() =>
+    localDateTime(draft?.processing_timestamp ?? nowUtc()),
+  );
+  const [rows, setRows] = useState<readonly MaterialRow[]>(() => rowsFrom(draft));
+  const attachedEvidenceIds = draft?.completion_evidence_ids ?? [];
   const [evidence, setEvidence] = useState<AcceptedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
@@ -108,7 +156,9 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
     setFormError(undefined);
     const next: Record<string, string> = {};
     if (notes.trim().length === 0) next["notes"] = translate("notesRequired");
-    if (!evidence) next["evidence"] = translate("evidenceRequired");
+    if (!evidence && attachedEvidenceIds.length === 0) {
+      next["evidence"] = translate("evidenceRequired");
+    }
     const filled = rows.filter(
       (row) => row.material.trim().length > 0 || row.value.trim().length > 0,
     );
@@ -124,7 +174,7 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
       next["materials"] = translate("materialsInvalid");
     }
     setErrors(next);
-    if (Object.keys(next).length > 0 || !evidence) {
+    if (Object.keys(next).length > 0) {
       setFormError(translate("fixErrors"));
       return;
     }
@@ -139,9 +189,13 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
         })),
         processedAt: new Date(processedAt).toISOString(),
         notes: notes.trim(),
-        completionEvidence: evidence.blob,
-        ...(evidence.preview ? { completionEvidencePreview: evidence.preview } : {}),
-        offline: false,
+        ...(evidence
+          ? {
+              completionEvidence: evidence.blob,
+              ...(evidence.preview ? { completionEvidencePreview: evidence.preview } : {}),
+            }
+          : { completionEvidenceIds: attachedEvidenceIds }),
+        offline: typeof navigator !== "undefined" && !navigator.onLine,
       },
       {
         onSuccess: (response) => {
@@ -155,6 +209,39 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
             setFormError(response.message);
           }
         },
+        onError: (error) => setFormError(safeMessage(error)),
+      },
+    );
+  };
+
+  const onSaveDraft = () => {
+    setFormError(undefined);
+    const filled = rows.filter(
+      (row) => row.material.trim().length > 0 && Number.parseFloat(row.value) > 0,
+    );
+    saveDraft.mutate(
+      {
+        recordId,
+        input: {
+          method,
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
+          processedAt: new Date(processedAt).toISOString(),
+          materialEntries: filled.map((row) => ({
+            ...(row.entryId ? { entryId: row.entryId } : {}),
+            material: row.material.trim(),
+            weight: { value: Number.parseFloat(row.value), unit: row.unit },
+          })),
+          ...(evidence
+            ? {
+                completionEvidence: evidence.blob,
+                ...(evidence.preview ? { completionEvidencePreview: evidence.preview } : {}),
+              }
+            : {}),
+          offline: typeof navigator !== "undefined" && !navigator.onLine,
+        },
+      },
+      {
+        onSuccess: () => show({ title: translate("draftSaved"), tone: "success" }),
         onError: (error) => setFormError(safeMessage(error)),
       },
     );
@@ -393,8 +480,30 @@ export function ProcessingForm({ recordId }: { recordId: string }) {
                           src={evidence.preview}
                         />
                       ) : null}
+                      {!evidence && attachedEvidenceIds.length > 0 ? (
+                        <p className="text-success text-xs font-semibold" role="status">
+                          {translate("evidenceAttached")}
+                        </p>
+                      ) : null}
                       {errors["evidence"] ? <FormError title={errors["evidence"]} /> : null}
                     </div>
+
+                    {draft ? (
+                      <p className="text-muted-foreground text-xs">
+                        {translate("draftSavedAt", {
+                          when: formats.dateTime(draft.updated_at) ?? "",
+                        })}
+                      </p>
+                    ) : null}
+                    <Button
+                      block
+                      disabled={saveDraft.isPending || submit.isPending}
+                      loading={saveDraft.isPending}
+                      onClick={onSaveDraft}
+                      variant="secondary"
+                    >
+                      {translate("saveDraft")}
+                    </Button>
 
                     {formError ? <FormError title={formError} /> : null}
 
