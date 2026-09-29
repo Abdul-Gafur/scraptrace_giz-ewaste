@@ -14,7 +14,7 @@ No ADR selects a production identity provider. Phase 1 therefore ships a replace
 | Tokens | HS256 JWTs with a pinned algorithm, issuer, audience, `typ`, `jti`, `iat`/`nbf`/`exp`, and a default 30-minute lifetime. Claims contain only the user ID, role and session version. |
 | Revocation | Sign-out increments `users.session_version`, which invalidates every earlier token. Suspending an account or changing its role invalidates its tokens immediately. |
 | Browser sessions | The same token is set as an `HttpOnly`, `SameSite=Lax`, `Path=/` cookie, `Secure` in production. A cookie-authenticated `POST/PUT/PATCH/DELETE` must carry an allowed `Origin` (or `Referer`) header, otherwise `403`. Sign-in from a foreign origin is refused (login CSRF). |
-| API clients | `Authorization: Bearer <token>`, which takes precedence over the cookie. The sign-in response body includes the token for non-browser clients; browsers must not persist it. |
+| API clients | `Authorization: Bearer <token>` takes precedence over the cookie. Sign-in returns the credential only in `Set-Cookie`, not in the JSON body; a non-browser client can retain the cookie securely, send an allowed `Origin` on cookie-authenticated writes, or send its value as a Bearer token. |
 | Multiple roles | One distinct role per account until ADR-006's multi-role policy is decided. An account with several roles cannot sign in. |
 | Demo discovery | `GET /v1/auth/demo-accounts` exists only when `SCRAPTRACE_ENABLE_DEMO_ACCOUNT_DISCOVERY=true` in development or test (404 otherwise; production refuses the setting). It returns usernames and roles only. |
 
@@ -45,7 +45,7 @@ Reusable FastAPI dependencies (`app/api/security.py`): `get_current_actor` (auth
 - **Lifecycle:** a token is created with its draft (the contract requires `qr_payload` on every record) but cannot resolve until publication for handoff activates it. It then expires after `SCRAPTRACE_QR_TOKEN_TTL_DAYS`. The owner can rotate it, which revokes the old token; a partial unique index allows one unrevoked token per record. `used_at` is set at handoff.
 - **Possession is not authorisation:** lookup and handoff also require an authenticated recycler with `handoff:accept`/`handoff:record`, programme scope and facility scope.
 - **No oracle:** unknown, malformed, inactive, revoked, expired and mismatched tokens return the same `404` with the same message, and are audited as `qr-lookup.failed`. A recycler at another facility learns only `other_facility`. Lookups are rate limited per user (`SCRAPTRACE_LOOKUP_RATE_LIMIT_*`) and use `POST`, so tokens never appear in URLs or access logs.
-- **Transfer codes:** the typed human reference (FR-HND-001) resolves like a scan, subject to the same authentication, scope and rate limiting. The ten-character base32 reference (about 50 bits) makes guessing impractical within the rate limit.
+- **Transfer codes:** the typed manual transfer code is a separate credential from the QR token and the public human reference. It is derived from the QR-token row's nonce under a distinct HMAC purpose, stored only as a digest, and shares activation, expiry and rotation with the QR credential. Lookup and handoff accept exactly one presented credential; neither lookup reveals or exchanges it for the other. The same authentication, scope and rate limits apply.
 
 ## Handoff integrity
 

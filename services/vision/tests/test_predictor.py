@@ -126,7 +126,10 @@ def test_cli_stdout_is_json_and_diagnostics_use_stderr(tmp_path: Path) -> None:
     invalid.write_bytes(b"not an image")
     command = [sys.executable, "services/vision/predict.py", str(invalid)]
     completed = subprocess.run(command, check=True, capture_output=True, text=True)
-    assert json.loads(completed.stdout)["reason"] == "invalid_image"
+    payload = json.loads(completed.stdout)
+    assert payload["reason"] == "invalid_image"
+    assert payload["model_name"] == MODEL_MANIFEST.model_name
+    assert payload["model_version"] == MODEL_MANIFEST.model_version
     assert completed.stderr == ""
 
 
