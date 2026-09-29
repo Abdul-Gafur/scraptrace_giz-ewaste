@@ -60,8 +60,8 @@ test.describe("collector screens", () => {
       .click();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByText("Transfer code").first()).toBeVisible();
-    await expect(page.getByRole("img", { name: /QR code for transfer code ST-/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Copy the transfer code" })).toBeVisible();
+    await expect(page.getByRole("img", { name: /QR code for record ST-/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy the manual transfer code" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Download the code" })).toBeVisible();
 
     await page.getByRole("tab", { name: "History" }).click();
@@ -156,7 +156,7 @@ test.describe("recycler screens", () => {
     await expect(page.getByRole("button", { name: "Start the camera" })).toBeVisible();
     await expect(page.getByText("Use a photograph")).toBeVisible();
 
-    await page.getByLabel("Transfer code").fill("ST-NOTHING");
+    await page.getByLabel("Transfer code").fill("ZZZZ-ZZZZ-ZZZZ");
     await page.getByRole("button", { name: "Look up this code" }).click();
     await expect(page.getByText("No record matches that code")).toBeVisible();
     await expect(page.getByText(/No owner details are shown for an unknown code/)).toBeVisible();
@@ -202,11 +202,9 @@ test.describe("reviewer screens", () => {
   test("the queue lists reviewable records and filters by reason", async ({ page }) => {
     await page.goto("/en/review/queue");
     await waitForRecords(page);
-    await expect(page.getByText(/\d+ record\(s\)/)).toBeVisible();
-    await page.getByLabel("Reason").selectOption("WEIGHT_DISCREPANCY");
-    await expect(page.getByText(/\d+ record\(s\)/)).toBeVisible();
-    await page.getByLabel("Search by reference").fill("ST-DOES-NOT-EXIST");
-    await expect(page.getByText("No record matches the current filters.")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /\d+ cases on page 1/ })).toBeVisible();
+    await page.getByLabel("Reason").selectOption("CATEGORY_DISAGREEMENT");
+    await expect(page.getByRole("status").filter({ hasText: "1 cases on page 1" })).toBeVisible();
     await expectClean(page);
   });
 
@@ -215,14 +213,14 @@ test.describe("reviewer screens", () => {
   }) => {
     await page.goto("/en/review/queue");
     await waitForRecords(page);
-    // Only a record that is still under review offers the decision controls.
-    await page.getByLabel("Status").selectOption("under_review");
+    // The default queue contains open cases, which still offer decision controls.
     await page
       .getByRole("link")
       .filter({ hasText: /^ST-[A-Z0-9]{8}$/ })
       .filter({ visible: true })
       .first()
       .click();
+    await expect(page).toHaveURL(/\/review\/queue\/[0-9a-f-]+$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Why this record is in review" })).toBeVisible();
     await expect(page.getByText("Review flags").first()).toBeVisible();
     await expect(page.getByText(/A flag records that a value needs human judgement/)).toBeVisible();
@@ -507,7 +505,9 @@ test.describe("Arabic role screens", () => {
 
   test("French and Portuguese role screens render their own copy", async ({ page }) => {
     await page.goto("/fr/review/queue");
-    await expect(page.getByText("En attente de décision")).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { level: 1, name: "File de vérification réglementaire" }),
+    ).toBeVisible({ timeout: 20_000 });
     await page.goto("/pt/management/reports");
     await expect(
       page.getByRole("heading", { level: 1, name: "Relatórios do programa" }),

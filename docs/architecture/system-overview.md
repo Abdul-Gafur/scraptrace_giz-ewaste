@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-The [approved SRS v1.1](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) defines the required logical architecture below. The shared [contracts package](../../packages/contracts/README.md) is the first implemented boundary; application and service components remain unimplemented. Financial, certification and government capabilities remain outside the active boundary.
+The [approved SRS v1.1](<../product/ScrapTrace_Software_Requirements_Specification (2).docx>) defines the target logical architecture below. Phase 1 currently implements the shared [contracts package](../../packages/contracts/README.md), a Next.js frontend, a PostgreSQL-backed FastAPI workflow, and local checkpoint-backed vision inference. The diagram also includes planned components; it is not a deployment diagram. Financial, certification and government capabilities remain outside the active boundary.
 
 ## Application components
 
@@ -53,4 +53,4 @@ All fourteen SRS figures are represented in [SRS analysis models](analysis-model
 
 ## Current implementation
 
-There is no application architecture to operate: no UI, API route, database, model, content catalogue, provider connection, or deployment has been created. `packages/contracts` now implements the accepted shared schemas and pure rules described by [ADRs 002–007](../decisions/README.md). Accepted repository organisation is recorded in [ADR-001](../decisions/ADR-001-monorepo-structure.md); unrelated architecture and technology choices remain undecided or proposed.
+The Phase 1 application runs locally with the Next.js frontend, FastAPI, PostgreSQL migrations, private filesystem evidence storage, and the released vision checkpoint. Its real HTTP workflow covers collector capture and submission, recycler handoff and processing, and reviewer decisions. Mock mode additionally demonstrates UI-only capabilities. Offline synchronization, safety content and LLM integration, nearby search, reporting and exports, provider connections, and production deployment are not implemented. See [full-stack setup](../../apps/api/README.md#run-the-full-application), [contract dispositions](../../apps/api/docs/contract-gaps.md), and [API limitations](../../apps/api/docs/limitations.md) for the operational boundary.

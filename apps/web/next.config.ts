@@ -8,6 +8,9 @@ const scriptSource =
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'";
 
+const configuredApiUrl = process.env["NEXT_PUBLIC_API_BASE_URL"];
+const apiOrigin = configuredApiUrl ? new URL(configuredApiUrl).origin : null;
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -16,7 +19,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
-  "connect-src 'self'",
+  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}`,
   scriptSource,
   "style-src 'self' 'unsafe-inline'",
   "upgrade-insecure-requests",

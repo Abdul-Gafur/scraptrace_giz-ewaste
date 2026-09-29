@@ -7,6 +7,7 @@ const chromiumBrowser = existsSync(chromium.executablePath()) ? {} : { channel: 
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testIgnore: "http-workflow.spec.ts",
   fullyParallel: false,
   workers: 1,
   // A cross-role scenario visits several routes in one test, and the development server compiles

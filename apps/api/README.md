@@ -8,15 +8,15 @@ The ScrapTrace application API (FastAPI). It persists recovery records and their
 | [Database and migrations](docs/database.md) | Schema, integrity rules, transactions, seeding, test databases |
 | [Security controls](docs/security.md) | Authentication, authorisation, QR tokens, evidence, headers, audit |
 | [Frontend integration](docs/frontend-integration.md) | Web service-port → HTTP mapping and transport rules |
-| [Contract gaps](docs/contract-gaps.md) | Shapes the contracts do not define, and proposed changes |
+| [Contract gaps](docs/contract-gaps.md) | Closed and deferred contract dispositions |
 | [Known limitations](docs/limitations.md) | What Phase 1 does not do yet |
 
 ## Setup
 
-The repository convention is `uv` with the Python version declared in the root `.python-version`. From the repository root:
+The repository convention is `uv`. The API declares Python 3.10–3.12 support; the integration suite here was verified with Python 3.11. From the repository root:
 
 ```bash
-uv venv --python 3.10.11 .venv
+uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python -e 'apps/api[dev]'
 npm ci && npm run contracts:check   # builds packages/contracts for the parity tests
 ```
@@ -47,21 +47,43 @@ Seeding is explicit, repeatable and refused in production. It creates one progra
 
 ## Run
 
+### Run the full application
+
+From the repository root, after `npm ci`, the Python setup above, Docker Desktop startup, and placement of the verified checkpoint, export four distinct local-only values. Keep them in your shell or an untracked local secret store; do not commit them.
+
+```bash
+export SCRAPTRACE_LOCAL_POSTGRES_PASSWORD="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export SCRAPTRACE_AUTH_TOKEN_SECRET="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export SCRAPTRACE_QR_TOKEN_SECRET="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export SCRAPTRACE_SEED_DEMO_PASSWORD="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(18))')"
+npm run app:dev
+```
+
+`app:dev` starts PostgreSQL 16 on `127.0.0.1:55432`, applies Alembic migrations, runs the explicit idempotent seed command, and starts FastAPI at `http://127.0.0.1:8000` and Next.js at `http://127.0.0.1:3000/en`. The script sets `SCRAPTRACE_DATABASE_URL`, `SCRAPTRACE_ALLOWED_ORIGINS`, `NEXT_PUBLIC_API_MODE=http`, and `NEXT_PUBLIC_API_BASE_URL` for the two servers. Press Ctrl-C to stop the servers; the development database volume remains. Reuse the same database password on subsequent runs, or deliberately recreate that volume with a new password.
+
+The seeded users are `collector.demo`, `recycler.demo`, `reviewer.demo`, `manager.demo`, `safety-admin.demo`, `ml-reviewer.demo`, `collector-two.demo`, and `recycler-ashanti.demo`. All use `SCRAPTRACE_SEED_DEMO_PASSWORD`. The first three roles cover the real HTTP workflow. Demo account discovery returns usernames only. See [security controls](docs/security.md) for origin protection, cookie policy, evidence scope and rate limiting.
+
+The equivalent manual sequence is `npm run api:db:up`, `npm run api:db:migrate`, `npm run api:db:seed`, `npm run api:dev`, then `NEXT_PUBLIC_API_MODE=http NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev --workspace @scraptrace/web -- --webpack --hostname 127.0.0.1 --port 3000`, with the database URL, secrets and allowed origin exported first.
+
+### API only
+
 ```bash
 npm run api:dev
-curl http://localhost:8000/health/live
-curl http://localhost:8000/health/ready        # vision model
-curl http://localhost:8000/health/database     # reachable and migrated
+curl http://127.0.0.1:8000/health/live
+curl http://127.0.0.1:8000/health/ready        # vision model
+curl http://127.0.0.1:8000/health/database     # reachable and migrated
 
-TOKEN=$(curl -s -X POST http://localhost:8000/v1/auth/sessions \
-  -H 'Content-Type: application/json' \
-  -d "{\"username\":\"collector.demo\",\"password\":\"$SCRAPTRACE_SEED_DEMO_PASSWORD\"}" \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["access_token"])')
+cookie_jar="$(mktemp)"
+chmod 600 "$cookie_jar"
+python3 -c 'import json,os; print(json.dumps({"username":"collector.demo","password":os.environ["SCRAPTRACE_SEED_DEMO_PASSWORD"]}))' \
+  | curl -sS -c "$cookie_jar" -X POST http://127.0.0.1:8000/v1/auth/sessions \
+      -H 'Content-Type: application/json' --data-binary @- >/dev/null
 
-curl http://localhost:8000/v1/recovery-records -H "Authorization: Bearer $TOKEN"
-curl -X POST http://localhost:8000/v1/vision/appraise \
-  -H "Authorization: Bearer $TOKEN" -H 'X-Request-ID: demo-request-0001' \
+curl -b "$cookie_jar" http://127.0.0.1:8000/v1/recovery-records
+curl -b "$cookie_jar" -X POST http://127.0.0.1:8000/v1/vision/appraise \
+  -H 'Origin: http://127.0.0.1:3000' -H 'X-Request-ID: demo-request-0001' \
   -F 'image=@sample.jpg' -F 'evidence_id=0199a111-1111-7111-8111-111111111111'
+rm "$cookie_jar"
 ```
 
 OpenAPI 3.1 is served at `/openapi.json` (and `/docs`). It publishes the contract JSON Schemas as components and documents every body, error and security scheme.
@@ -73,8 +95,8 @@ All application routes are under `/v1`. Successful responses use the contract su
 | Area | Routes |
 |---|---|
 | Authentication | `POST /auth/sessions`, `GET /auth/me`, `DELETE /auth/sessions/current`, `GET /auth/demo-accounts` (development only) |
-| Reference | `GET /programmes/{programme_id}`, `GET /facilities/{facility_id}/receiving-locations` |
-| Recovery records | `POST /recovery-records` (multipart draft + photograph), `GET /recovery-records`, `GET/PATCH /recovery-records/{id}`, `POST /recovery-records/{id}/category-confirmations`, `POST /recovery-records/{id}/submissions`, `GET /recovery-records/{id}/events`, `POST /recovery-records/{id}/qr-token-rotations` |
+| Reference | `GET /programmes/{programme_id}`, `GET /programmes/{programme_id}/receiving-locations`, `GET /facilities/{facility_id}/receiving-locations` |
+| Recovery records | `POST /recovery-records` (multipart draft + photograph), `GET /recovery-records`, `GET/PATCH /recovery-records/{id}`, `POST /recovery-records/{id}/category-confirmations`, `POST /recovery-records/{id}/submissions`, `GET /recovery-records/{id}/events`, `GET /recovery-records/{id}/qr-credentials`, `POST /recovery-records/{id}/qr-token-rotations` |
 | Evidence | `POST/GET /recovery-records/{id}/evidence`, `GET /evidence/{id}`, `GET /evidence/{id}/content` |
 | Handoff | `POST /handoff-lookups`, `POST /handoffs` |
 | Processing | `GET /processing-queue`, `GET/PUT /recovery-records/{id}/processing`, `POST/PATCH/DELETE /recovery-records/{id}/processing/material-entries[/{entry_id}]`, `POST /processing-submissions` |
@@ -104,7 +126,11 @@ SCRAPTRACE_TEST_DATABASE_URL='postgresql+asyncpg://…/scraptrace_test' npm run 
 npm run api:db:check                     # models and migrations agree
 npm run api:audit                        # Python dependency advisories
 npm run vision:predict -- sample.jpg
+npm run test:e2e:http                  # disposable PostgreSQL + real API/web/checkpoint/browser suite
+SCRAPTRACE_E2E_RUN_API_SUITE=true npm run test:e2e:http  # also PostgreSQL API suite and Alembic cycle
 ```
+
+The real E2E runner requires the released checkpoint and verifies `/health/ready` before it starts the browser. It creates a uniquely named disposable PostgreSQL Compose project (default port `55434`), generates local-only secrets, applies migrations, seeds nine deterministic records including two isolated review cases, starts FastAPI and Next.js in HTTP mode on `127.0.0.1:8001` and `127.0.0.1:3101`, and removes only that run's containers, volume and evidence directory on exit. Change these ports with `SCRAPTRACE_E2E_POSTGRES_PORT`, `SCRAPTRACE_E2E_API_PORT`, and `SCRAPTRACE_E2E_WEB_PORT`. It never touches an existing development volume. The mock UI suite remains `npm run test:e2e`; the HTTP suite is `npm run test:e2e:http`.
 
 The real-checkpoint smoke test skips when the release file or digest is absent. All other API tests use an in-memory predictor.
 
@@ -114,7 +140,7 @@ Set the browser-safe values in `apps/web/.env.local`:
 
 ```text
 NEXT_PUBLIC_API_MODE=http
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 No backend secret belongs in a `NEXT_PUBLIC_*` variable. The mock service remains the development default. [Frontend integration](docs/frontend-integration.md) maps each service-port method to its route.

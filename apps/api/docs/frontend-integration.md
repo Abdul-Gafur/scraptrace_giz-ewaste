@@ -4,7 +4,7 @@ How `apps/web`'s HTTP adapter (`src/services/http/http-services.ts`) uses this A
 
 ## Transport rules
 
-- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (for example `http://localhost:8000`). Application routes are under `/v1`.
+- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (for example `http://127.0.0.1:8000`). Application routes are under `/v1`. Use `127.0.0.1` for both web and API in local HTTP mode so browser cookies and the configured origin agree. The web CSP allows only its own origin and this configured API origin for connections.
 - **Contracts:** every request and response body is a generated `@scraptrace/contracts` schema, published as an OpenAPI component of the same name. The API validates requests against these schemas and checks its own responses before sending them. The web parses every response with the same schema.
 - **Envelopes:** success bodies are `{success: true, contract_version: "1.0.0", data, meta}`; failures are `ErrorEnvelope`. Only `POST /v1/vision/appraise` returns a bare `VisionAppraisalResponse`.
 - **Authentication:** `POST /v1/auth/sessions` sets the HttpOnly, `SameSite=Lax` `scraptrace_session` cookie. The body (`SessionCreated`) carries no credential. Browsers send the cookie with `credentials: "include"`. Cookie-authenticated `POST/PUT/PATCH/DELETE` requests must come from an origin in `SCRAPTRACE_ALLOWED_ORIGINS`. Non-browser clients may send the cookie value as `Authorization: Bearer`.

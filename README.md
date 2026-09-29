@@ -30,14 +30,14 @@ git clone https://github.com/Abdul-Gafur/giz-ewaste.git
 cd giz-ewaste
 ```
 
-Install the npm workspace and start the frontend:
+Install the npm workspace and start the mock frontend:
 
 ```bash
 npm ci
 npm run dev
 ```
 
-The frontend is available at `http://localhost:3000/en`. For orientation, read:
+The mock frontend is available at `http://127.0.0.1:3000/en`. For the real API backed application, see [full-stack setup](apps/api/README.md#run-the-full-application). For orientation, read:
 
 1. [Final Software Requirements Specification](<docs/product/ScrapTrace_Software_Requirements_Specification (2).docx>) — authoritative application requirements and acceptance criteria.
 2. [SRS traceability and parity](docs/product/srs-traceability.md) — requirement coverage and source interpretation notes.
@@ -69,14 +69,13 @@ npm run lint
 npm run format:check
 npm run test
 npm run test:e2e
+npm run test:e2e:http
 npm run contracts:check
 ```
 
 ## Current status
 
-The repository contains the engineering documentation foundation, shared contracts, a trained computer-vision artefact, and a production-buildable Next.js frontend in which all six roles work end to end. One recovery record can be captured and submitted by a collector, resolved from its QR code and received by a recycler, processed, flagged, decided by a programme reviewer, and counted in the programme manager's report and CSV export. Safety content is authored, approved and published through its own workflow, and model metadata, stored corrections and the configuration the application applies are administered on their own screens.
-
-Application state lives in a browser-backed repository behind the shared service ports, so the demonstration needs no server. Production authentication, a production API, IndexedDB, a service worker, background synchronization, model retraining and deployment automation remain unimplemented. See the [frontend README](apps/web/README.md) for current boundaries.
+The repository contains a PostgreSQL backed FastAPI application, a released vision checkpoint, shared contracts, and a Next.js frontend with real HTTP adapters for Phase 1 capture, handoff, processing, and review. The mock mode still runs browser backed demonstration workflows for isolated UI tests. In HTTP mode, records, evidence, credentials, and decisions are issued and stored by the API. Safety content, reporting and exports, offline synchronization, and administrative editing remain mock only or deferred. See the [frontend README](apps/web/README.md) and [API limitations](apps/api/docs/limitations.md) for current boundaries.
 
 ## Important boundaries
 

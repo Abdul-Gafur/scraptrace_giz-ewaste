@@ -22,7 +22,9 @@ from apps.api.app.repositories.operations import IdempotencyRepository
 from apps.api.app.seed import seed_demonstration_records, seed_reference_data
 
 
-async def run_seed(settings: Settings, demo_password: str, reset_passwords: bool) -> str:
+async def run_seed(
+    settings: Settings, demo_password: str, reset_passwords: bool, *, e2e_fixtures: bool = False
+) -> str:
     services = build_services(settings)
     await services.database.start()
     try:
@@ -30,7 +32,7 @@ async def run_seed(settings: Settings, demo_password: str, reset_passwords: bool
             report = await seed_reference_data(
                 session, services.passwords, demo_password, reset_passwords=reset_passwords
             )
-        records = await seed_demonstration_records(services)
+        records = await seed_demonstration_records(services, e2e_fixtures=e2e_fixtures)
     finally:
         await services.database.stop()
     return (
@@ -60,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Re-hash every demo account with the current SCRAPTRACE_SEED_DEMO_PASSWORD.",
     )
+    seed.add_argument(
+        "--e2e-fixtures",
+        action="store_true",
+        help="Add isolated review cases for the disposable full-stack test database.",
+    )
     commands.add_parser("purge-idempotency", help="Delete expired idempotency records.")
     arguments = parser.parse_args(argv)
 
@@ -82,7 +89,16 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-        print(asyncio.run(run_seed(settings, demo_password, arguments.reset_passwords)))
+        print(
+            asyncio.run(
+                run_seed(
+                    settings,
+                    demo_password,
+                    arguments.reset_passwords,
+                    e2e_fixtures=arguments.e2e_fixtures,
+                )
+            )
+        )
         return 0
     print(asyncio.run(run_purge(settings)))
     return 0

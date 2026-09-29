@@ -48,6 +48,10 @@ interface MaterialRow {
   unit: "kg" | "g";
 }
 
+type ProcessingOutcome =
+  | { readonly kind: "recorded" }
+  | { readonly kind: "review"; readonly flagCodes: readonly string[] };
+
 const PROCESSING_METHODS = ProcessingRequestSchema.shape.processing_method.options;
 
 const newRow = (): MaterialRow => ({
@@ -69,9 +73,18 @@ const newRow = (): MaterialRow => ({
 export function ProcessingForm({ recordId }: { recordId: string }) {
   const translate = useTranslations("screens.recyclerProcessing");
   const draftQuery = useProcessingDraft(recordId);
+  const [outcome, setOutcome] = useState<ProcessingOutcome | null>(null);
   if (draftQuery.isPending) return <PageLoading label={translate("loadingDraft")} />;
   const draft = draftQuery.data ?? null;
-  return <ProcessingEditor draft={draft} key={draft?.version ?? 0} recordId={recordId} />;
+  return (
+    <ProcessingEditor
+      draft={draft}
+      key={draft?.version ?? 0}
+      outcome={outcome}
+      recordId={recordId}
+      setOutcome={setOutcome}
+    />
+  );
 }
 
 const rowsFrom = (draft: ProcessingDetail | null): readonly MaterialRow[] =>
@@ -95,9 +108,13 @@ const localDateTime = (timestamp: string): string => {
 function ProcessingEditor({
   recordId,
   draft,
+  outcome,
+  setOutcome,
 }: {
   recordId: string;
   draft: ProcessingDetail | null;
+  outcome: ProcessingOutcome | null;
+  setOutcome: (outcome: ProcessingOutcome) => void;
 }) {
   const translate = useTranslations("screens.recyclerProcessing");
   const labels = useContractLabels();
@@ -120,10 +137,6 @@ function ProcessingEditor({
   const [evidence, setEvidence] = useState<AcceptedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
-  const [outcome, setOutcome] = useState<
-    { kind: "recorded" } | { kind: "review"; flagCodes: readonly string[] } | null
-  >(null);
-
   const totalKg = rows.reduce((total, row) => {
     const value = Number.parseFloat(row.value);
     return Number.isFinite(value) && value > 0

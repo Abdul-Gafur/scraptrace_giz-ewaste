@@ -29,11 +29,11 @@ const waitForRepository = async (page: Page) => {
   await expect(visibleText(page, /ST-[A-Z0-9]{8}/)).toBeVisible({ timeout: 20_000 });
 };
 
-/** Captures and submits a record, returning its transfer code. */
+/** Captures and submits a record, returning its public reference and private manual credential. */
 const captureRecord = async (
   page: Page,
   options: { readonly declaredWeightKg: string; readonly photographName: string },
-): Promise<string> => {
+): Promise<{ reference: string; manualCode: string }> => {
   await page.goto("/en/collector/capture");
   await page
     .locator('input[type="file"][accept^="image/"]')
@@ -62,12 +62,17 @@ const captureRecord = async (
   await page.getByRole("button", { name: "Submit this record" }).click();
   await expect(page).toHaveURL(/\/collector\/records\/[0-9a-f-]+$/, { timeout: 20_000 });
 
-  const code = await page
+  const reference = await page
     .getByText(/^ST-[A-Z0-9]{8,16}$/)
     .first()
     .innerText();
-  expect(code).toMatch(/^ST-[A-Z0-9]{8,16}$/);
-  return code;
+  const manualCode = await page
+    .getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
+    .first()
+    .innerText();
+  expect(reference).toMatch(/^ST-[A-Z0-9]{8,16}$/);
+  expect(manualCode).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+  return { reference, manualCode };
 };
 
 /** Confirms receipt at intake for a transfer code, with the required evidence. */
@@ -125,18 +130,16 @@ const recordProcessing = async (page: Page, label: string) => {
 
 test.describe("scenario A: a successful recovery", () => {
   test("a collector's record reaches the programme report through every role", async ({ page }) => {
-    const code = await captureRecord(page, {
+    const { reference: code, manualCode } = await captureRecord(page, {
       declaredWeightKg: "20",
       photographName: "scenario-a",
     });
 
     // The QR code and the transfer code are both available to present.
-    await expect(
-      page.getByRole("img", { name: `QR code for transfer code ${code}` }),
-    ).toBeVisible();
+    await expect(page.getByRole("img", { name: `QR code for record ${code}` })).toBeVisible();
     await expect(page.getByText("Awaiting Handoff")).toBeVisible();
 
-    await confirmReceipt(page, { code, measuredWeightKg: "21", label: "scenario-a" });
+    await confirmReceipt(page, { code: manualCode, measuredWeightKg: "21", label: "scenario-a" });
     await expect(page.getByRole("heading", { name: "Receipt recorded" })).toBeVisible({
       timeout: 20_000,
     });
@@ -179,12 +182,12 @@ test.describe("scenario B: a discrepancy that a reviewer approves", () => {
   test("a materially different weight goes to review and then into verified totals", async ({
     page,
   }) => {
-    const code = await captureRecord(page, {
+    const { reference: code, manualCode } = await captureRecord(page, {
       declaredWeightKg: "20",
       photographName: "scenario-b",
     });
 
-    await confirmReceipt(page, { code, measuredWeightKg: "40", label: "scenario-b" });
+    await confirmReceipt(page, { code: manualCode, measuredWeightKg: "40", label: "scenario-b" });
     await expect(page.getByRole("heading", { name: "Receipt recorded and flagged" })).toBeVisible({
       timeout: 20_000,
     });
@@ -202,7 +205,6 @@ test.describe("scenario B: a discrepancy that a reviewer approves", () => {
     // The reviewer finds it in the queue and inspects the evidence.
     await page.goto("/en/review/queue");
     await waitForRepository(page);
-    await page.getByLabel("Search by reference").fill(code);
     await page.getByRole("link", { name: code }).filter({ visible: true }).first().click();
 
     await expect(page.getByRole("heading", { name: "Why this record is in review" })).toBeVisible();
@@ -230,8 +232,7 @@ test.describe("scenario B: a discrepancy that a reviewer approves", () => {
     // It has left the queue and appears in verified reporting.
     await page.goto("/en/review/queue");
     await waitForRepository(page);
-    await page.getByLabel("Search by reference").fill(code);
-    await expect(page.getByText("No record matches the current filters.")).toBeVisible();
+    await expect(page.getByRole("link", { name: code })).toHaveCount(0);
 
     await page.goto("/en/management/reports");
     await expect(page.getByText(/\d+ matching record\(s\)/)).toBeVisible({ timeout: 20_000 });
@@ -242,11 +243,11 @@ test.describe("scenario B: a discrepancy that a reviewer approves", () => {
 
 test.describe("scenario C: a non-approval outcome", () => {
   test("a rejected record changes state and is excluded from verified totals", async ({ page }) => {
-    const code = await captureRecord(page, {
+    const { reference: code, manualCode } = await captureRecord(page, {
       declaredWeightKg: "20",
       photographName: "scenario-c",
     });
-    await confirmReceipt(page, { code, measuredWeightKg: "45", label: "scenario-c" });
+    await confirmReceipt(page, { code: manualCode, measuredWeightKg: "45", label: "scenario-c" });
     await expect(page.getByRole("heading", { name: "Receipt recorded and flagged" })).toBeVisible({
       timeout: 20_000,
     });
@@ -255,7 +256,6 @@ test.describe("scenario C: a non-approval outcome", () => {
 
     await page.goto("/en/review/queue");
     await waitForRepository(page);
-    await page.getByLabel("Search by reference").fill(code);
     await page.getByRole("link", { name: code }).filter({ visible: true }).first().click();
 
     await page.getByRole("radio", { name: /Reject/ }).check();
@@ -283,17 +283,16 @@ test.describe("scenario C: a non-approval outcome", () => {
   });
 
   test("a correction request keeps the record under review", async ({ page }) => {
-    const code = await captureRecord(page, {
+    const { reference: code, manualCode } = await captureRecord(page, {
       declaredWeightKg: "20",
       photographName: "scenario-c2",
     });
-    await confirmReceipt(page, { code, measuredWeightKg: "45", label: "scenario-c2" });
+    await confirmReceipt(page, { code: manualCode, measuredWeightKg: "45", label: "scenario-c2" });
     await recordProcessing(page, "scenario-c2");
     await expect(page.getByText("Record sent for review")).toBeVisible({ timeout: 20_000 });
 
     await page.goto("/en/review/queue");
     await waitForRepository(page);
-    await page.getByLabel("Search by reference").fill(code);
     await page.getByRole("link", { name: code }).filter({ visible: true }).first().click();
 
     await page.getByRole("radio", { name: /Request a correction/ }).check();
@@ -468,7 +467,10 @@ test.describe("scenario E: authorization", () => {
       .filter({ visible: true })
       .first()
       .click();
-    await expect(page.getByText("This record holds a final decision").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/review\/queue\/[0-9a-f-]+$/, { timeout: 20_000 });
+    await expect(page.getByText("This record holds a final decision").first()).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page.getByRole("button", { name: "Submit the decision" })).toHaveCount(0);
   });
 
@@ -482,7 +484,8 @@ test.describe("scenario E: authorization", () => {
       .filter({ visible: true })
       .first()
       .click();
-    await expect(page.getByText("Next step").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/recycler\/records\/[0-9a-f-]+$/, { timeout: 20_000 });
+    await expect(page.getByText("Next step").first()).toBeVisible({ timeout: 20_000 });
     await expect(
       page.getByText("Scan the collector's code at intake to record receipt."),
     ).toBeVisible();

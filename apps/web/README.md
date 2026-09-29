@@ -39,6 +39,8 @@ npm run contracts:check
 
 Set `PLAYWRIGHT_BASE_URL` (for example `http://localhost:3000`) to run `npm run test:e2e` against an already running dev server instead of starting one; Next.js allows only one dev server per checkout.
 
+`npm run test:e2e` covers the browser-backed mock mode. From the repository root, `npm run test:e2e:http` runs a separate real HTTP suite against disposable PostgreSQL, migrated and seeded FastAPI, the released checkpoint and Next.js on `127.0.0.1`. See [full-stack setup](../api/README.md#run-the-full-application). The browser's content security policy allows the configured API origin; `NEXT_PUBLIC_API_BASE_URL` must match the API origin reachable from the browser.
+
 ### Shells, navigation and the component showcase
 
 - `src/navigation/navigation-config.ts` is the single source for role-aware navigation (labels, routes, icons, contract role and permission, active-route behaviour, mobile and desktop visibility). Components render what it returns and never check roles themselves. Hiding an item is not access control: backend authorization is mandatory (ADR-006).

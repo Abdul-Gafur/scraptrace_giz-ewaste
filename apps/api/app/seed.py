@@ -386,6 +386,31 @@ SEED_RECORD_PLANS: tuple[SeedRecordPlan, ...] = (
     ),
 )
 
+E2E_REVIEW_PLANS: tuple[SeedRecordPlan, ...] = (
+    SeedRecordPlan(
+        uuid.UUID("0199c008-0008-7008-8008-000000000008"),
+        "e2e-correction-television",
+        "televisions",
+        "damaged",
+        20.0,
+        RECYCLER_LOCATION_ID,
+        "processed",
+        measured_weight_kg=40.0,
+        materials=(("Lead glass", 6.5),),
+    ),
+    SeedRecordPlan(
+        uuid.UUID("0199c009-0009-7009-8009-000000000009"),
+        "e2e-rejection-television",
+        "televisions",
+        "damaged",
+        20.0,
+        RECYCLER_LOCATION_ID,
+        "processed",
+        measured_weight_kg=40.0,
+        materials=(("Lead glass", 6.5),),
+    ),
+)
+
 
 def seed_photo(label: str) -> bytes:
     """A deterministic synthetic image per label: stable digests, no real photograph."""
@@ -631,7 +656,7 @@ async def _seed_decision(
         await ReviewService(session, services, context).decide(reviewer, request)
 
 
-async def seed_demonstration_records(services: AppServices) -> int:
+async def seed_demonstration_records(services: AppServices, *, e2e_fixtures: bool = False) -> int:
     """Drives each planned record to its target stage through the services. Records already at
     or beyond a stage are left alone. Returns how many records advanced."""
     from apps.api.app.services.records import RecordService
@@ -642,7 +667,7 @@ async def seed_demonstration_records(services: AppServices) -> int:
     reviewer = await _seed_actor(services, "reviewer.demo", "programme_reviewer")
 
     advanced = 0
-    for plan in SEED_RECORD_PLANS:
+    for plan in SEED_RECORD_PLANS + (E2E_REVIEW_PLANS if e2e_fixtures else ()):
         async with services.database.session_scope() as session:
             existing = await session.get(RecoveryRecord, plan.record_id)
             state = existing.business_state if existing is not None else None
